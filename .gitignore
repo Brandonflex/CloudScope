@@ -1,0 +1,90 @@
+# CloudScope .gitignore
+
+## .NET / C#
+*.swp
+*.user
+*.userosscache
+*.sln.docstates
+*.userprefs
+[Dd]ebug/
+[Rr]elease/
+bld/
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+*.nupkg
+*.snupkg
+.nuget/
+artifacts/
+.vs/
+*.suo
+*.opensdf
+*.sdf
+*.cachefile
+.idea/
+*.sln.iml
+project.lock.json
+project.fragment.lock.json
+*.log
+msbuild*.wrn
+msbuild*.err
+[Tt]est[Rr]esult*/
+[Bb]uild[Ll]og.*
+TestResult.xml
+coverage*/
+.config/dotnet-tools.json
+
+## Angular / Node
+**/node_modules/
+**/dist/
+**/.angular/
+**/.angular-cache/
+*.js.map
+coverage/
+npm-debug.log
+yarn-error.log
+testem.log
+
+## IDE
+.vscode/
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+## OS
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+## Docker
+docker-compose.override.yml
+
+## Terraform
+*.tfstate
+*.tfstate.backup
+*.tfvars
+.terraform/
+.terraform.lock.hcl
+crash.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+## Environment / Secrets
+.env
+.env.local
+.env.*.local
+appsettings.Development.json
+appsettings.Local.json
+*.pfx
+*.key
+*.pem
+*.cert
+
+## Misc
+*.tmp
+*.bak
+*~
