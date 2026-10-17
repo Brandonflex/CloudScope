@@ -6,45 +6,83 @@
 *.userosscache
 *.sln.docstates
 *.userprefs
+
+# Build results
 [Dd]ebug/
 [Rr]elease/
+x64/
+x86/
+[Ww][Ii][Nn]32/
+[Aa][Rr][Mm]/
+[Aa][Rr][Mm]64/
 bld/
 [Bb]in/
 [Oo]bj/
 [Ll]og/
 [Ll]ogs/
+
+# NuGet
 *.nupkg
 *.snupkg
 .nuget/
+**/[Pp]ackages/*
+!**/[Pp]ackages/build/
+project.lock.json
+project.fragment.lock.json
 artifacts/
+
+# Visual Studio
 .vs/
 *.suo
 *.opensdf
 *.sdf
 *.cachefile
+*.VC.db
+*.VC.VC.opendb
+*.psess
+*.vsp
+*.vspx
+*.sap
+*.e2e
+
+# Rider
 .idea/
 *.sln.iml
+
+# .NET Core
 project.lock.json
 project.fragment.lock.json
+artifacts/
+**/Properties/launchSettings.json
+
+# MSBuild
 *.log
 msbuild*.wrn
 msbuild*.err
+
+# Test Results
 [Tt]est[Rr]esult*/
 [Bb]uild[Ll]og.*
 TestResult.xml
 coverage*/
+
+# dotnet tool
 .config/dotnet-tools.json
 
 ## Angular / Node
-**/node_modules/
-**/dist/
-**/.angular/
-**/.angular-cache/
+node_modules/
+dist/
+.angular/
+.angular-cache/
 *.js.map
-coverage/
-npm-debug.log
-yarn-error.log
-testem.log
+src/client/.sass-cache/
+src/client/connect.lock
+src/client/coverage/
+src/client/libpeerconnection.log
+src/client/npm-debug.log
+src/client/yarn-error.log
+src/client/testem.log
+src/client/typings/
 
 ## IDE
 .vscode/
@@ -52,11 +90,15 @@ testem.log
 !.vscode/tasks.json
 !.vscode/launch.json
 !.vscode/extensions.json
+.history/*
+*.sublime-workspace
 
 ## OS
 .DS_Store
 Thumbs.db
+ehthumbs.db
 Desktop.ini
+$RECYCLE.BIN/
 
 ## Docker
 docker-compose.override.yml
@@ -73,6 +115,9 @@ override.tf.json
 *_override.tf
 *_override.tf.json
 
+## Bicep
+bicepconfig.local.json
+
 ## Environment / Secrets
 .env
 .env.local
@@ -87,4 +132,5 @@ appsettings.Local.json
 ## Misc
 *.tmp
 *.bak
+*.swp
 *~
