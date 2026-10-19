@@ -35,6 +35,30 @@ public sealed class PolicyDefinition
 /// </summary>
 public static class CompliancePolicyCatalog
 {
+    /// <summary>
+    /// Readable KQL-ish expression for each rule, surfaced in the UI so operators
+    /// can see exactly what was evaluated (and reuse it in Resource Graph).
+    /// </summary>
+    private static readonly Dictionary<string, string> RuleExpressions = new()
+    {
+        ["CIS-AZ-2.1"] = "resources | where type == 'StorageAccount' | where properties.allowBlobPublicAccess == true",
+        ["CIS-AZ-2.2"] = "resources | where type == 'StorageAccount' | where properties.minTlsVersion !in ('TLS1_2','TLS1_3')",
+        ["CIS-AZ-3.1"] = "resources | where type == 'SqlDatabase' | where properties.auditingEnabled == false",
+        ["CIS-AZ-8.1"] = "resources | where type == 'KeyVault' | where properties.purgeProtection == false",
+        ["CIS-AWS-2.1.1"] = "resources | where type == 'StorageAccount' | where properties.encryption == 'None'",
+        ["CIS-AWS-2.1.2"] = "resources | where type == 'StorageAccount' | where properties.versioning == false",
+        ["CIS-AWS-5.2"] = "resources | where type in ('NetworkSecurityGroup','SecurityGroup') | where properties.source == 'Internet' and properties.openPorts has_any ('22','3389')",
+        ["CIS-AZ-7.1"] = "resources | where type == 'VirtualMachine' | where properties.diskEncryption == false",
+        ["SOC2-CC6.1"] = "resources | where type == 'Subnet' | where isempty(properties.nsg) and properties.public == true",
+        ["SOC2-CC6.6"] = "resources | where type in ('AppService','Function') | where properties.httpsOnly == false",
+        ["SOC2-CC7.1"] = "resources | where type == 'VirtualMachine' | where properties.detailedMonitoring == false",
+        ["SOC2-CC7.2"] = "resources | where type in ('SqlDatabase','CosmosDbAccount','DynamoDbTable') | where properties.backupRetentionDays < 7",
+        ["HIPAA-164.312(a)(2)(iv)"] = "resources | where type in ('StorageAccount','SqlDatabase','CosmosDbAccount','DynamoDbTable','RedisCache') | where properties.encryptionAtRest == false",
+        ["HIPAA-164.312(e)(1)"] = "resources | where properties.nonSslPort == true or properties.transitEncryption == false",
+        ["GDPR-32"] = "resources | where type in ('CosmosDbAccount','SqlDatabase','KeyVault') | where properties.publicNetworkAccess == 'Enabled'",
+        ["GDPR-5.1"] = "resources | where isempty(tags.owner) or isempty(tags.environment)"
+    };
+
     public static IReadOnlyList<PolicyDefinition> All { get; } = Build();
 
     public static IEnumerable<PolicyDefinition> ForFramework(ComplianceFramework framework) =>
@@ -352,7 +376,7 @@ public static class CompliancePolicyCatalog
             Category = category,
             Severity = severity,
             ApplicableResourceTypes = applicableTypes,
-            RuleExpression = "builtin",
+            RuleExpression = RuleExpressions.TryGetValue(id, out var expression) ? expression : "builtin",
             Remediation = remediation,
             Enabled = true
         }, evaluate);

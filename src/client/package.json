@@ -3,13 +3,17 @@
   "version": "0.0.0",
   "scripts": {
     "ng": "ng",
-    "start": "ng serve",
+    "start": "ng serve --proxy-config proxy.conf.json",
     "build": "ng build",
     "build:prod": "ng build --configuration production",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
     "lint": "ng lint",
-    "e2e": "ng e2e"
+    "e2e": "ng e2e",
+    "start:mock": "ng serve --proxy-config proxy.mock.json",
+    "mock:api": "node mock-api/server.mjs --port 5055",
+    "preview:demo": "ng build --configuration development && node mock-api/server.mjs --port 4300 --static dist/cloudscope/browser",
+    "preview:mock": "node mock-api/server.mjs --port 4300 --static dist/cloudscope/browser"
   },
   "private": true,
   "dependencies": {

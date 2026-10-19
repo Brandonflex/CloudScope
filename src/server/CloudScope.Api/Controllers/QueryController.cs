@@ -33,7 +33,21 @@ public class QueryController : ControllerBase
 
         var result = await _aiQueryService.QueryAsync(request.Question, ct);
 
-        return result.Success ? Ok(result) : StatusCode(500, result);
+        // Project to a UI-friendly shape: TimeSpan would otherwise serialize as
+        // "00:00:00.0120000", which is noise in the chat transcript.
+        var payload = new
+        {
+            question = result.Question,
+            answer = result.Answer,
+            generatedQuery = result.GeneratedQuery,
+            data = result.Data,
+            success = result.Success,
+            error = result.Error,
+            processingTime = $"{result.ProcessingTime.TotalMilliseconds:0} ms",
+            source = result.Source
+        };
+
+        return result.Success ? Ok(payload) : StatusCode(500, payload);
     }
 
     /// <summary>

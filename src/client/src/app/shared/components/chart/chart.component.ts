@@ -43,7 +43,7 @@ export class ChartComponent implements OnDestroy {
   /** Optional doughnut/pie hole size, e.g. "68%". */
   readonly cutout = input<string | undefined>(undefined);
 
-  private readonly canvas = viewChild.required<ElementRef<HTMLCanvasElement>>('canvas');
+  private readonly canvas = viewChild<ElementRef<HTMLCanvasElement>>('canvas');
   private chart?: Chart;
 
   constructor() {
@@ -53,6 +53,8 @@ export class ChartComponent implements OnDestroy {
       const data = this.data();
       const options = this.options();
       const cutout = this.cutout();
+
+      if (!canvas) return;
 
       this.chart?.destroy();
       this.chart = new Chart(canvas.nativeElement, {

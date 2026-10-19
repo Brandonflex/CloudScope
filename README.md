@@ -1,7 +1,3 @@
-<p align="center">
-  <img src="docs/screenshots/cloudscope-banner.png" alt="CloudScope Banner" width="100%" />
-</p>
-
 <h1 align="center">CloudScope</h1>
 
 <p align="center">
@@ -11,17 +7,17 @@
 
 <p align="center">
   <a href="#features">Features</a> •
-  <a href="#architecture">Architecture</a> •
   <a href="#quickstart">Quickstart</a> •
-  <a href="#tech-stack">Tech Stack</a> •
-  <a href="#contributing">Contributing</a> •
-  <a href="#license">License</a>
+  <a href="#architecture">Architecture</a> •
+  <a href="#configuration">Configuration</a> •
+  <a href="#api">API</a> •
+  <a href="#contributing">Contributing</a>
 </p>
 
 <p align="center">
   <img src="https://img.shields.io/badge/Azure-0078D4?style=flat&logo=microsoftazure&logoColor=white" alt="Azure" />
   <img src="https://img.shields.io/badge/AWS-232F3E?style=flat&logo=amazonaws&logoColor=white" alt="AWS" />
-  <img src="https://img.shields.io/badge/Angular-DD0031?style=flat&logo=angular&logoColor=white" alt="Angular" />
+  <img src="https://img.shields.io/badge/Angular-18-DD0031?style=flat&logo=angular&logoColor=white" alt="Angular" />
   <img src="https://img.shields.io/badge/.NET_8-512BD4?style=flat&logo=dotnet&logoColor=white" alt=".NET 8" />
   <img src="https://img.shields.io/badge/TypeScript-3178C6?style=flat&logo=typescript&logoColor=white" alt="TypeScript" />
   <img src="https://img.shields.io/badge/Cosmos_DB-0078D4?style=flat&logo=microsoftazure&logoColor=white" alt="Cosmos DB" />
@@ -33,9 +29,11 @@
 
 ## Overview
 
-**CloudScope** is an open-source multi-cloud infrastructure intelligence platform that discovers, maps, analyzes, and visualizes your entire cloud estate across **AWS** and **Azure** — with AI-powered querying and proactive anomaly detection.
+**CloudScope** is an open-source multi-cloud infrastructure intelligence platform that discovers, maps, analyses and visualises an entire cloud estate across **Azure** and **AWS** — with AI-assisted querying, blast-radius analysis, cost intelligence and continuous compliance scanning.
 
-Most organizations running multi-cloud have no single pane of glass. Teams use separate consoles, export CSVs, and rely on tribal knowledge. Existing tools (Steampipe, Cartography, Blast Radius, Prowler, OpenCost) each solve one piece of the puzzle. **CloudScope puts all the pieces together.**
+Most organisations running multi-cloud have no single pane of glass. Teams juggle separate consoles, exported CSVs and tribal knowledge. Existing tools each solve one slice of the problem. **CloudScope puts the pieces together** in one deployable application.
+
+> **It runs end-to-end with zero cloud credentials.** A realistic 54-resource demo estate (Azure + AWS, 65 dependency edges) is bundled and loaded automatically when no provider is configured, so every screen, chart and query is explorable out of the box.
 
 ### What makes CloudScope different?
 
@@ -44,151 +42,235 @@ Most organizations running multi-cloud have no single pane of glass. Teams use s
 | Multi-cloud discovery (Azure + AWS) | ✅ | ✅ | ⚠️ AWS-centric | ✅ | ❌ K8s only |
 | Interactive dependency graph | ✅ | ❌ | ⚠️ Neo4j only | ❌ | ❌ |
 | Blast radius analysis | ✅ | ❌ | ❌ | ❌ | ❌ |
-| AI natural language queries | ✅ | ❌ | ❌ | ❌ | ❌ |
+| AI natural-language queries | ✅ | ❌ | ❌ | ❌ | ❌ |
 | Cost intelligence & forecasting | ✅ | ❌ | ❌ | ❌ | ✅ K8s only |
-| Compliance scanning | ✅ | ⚠️ | ⚠️ Security only | ✅ | ❌ |
-| Drift detection | ✅ | ❌ | ❌ | ❌ | ❌ |
+| Compliance scanning (CIS/SOC 2/HIPAA/GDPR) | ✅ | ⚠️ | ⚠️ Security only | ✅ | ❌ |
+| IaC drift visibility | ✅ | ❌ | ❌ | ❌ | ❌ |
 | Interactive dashboard UI | ✅ | ❌ | ❌ | ❌ | ❌ |
 
 ---
 
 ## Features
 
-### 🔍 Multi-Cloud Resource Discovery
-Connect your Azure and AWS accounts to discover every resource — VMs, VNets, VPCs, databases, storage, functions, load balancers, and more. Scheduled and on-demand sync keeps your inventory current.
+### 🔍 Multi-cloud resource discovery
+Azure Resource Graph and AWS Config are queried on demand and on a schedule. Discovered resources are normalised into a single model (provider, type, region, tags, properties, cost, health, IaC ownership) and persisted to the configured store. Relationship edges are derived from ARM references and AWS resource configuration.
 
-### 🕸️ Interactive Dependency Graph
-Your entire infrastructure as an interactive, explorable graph. Resources are nodes, relationships are edges. Filter by cloud, type, region, or tags. Click any resource for full metadata and health status.
+### 🕸️ Interactive dependency graph
+The whole estate rendered with Cytoscape.js: force-directed, concentric, breadth-first and grid layouts; provider and type filters; search with focus; node inspector with live blast-radius analysis.
 
-### 💥 Blast Radius Analysis
-Select any resource and instantly see all downstream dependencies. Simulate: *"What breaks if this database goes down?"* — CloudScope highlights every affected service with risk scoring.
+### 💥 Blast radius analysis
+A reverse graph traversal (BFS) answers *"what breaks if this fails?"*. Impact is grouped by hop count, resource type and region, with a risk score and the monthly cost of everything downstream. Containment (`Contains`) and monitoring (`Monitors`) edges are excluded because a child failing does not take its parent down.
 
-### 💬 AI-Powered Natural Language Query
-Ask questions in plain English powered by Azure OpenAI (GPT-4):
-- *"Show me all unattached public IP addresses in production"*
-- *"What's my most expensive resource group?"*
-- *"Which resources would be affected if us-east-1 goes down?"*
+### 💬 Natural-language query
+Ask questions such as *"which VMs are under-utilised?"* or *"what is the blast radius of vm-app-01?"*. When Azure OpenAI is configured the question is answered by GPT with the live inventory as context; otherwise a deterministic local engine resolves the same intents, so the feature always works. Answers are returned with the resources they cite and the query that produced them.
 
-### 💰 Cost Intelligence & Forecasting
-Unified cost view across Azure Cost Management and AWS Cost Explorer. Per-resource attribution, trend analysis, 30/60/90-day forecasts, anomaly detection, and right-sizing recommendations.
+### 💰 Cost intelligence
+Per-resource cost attribution, 30/60/90-day trends, linear-regression forecasts with confidence bands, z-score anomaly detection, and right-sizing / idle-resource recommendations. Live Azure Cost Management and AWS Cost Explorer data is used when credentials exist; otherwise costs are derived deterministically from the inventory.
 
-### 🛡️ Compliance & Drift Detection
-Policy-as-code rules against CIS, SOC 2, HIPAA, and GDPR frameworks. Continuous scanning, drift detection for resources modified outside IaC, and auto-generated compliance reports.
+### 🛡️ Compliance and posture
+16 policy-as-code rules across **CIS**, **SOC 2**, **HIPAA** and **GDPR**, evaluated against resource properties and tags. Framework scorecards, severity-ranked findings with remediation guidance, a searchable policy catalog, and on-demand scans that stream progress over SignalR.
 
----
-
-## Architecture
-
-```
-┌─────────────────────────────────────────────────────────┐
-│                    Angular 17+ Frontend                   │
-│  Dashboard │ Graph Viz │ Resources │ Costs │ Compliance  │
-└─────────────────────┬───────────────────────────────────┘
-                      │ REST / SignalR
-┌─────────────────────┴───────────────────────────────────┐
-│                  .NET 8 Web API Backend                    │
-│  Discovery │ Graph Engine │ Cost Analyzer │ Compliance    │
-└──────┬──────────────┬──────────────┬──────────────────────┘
-       │              │              │
-┌──────┴──────┐ ┌─────┴─────┐ ┌─────┴──────┐
-│ Azure APIs  │ │ AWS APIs  │ │  Azure     │
-│ (Resource   │ │ (Config,  │ │  OpenAI    │
-│  Graph,     │ │  Cost     │ │  (GPT-4)   │
-│  Cost,      │ │  Explorer,│ │            │
-│  Monitor)   │ │  CloudTrail│ │            │
-└─────────────┘ └──────────┘ └────────────┘
-```
-
-> See [docs/architecture.md](docs/architecture.md) for detailed architecture documentation.
+### ⚡ Real-time updates
+A SignalR hub pushes `resourceDiscovered`, `discoveryProgress`, `discoveryCompleted`, `complianceViolation`, `costAnomaly` and `scanProgress` events to the SPA.
 
 ---
 
 ## Quickstart
 
-### Prerequisites
-
-- [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0)
-- [Node.js 20+](https://nodejs.org/)
-- [Docker Desktop](https://www.docker.com/products/docker-desktop/)
-- Azure subscription with [Resource Graph](https://learn.microsoft.com/en-us/azure/governance/resource-graph/) access
-- AWS account with [Config](https://aws.amazon.com/config/) enabled
-
-### Local Development
+### Option A — explore the demo UI (no .NET, no cloud account)
 
 ```bash
-# Clone the repository
 git clone https://github.com/Brandonflex/Azure.git
-cd Azure
+cd Azure/src/client
+npm ci
+npm run preview:demo       # builds the SPA and serves it with the bundled demo API
+```
 
-# Start infrastructure services (Cosmos DB Emulator, Redis, etc.)
-docker-compose up -d
+Open **http://localhost:4300**. The demo API (`src/client/mock-api/`) implements the same REST surface as the .NET backend on top of `public/demo/inventory.json`.
 
-# Start the backend
+For hot reload while working on the UI:
+
+```bash
+npm run mock:api           # demo API on :5055
+npm run start:mock         # ng serve on :4200, proxying /api to :5055
+```
+
+### Option B — run the full stack
+
+Prerequisites: [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0), Node.js 20+.
+
+```bash
+# Terminal 1 — API (http://localhost:5001, Swagger at /swagger)
 cd src/server
 dotnet restore
 dotnet run --project CloudScope.Api
 
-# Start the frontend (in a new terminal)
+# Terminal 2 — Angular dev server (http://localhost:4200)
 cd src/client
-npm install
-ng serve
+npm ci
+npm start                  # proxies /api and /hubs to :5001
 ```
 
-Open [http://localhost:4200](http://localhost:4200) to access CloudScope.
+No credentials are required: `Platform:SeedDemoData` is `true` by default and the demo estate is loaded when no provider is configured.
+
+### Option C — local dependencies with Docker
+
+```bash
+docker compose up -d       # Cosmos DB emulator (:8081) + Redis (:6379)
+```
+
+Then set `Platform:StorageProvider` to `Cosmos` and fill in `CosmosDb:Endpoint` / `CosmosDb:Key` to exercise the Cosmos persistence path.
+
+### Tests and builds
+
+```bash
+# Backend
+dotnet build src/server/CloudScope.sln -c Release
+dotnet test  src/server/CloudScope.sln -c Release
+
+# Frontend
+cd src/client
+npm run build              # development build
+npm run build:prod         # optimised production build
+```
 
 ---
 
-## Tech Stack
+## Architecture
+
+```text
+┌──────────────────────────────────────────────────────────────────────┐
+│                        Angular 18 SPA (standalone)                    │
+│  Dashboard · Graph · Resources · Costs · Compliance · AI Query        │
+│  Signals · Material 18 · Chart.js · Cytoscape.js · SignalR client     │
+└───────────────────────────────┬──────────────────────────────────────┘
+                                │ REST + WebSocket (/api, /hubs/notifications)
+┌───────────────────────────────┴──────────────────────────────────────┐
+│                       ASP.NET Core 8 Web API                         │
+│  Controllers ──► Domain services ──► Repositories                    │
+│  Discovery · Blast Radius · Cost Analytics · Compliance · AI Query   │
+│  Exception middleware · Serilog · Swagger · Health checks             │
+└───────┬───────────────────┬────────────────────┬─────────────────────┘
+        │                   │                    │
+┌───────┴───────┐   ┌───────┴────────┐   ┌───────┴────────────┐
+│ Cloud APIs    │   │ Storage        │   │ AI                 │
+│ Azure ARM /   │   │ In-memory      │   │ Azure OpenAI       │
+│ Resource Graph│   │ (default) or   │   │ (optional) +       │
+│ AWS Config /  │   │ Cosmos DB      │   │ local NL engine    │
+│ Cost Explorer │   │ (SQL API)      │   │                    │
+└───────────────┘   └────────────────┘   └────────────────────┘
+```
+
+The backend follows Clean Architecture:
+
+| Project | Responsibility |
+|---------|----------------|
+| `CloudScope.Core` | Domain models, enums, service interfaces, paging/result primitives |
+| `CloudScope.Infrastructure` | Cloud providers, repositories, cost/compliance/AI services, demo data |
+| `CloudScope.GraphEngine` | Graph traversal and blast-radius analysis |
+| `CloudScope.Api` | HTTP surface, SignalR hub, hosted discovery loop, middleware |
+| `CloudScope.Tests` | xUnit + FluentAssertions + Moq unit tests |
+
+See [docs/architecture.md](docs/architecture.md) for design decisions and
+[docs/IMPLEMENTATION.md](docs/IMPLEMENTATION.md) for a feature-by-feature implementation map.
+
+---
+
+## Configuration
+
+Everything is configurable through `appsettings.json` or environment variables (`Azure__SubscriptionId`, `Platform__StorageProvider`, …).
+
+| Section | Purpose |
+|---------|---------|
+| `Platform` | `Mode` (`Auto`/`Demo`/`Live`), `StorageProvider` (`InMemory`/`Cosmos`), `SeedDemoData` |
+| `Discovery` | Background sync toggle, interval (minutes), startup delay |
+| `Azure` | Tenant, client, subscription and Resource Graph scopes |
+| `AWS` | Access key, secret, region, optional account id for ARN construction |
+| `CosmosDb` | Endpoint, key, database and container names |
+| `AzureOpenAI` | Endpoint, key, deployment, temperature, max tokens |
+| `Redis` | Optional distributed cache connection string |
+| `ApplicationInsights` | Optional telemetry connection string |
+
+**Demo mode** is selected automatically when neither Azure nor AWS credentials are present. `GET /api/meta` reports the active mode, storage backend, AI mode and inventory counts; the SPA shows a banner when demo data is loaded.
+
+### Cloud permissions
+
+* **Azure** — Resource Graph `read`, Cost Management `read`, plus `Microsoft.Resources/subscriptions/read`. Any of client-secret credentials, managed identity or `az login` (via `DefaultAzureCredential`) works.
+* **AWS** — `config:SelectResourceConfig`, `config:ListDiscoveredResources`, `ce:GetCostAndUsage`.
+
+> Authentication between the SPA and the API is intentionally open in this phase; the pipeline already wires `UseAuthentication`/`UseAuthorization` so Entra ID can be enabled without restructuring.
+
+---
+
+## API
+
+Interactive documentation is served at **`/swagger`** when the API is running.
+
+| Area | Endpoints |
+|------|-----------|
+| Meta | `GET /api/meta`, `POST /api/meta/demo` |
+| Resources | `GET /api/resources` (paging, provider/type/region/group/search filters), `GET /api/resources/{id}`, `GET /api/resources/{id}/relationships`, `GET /api/resources/blast-radius/{id}`, `POST /api/resources/discover` |
+| Graph | `GET /api/graph`, `GET /api/graph/subgraph/{id}`, `GET /api/graph/paths?sourceId=&targetId=` |
+| Costs | `GET /api/costs/{summary,trends,forecast,anomalies,top-resources,recommendations}` |
+| Compliance | `GET /api/compliance/{status,policies}`, `GET /api/compliance/reports/{framework}`, `POST /api/compliance/scan` |
+| Query | `POST /api/query/ask`, `GET /api/query/suggestions` |
+| Realtime | SignalR hub at `/hubs/notifications` |
+| Health | `GET /health` |
+
+Full request and response examples live in [docs/api-reference.md](docs/api-reference.md).
+
+---
+
+## Tech stack
 
 | Layer | Technology |
 |-------|-----------|
-| **Frontend** | Angular 17+, TypeScript, Cytoscape.js, Chart.js, Angular Material |
-| **Backend** | .NET 8, C# 12, ASP.NET Core Web API, MediatR, Clean Architecture |
-| **Database** | Cosmos DB (Gremlin API), Azure SQL, Redis Cache |
-| **AI/ML** | Azure OpenAI (GPT-4), Embeddings, RAG |
-| **Cloud (Azure)** | Resource Graph, Cost Management, Service Bus, SignalR, Entra ID |
-| **Cloud (AWS)** | Config, Cost Explorer, CloudTrail, CloudWatch, SDK for .NET |
-| **DevOps** | GitHub Actions, Docker, Bicep, Terraform |
-| **Testing** | xUnit, Moq, Angular Testing Library, Playwright |
+| **Frontend** | Angular 18 (standalone, signals, strict templates), Angular Material 18, Chart.js 4, Cytoscape.js, SignalR client, TypeScript 5.5 |
+| **Backend** | .NET 8, ASP.NET Core, Serilog, Swashbuckle, SignalR |
+| **Data** | In-memory store (default) or Azure Cosmos DB (SQL API); optional Redis cache |
+| **Cloud** | Azure Resource Graph, Azure Cost Management, Azure OpenAI, AWS Config, AWS Cost Explorer |
+| **DevOps** | GitHub Actions (build, test, CodeQL, Bicep validation), Bicep, Terraform, Docker Compose |
+| **Testing** | xUnit, FluentAssertions, Moq |
 
 ---
 
-## Repository Structure
+## Repository structure
 
-```
+```text
 CloudScope/
 ├── src/
-│   ├── client/                    # Angular 17+ Frontend
-│   │   └── src/app/
-│   │       ├── core/              # Guards, interceptors, services
-│   │       ├── features/          # Feature modules (dashboard, graph, etc.)
-│   │       ├── shared/            # Shared components & pipes
-│   │       └── layout/            # App shell & navigation
-│   └── server/                    # .NET 8 Backend
-│       ├── CloudScope.Api/        # Web API host
-│       ├── CloudScope.Core/       # Domain models & interfaces
-│       ├── CloudScope.Infrastructure/ # Cloud provider integrations
-│       ├── CloudScope.GraphEngine/    # Graph traversal & analysis
-│       └── CloudScope.Tests/      # Unit & integration tests
-├── infra/
-│   ├── bicep/                     # Azure IaC templates
-│   └── terraform/                 # AWS IaC templates
-├── .github/workflows/             # CI/CD pipelines
-├── docs/                          # Architecture docs & screenshots
-└── docker-compose.yml             # Local development environment
+│   ├── client/                        # Angular 18 application
+│   │   ├── src/app/
+│   │   │   ├── core/                  # models, API services, formatting helpers
+│   │   │   ├── features/              # dashboard, graph, resources, costs, compliance, query
+│   │   │   ├── layout/                # navigation shell
+│   │   │   └── shared/                # chart, stat-card, empty-state, spinner
+│   │   ├── public/demo/inventory.json # single source of truth for the demo estate
+│   │   ├── mock-api/                  # dependency-free demo API + static host
+│   │   └── proxy*.json                # dev proxies (real API / demo API)
+│   └── server/                        # .NET 8 solution
+│       ├── CloudScope.Api/
+│       ├── CloudScope.Core/
+│       ├── CloudScope.Infrastructure/
+│       ├── CloudScope.GraphEngine/
+│       └── CloudScope.Tests/
+├── infra/                             # Bicep + Terraform
+├── docs/                              # architecture, API, implementation notes
+├── .github/workflows/                 # CI, CodeQL, deployment
+└── docker-compose.yml                 # Cosmos DB emulator + Redis
 ```
 
 ---
 
 ## Contributing
 
-We welcome contributions! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+Contributions are welcome — see [CONTRIBUTING.md](CONTRIBUTING.md). Good first issues include additional compliance policies, more provider relationship mappings and additional AI query intents.
 
 ---
 
 ## License
 
-This project is licensed under the MIT License — see [LICENSE](LICENSE) for details.
+MIT — see [LICENSE](LICENSE).
 
 ---
 

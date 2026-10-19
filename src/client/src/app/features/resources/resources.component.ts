@@ -8,6 +8,7 @@ import {
   signal
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -23,7 +24,6 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { EmptyStateComponent } from '../../shared/components/empty-state/empty-state.component';
 import { LoadingSpinnerComponent } from '../../shared/components/loading-spinner/loading-spinner.component';
 import { ResourceService } from '../../core/services/resource.service';
-import { MetaService } from '../../core/services/meta.service';
 import { RefreshService } from '../../core/services/refresh.service';
 import { ToastService } from '../../core/services/toast.service';
 import { ResourceDetailDialogComponent } from './resource-detail-dialog.component';
@@ -35,7 +35,7 @@ import {
   ResourceType,
   STATUS_COLORS
 } from '../../core/models';
-import { currency, humanize, resourceIcon, shortDate, typeLabel } from '../../core/utils/format';
+import { currency, resourceIcon, typeLabel } from '../../core/utils/format';
 
 @Component({
   selector: 'app-resources',
@@ -43,6 +43,7 @@ import { currency, humanize, resourceIcon, shortDate, typeLabel } from '../../co
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     FormsModule,
+    RouterLink,
     MatIconModule,
     MatButtonModule,
     MatFormFieldModule,
@@ -72,7 +73,7 @@ import { currency, humanize, resourceIcon, shortDate, typeLabel } from '../../co
           <button mat-stroked-button type="button" (click)="resetFilters()">
             <mat-icon>filter_alt_off</mat-icon> Reset
           </button>
-          <a mat-flat-button color="primary" href="javascript:void(0)" (click)="openGraphHint()">
+          <a mat-flat-button color="primary" routerLink="/graph">
             <mat-icon>hub</mat-icon> View in graph
           </a>
         </div>
@@ -255,7 +256,6 @@ import { currency, humanize, resourceIcon, shortDate, typeLabel } from '../../co
 })
 export class ResourcesComponent implements OnInit {
   private readonly resourceService = inject(ResourceService);
-  private readonly meta = inject(MetaService);
   private readonly refresh = inject(RefreshService);
   private readonly toast = inject(ToastService);
   private readonly dialog = inject(MatDialog);
@@ -368,10 +368,6 @@ export class ResourcesComponent implements OnInit {
     });
   }
 
-  openGraphHint(): void {
-    this.toast.info('Open the Infrastructure graph page to explore dependencies.');
-  }
-
   iconFor(type: string): string {
     return resourceIcon(type);
   }
@@ -390,11 +386,5 @@ export class ResourcesComponent implements OnInit {
     return 'chip-neutral';
   }
 
-  providerLabel(value: CloudProvider | string): string {
-    return humanize(String(value));
-  }
-
   protected readonly currency = currency;
-  protected readonly shortDate = shortDate;
-  protected readonly metaStatus = this.meta.status;
 }
