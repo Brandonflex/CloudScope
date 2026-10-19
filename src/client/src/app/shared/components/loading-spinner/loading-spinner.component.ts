@@ -1,16 +1,15 @@
-import { Component, input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, input } from '@angular/core';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 
 @Component({
   selector: 'app-loading-spinner',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [MatProgressSpinnerModule],
   template: `
     <div class="spinner-container">
-      <mat-spinner diameter="40" />
-      @if (message()) {
-        <p class="spinner-message">{{ message() }}</p>
-      }
+      <mat-spinner diameter="34" strokeWidth="3" />
+      @if (message()) { <p>{{ message() }}</p> }
     </div>
   `,
   styles: [`
@@ -19,15 +18,13 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      padding: 48px;
+      gap: 12px;
+      padding: 40px;
+      min-height: 160px;
     }
-    .spinner-message {
-      margin-top: 16px;
-      opacity: 0.6;
-      font-size: 0.9rem;
-    }
+    p { margin: 0; font-size: 0.85rem; color: #8b949e; }
   `]
 })
 export class LoadingSpinnerComponent {
-  message = input<string>('Loading...');
+  readonly message = input<string>('Loading…');
 }

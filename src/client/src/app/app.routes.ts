@@ -9,38 +9,38 @@ export const routes: Routes = [
   {
     path: 'dashboard',
     loadComponent: () =>
-      import('./features/dashboard/dashboard.component').then(m => m.DashboardComponent),
+      import('./features/dashboard/dashboard.component').then((m) => m.DashboardComponent),
     title: 'Dashboard — CloudScope'
   },
   {
     path: 'graph',
     loadComponent: () =>
-      import('./features/graph/graph.component').then(m => m.GraphComponent),
-    title: 'Infrastructure Graph — CloudScope'
+      import('./features/graph/graph.component').then((m) => m.GraphComponent),
+    title: 'Infrastructure graph — CloudScope'
   },
   {
     path: 'resources',
     loadComponent: () =>
-      import('./features/resources/resources.component').then(m => m.ResourcesComponent),
+      import('./features/resources/resources.component').then((m) => m.ResourcesComponent),
     title: 'Resources — CloudScope'
   },
   {
     path: 'costs',
     loadComponent: () =>
-      import('./features/costs/costs.component').then(m => m.CostsComponent),
-    title: 'Cost Intelligence — CloudScope'
+      import('./features/costs/costs.component').then((m) => m.CostsComponent),
+    title: 'Cost intelligence — CloudScope'
   },
   {
     path: 'compliance',
     loadComponent: () =>
-      import('./features/compliance/compliance.component').then(m => m.ComplianceComponent),
+      import('./features/compliance/compliance.component').then((m) => m.ComplianceComponent),
     title: 'Compliance — CloudScope'
   },
   {
     path: 'query',
     loadComponent: () =>
-      import('./features/query/query.component').then(m => m.QueryComponent),
-    title: 'AI Query — CloudScope'
+      import('./features/query/query.component').then((m) => m.QueryComponent),
+    title: 'AI query — CloudScope'
   },
   {
     path: '**',

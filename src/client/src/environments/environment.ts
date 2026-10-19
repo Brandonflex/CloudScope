@@ -1,5 +1,12 @@
+/**
+ * Development environment.
+ *
+ * `apiUrl` is empty because the Angular dev server proxies /api and /hubs to the
+ * .NET API (see proxy.conf.json). Override the proxy target with API_URL.
+ */
 export const environment = {
   production: false,
-  apiUrl: 'https://localhost:5001',
-  signalRHubUrl: 'https://localhost:5001/hubs/notifications'
+  apiUrl: '',
+  signalRHubUrl: '/hubs/notifications',
+  demoMode: false
 };

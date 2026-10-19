@@ -2,34 +2,37 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { GraphData, CloudProvider, ResourceType } from '../models';
+import { CloudProvider, GraphData, ResourceRelationship, ResourceType } from '../models';
+
+export interface GraphQuery {
+  provider?: CloudProvider | null;
+  resourceType?: ResourceType | null;
+  region?: string | null;
+}
 
 @Injectable({ providedIn: 'root' })
 export class GraphService {
   private readonly http = inject(HttpClient);
   private readonly baseUrl = `${environment.apiUrl}/api/graph`;
 
-  getFullGraph(
-    provider?: CloudProvider,
-    resourceType?: ResourceType,
-    region?: string
-  ): Observable<GraphData> {
+  getFullGraph(query: GraphQuery = {}): Observable<GraphData> {
     let params = new HttpParams();
-    if (provider !== undefined) params = params.set('provider', provider.toString());
-    if (resourceType) params = params.set('resourceType', resourceType);
-    if (region) params = params.set('region', region);
+    if (query.provider) params = params.set('provider', query.provider);
+    if (query.resourceType) params = params.set('resourceType', query.resourceType);
+    if (query.region) params = params.set('region', query.region);
 
     return this.http.get<GraphData>(this.baseUrl, { params });
   }
 
   getSubgraph(resourceId: string, depth = 2): Observable<GraphData> {
-    return this.http.get<GraphData>(`${this.baseUrl}/subgraph/${resourceId}`, {
-      params: { depth: depth.toString() }
-    });
+    return this.http.get<GraphData>(
+      `${this.baseUrl}/subgraph/${encodeURIComponent(resourceId)}`,
+      { params: { depth: String(depth) } }
+    );
   }
 
-  findPath(sourceId: string, targetId: string) {
-    return this.http.get(`${this.baseUrl}/paths`, {
+  findPath(sourceId: string, targetId: string): Observable<ResourceRelationship[]> {
+    return this.http.get<ResourceRelationship[]>(`${this.baseUrl}/paths`, {
       params: { sourceId, targetId }
     });
   }
