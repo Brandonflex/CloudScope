@@ -46,7 +46,7 @@
     "@angular/cli": "^20.3.40",
     "@angular/compiler-cli": "^20.3.34",
     "@eslint/js": "^8.57.1",
-    "@types/cytoscape": "^3.21.8",
+    "@types/cytoscape": "^3.31.0",
     "@types/jasmine": "~5.1.0",
     "angular-eslint": "^18.4.3",
     "eslint": "^8.57.1",
