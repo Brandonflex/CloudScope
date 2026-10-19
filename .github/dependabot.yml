@@ -6,7 +6,7 @@ updates:
     schedule:
       interval: weekly
       day: monday
-    open-pull-requests-limit: 5
+    open-pull-requests-limit: 3
     groups:
       angular:
         patterns:
@@ -29,7 +29,7 @@ updates:
     schedule:
       interval: weekly
       day: monday
-    open-pull-requests-limit: 5
+    open-pull-requests-limit: 3
     groups:
       aspnetcore:
         patterns:
@@ -45,6 +45,7 @@ updates:
     directory: /
     schedule:
       interval: monthly
+    open-pull-requests-limit: 3
     labels:
       - dependencies
       - ci
@@ -54,6 +55,13 @@ updates:
     directory: /src/server
     schedule:
       interval: monthly
+    open-pull-requests-limit: 2
+    ignore:
+      # The API targets net8.0; runtime/SDK majors are upgraded deliberately.
+      - dependency-name: 'mcr.microsoft.com/dotnet/aspnet'
+        update-types: ['version-update:semver-major']
+      - dependency-name: 'mcr.microsoft.com/dotnet/sdk'
+        update-types: ['version-update:semver-major']
     labels:
       - dependencies
       - containers
@@ -62,6 +70,11 @@ updates:
     directory: /src/client
     schedule:
       interval: monthly
+    open-pull-requests-limit: 2
+    ignore:
+      # Angular 20 supports Node 20/22/24; new Node majors are adopted manually.
+      - dependency-name: 'node'
+        update-types: ['version-update:semver-major']
     labels:
       - dependencies
       - containers
