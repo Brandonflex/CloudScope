@@ -58,7 +58,7 @@ public static class CostAnalytics
             multiplier *= 1.90;
         }
 
-        return Math.Round((decimal)(baseCost * multiplier), 4);
+        return Math.Round(baseCost * (decimal)multiplier, 4);
     }
 
     public static Dictionary<DateTime, (decimal Azure, decimal Aws)> BuildDailySeries(
@@ -318,8 +318,8 @@ public static class CostAnalytics
                 Category = string.IsNullOrWhiteSpace(group.Key) ? "unknown" : group.Key,
                 Amount = Math.Round(group.Sum(r => periodCost.TryGetValue(r.Id, out var cost) ? cost : 0m), 2),
                 Percentage = total <= 0
-                    ? 0
-                    : Math.Round((double)group.Sum(r => periodCost.TryGetValue(r.Id, out var cost) ? cost : 0m) / (double)total * 100, 1)
+                    ? 0m
+                    : (decimal)Math.Round((double)group.Sum(r => periodCost.TryGetValue(r.Id, out var cost) ? cost : 0m) / (double)total * 100, 1)
             })
             .OrderByDescending(c => c.Amount)
             .ToList();

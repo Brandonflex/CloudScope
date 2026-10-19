@@ -13,6 +13,7 @@ using CloudScope.Core.Domain.Models;
 using CloudScope.Core.Interfaces;
 using CloudScope.Infrastructure.Configuration;
 using CloudScope.Infrastructure.Helpers;
+using ResourceType = CloudScope.Core.Domain.Enums.ResourceType;
 using CloudScope.Infrastructure.Services.Cost;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -474,7 +475,7 @@ public class AzureCostService : ICostService
         {
             Category = c.Category,
             Amount = Math.Round(c.Amount * scale, 2),
-            Percentage = sum <= 0 ? 0 : Math.Round((double)(c.Amount / sum) * 100, 1)
+            Percentage = sum <= 0 ? 0m : (decimal)Math.Round((double)(c.Amount / sum) * 100, 1)
         }).ToList();
     }
 
