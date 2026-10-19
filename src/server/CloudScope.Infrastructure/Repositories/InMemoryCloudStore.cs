@@ -442,6 +442,15 @@ public sealed class InMemoryCloudStore : IResourceRepository, IGraphRepository
 
         foreach (var edge in _edges.Values)
         {
+            // Containment and monitoring edges describe structure, not runtime
+            // dependency: a child subnet failing does not take its virtual
+            // network down, nor does a monitoring resource failing break the
+            // resources it observes.
+            if (edge.RelationshipType is RelationshipType.Contains or RelationshipType.Monitors)
+            {
+                continue;
+            }
+
             if (!map.TryGetValue(edge.TargetResourceId, out var list))
             {
                 list = new List<ResourceRelationship>();

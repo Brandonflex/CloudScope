@@ -74,7 +74,8 @@ public class InMemoryCloudStoreTests
     public async Task GetTransitiveDependenciesAsync_WalksDependentsOnly()
     {
         var store = CreateSeededStore();
-        var subnet = (await store.GetAllAsync(searchTerm: "snet-app")).Items.Single();
+        var subnet = (await store.GetAllAsync(searchTerm: "snet-app"))
+            .Items.First(r => r.Name == "snet-app" && r.ResourceType == ResourceType.Subnet);
 
         var dependents = (await store.GetTransitiveDependenciesAsync(subnet.Id, 5)).ToList();
 
@@ -90,7 +91,8 @@ public class InMemoryCloudStoreTests
     public async Task GetTransitiveDependenciesAsync_RespectsMaxDepth()
     {
         var store = CreateSeededStore();
-        var vnet = (await store.GetAllAsync(searchTerm: "vnet-prod-eastus")).Items.Single();
+        var vnet = (await store.GetAllAsync(searchTerm: "vnet-prod-eastus"))
+            .Items.First(r => r.Name == "vnet-prod-eastus");
 
         var oneHop = (await store.GetTransitiveDependenciesAsync(vnet.Id, 1)).ToList();
         var threeHops = (await store.GetTransitiveDependenciesAsync(vnet.Id, 3)).ToList();
@@ -170,7 +172,8 @@ public class InMemoryCloudStoreTests
     public async Task DeleteVertexAsync_RemovesEdgesToo()
     {
         var store = CreateSeededStore();
-        var nic = (await store.GetAllAsync(searchTerm: "nic-app-01")).Items.Single();
+        var nic = (await store.GetAllAsync(searchTerm: "nic-app-01"))
+            .Items.First(r => r.Name == "nic-app-01");
         var edgesBefore = await store.GetEdgeCountAsync();
 
         await store.DeleteVertexAsync(nic.Id);

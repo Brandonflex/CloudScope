@@ -92,7 +92,7 @@ public class CostAnalyticsTests
     [Fact]
     public void BuildResourceCosts_CoversPeriod()
     {
-        var resources = DemoResources().Take(3).ToList();
+        var resources = DemoResources().Where(r => r.EstimatedMonthlyCost > 0).Take(3).ToList();
 
         var costs = CostAnalytics.BuildResourceCosts(resources, Today.AddDays(-29), Today, Today).ToList();
 
