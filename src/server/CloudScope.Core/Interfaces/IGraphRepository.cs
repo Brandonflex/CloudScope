@@ -36,7 +36,7 @@ public interface IGraphRepository
 
     /// <summary>
     /// Get the subgraph around a resource (N hops in all directions).
-    </summary>
+    /// </summary>
     Task<GraphData> GetSubgraphAsync(
         string resourceId,
         int depth = 2,
@@ -63,6 +63,11 @@ public interface IGraphRepository
     /// Delete a vertex and all its edges.
     /// </summary>
     Task DeleteVertexAsync(string resourceId, CancellationToken ct = default);
+
+    /// <summary>
+    /// Total number of relationship edges stored in the graph.
+    /// </summary>
+    Task<int> GetEdgeCountAsync(CancellationToken ct = default);
 }
 
 /// <summary>

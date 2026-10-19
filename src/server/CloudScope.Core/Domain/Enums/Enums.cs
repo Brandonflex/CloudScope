@@ -44,6 +44,8 @@ public enum ResourceType
     ApplicationGateway,
     DnsZone,
     Firewall,
+    NetworkSecurityGroup,
+    SecurityGroup,
     VpnGateway,
 
     // Storage

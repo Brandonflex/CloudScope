@@ -1,0 +1,2158 @@
+{
+  "name": "CloudScope demo estate",
+  "description": "Synthetic production-like estate (Acme Retail) used for demos, tests and local development.",
+  "generatedAt": "2026-10-19T05:30:00Z",
+  "account": {
+    "azureSubscription": "11111111-2222-3333-4444-555555555555",
+    "awsAccount": "123456789012"
+  },
+  "resources": [
+    {
+      "id": "az:/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg-prod-core/providers/Microsoft.Network/virtualNetworks/vnet-prod-eastus",
+      "provider": "Azure",
+      "nativeId": "/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg-prod-core/providers/Microsoft.Network/virtualNetworks/vnet-prod-eastus",
+      "name": "vnet-prod-eastus",
+      "resourceType": "VirtualNetwork",
+      "nativeResourceType": "Microsoft.Network/virtualNetworks",
+      "resourceGroup": "rg-prod-core",
+      "region": "eastus",
+      "status": "Healthy",
+      "tags": {
+        "environment": "prod",
+        "application": "network",
+        "owner": "platform",
+        "managedBy": "terraform",
+        "costCenter": "CC-1042"
+      },
+      "properties": {
+        "addressSpace": "10.10.0.0/16",
+        "peerings": "1"
+      },
+      "estimatedMonthlyCost": 0,
+      "cpuUtilization": null,
+      "memoryUtilization": null,
+      "discoveredAt": "2026-09-18T06:00:00Z",
+      "lastSyncedAt": "2026-10-19T05:30:00Z",
+      "isManagedByIaC": true,
+      "complianceStatus": "Unknown",
+      "relationships": []
+    },
+    {
+      "id": "az:/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg-prod-core/providers/Microsoft.Network/virtualNetworks/vnet-prod-eastus/subnets/snet-app",
+      "provider": "Azure",
+      "nativeId": "/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg-prod-core/providers/Microsoft.Network/virtualNetworks/vnet-prod-eastus/subnets/snet-app",
+      "name": "snet-app",
+      "resourceType": "Subnet",
+      "nativeResourceType": "Microsoft.Network/virtualNetworks/subnets",
+      "resourceGroup": "rg-prod-core",
+      "region": "eastus",
+      "status": "Healthy",
+      "tags": {
+        "environment": "prod",
+        "application": "network",
+        "owner": "platform",
+        "managedBy": "terraform",
+        "costCenter": "CC-1042"
+      },
+      "properties": {
+        "addressPrefix": "10.10.1.0/24",
+        "nsg": "nsg-app",
+        "serviceEndpoints": "Microsoft.Storage"
+      },
+      "estimatedMonthlyCost": 0,
+      "cpuUtilization": null,
+      "memoryUtilization": null,
+      "discoveredAt": "2026-09-18T06:00:00Z",
+      "lastSyncedAt": "2026-10-19T05:30:00Z",
+      "isManagedByIaC": true,
+      "complianceStatus": "Unknown",
+      "relationships": []
+    },
+    {
+      "id": "az:/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg-prod-core/providers/Microsoft.Network/virtualNetworks/vnet-prod-eastus/subnets/snet-data",
+      "provider": "Azure",
+      "nativeId": "/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg-prod-core/providers/Microsoft.Network/virtualNetworks/vnet-prod-eastus/subnets/snet-data",
+      "name": "snet-data",
+      "resourceType": "Subnet",
+      "nativeResourceType": "Microsoft.Network/virtualNetworks/subnets",
+      "resourceGroup": "rg-prod-core",
+      "region": "eastus",
+      "status": "Healthy",
+      "tags": {
+        "environment": "prod",
+        "application": "network",
+        "owner": "platform",
+        "managedBy": "terraform",
+        "costCenter": "CC-1042"
+      },
+      "properties": {
+        "addressPrefix": "10.10.2.0/24",
+        "nsg": "nsg-data",
+        "privateEndpoints": "2"
+      },
+      "estimatedMonthlyCost": 0,
+      "cpuUtilization": null,
+      "memoryUtilization": null,
+      "discoveredAt": "2026-09-18T06:00:00Z",
+      "lastSyncedAt": "2026-10-19T05:30:00Z",
+      "isManagedByIaC": true,
+      "complianceStatus": "Unknown",
+      "relationships": []
+    },
+    {
+      "id": "az:/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg-prod-core/providers/Microsoft.Network/networkSecurityGroups/nsg-app",
+      "provider": "Azure",
+      "nativeId": "/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg-prod-core/providers/Microsoft.Network/networkSecurityGroups/nsg-app",
+      "name": "nsg-app",
+      "resourceType": "NetworkSecurityGroup",
+      "nativeResourceType": "Microsoft.Network/networkSecurityGroups",
+      "resourceGroup": "rg-prod-core",
+      "region": "eastus",
+      "status": "Warning",
+      "tags": {
+        "environment": "prod",
+        "application": "network",
+        "owner": "platform",
+        "managedBy": "terraform",
+        "costCenter": "CC-1042"
+      },
+      "properties": {
+        "openPorts": "22,3389",
+        "source": "Internet",
+        "rules": "7"
+      },
+      "estimatedMonthlyCost": 0,
+      "cpuUtilization": null,
+      "memoryUtilization": null,
+      "discoveredAt": "2026-09-18T06:00:00Z",
+      "lastSyncedAt": "2026-10-19T05:30:00Z",
+      "isManagedByIaC": true,
+      "complianceStatus": "Unknown",
+      "relationships": []
+    },
+    {
+      "id": "az:/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg-prod-core/providers/Microsoft.Network/networkSecurityGroups/nsg-data",
+      "provider": "Azure",
+      "nativeId": "/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg-prod-core/providers/Microsoft.Network/networkSecurityGroups/nsg-data",
+      "name": "nsg-data",
+      "resourceType": "NetworkSecurityGroup",
+      "nativeResourceType": "Microsoft.Network/networkSecurityGroups",
+      "resourceGroup": "rg-prod-core",
+      "region": "eastus",
+      "status": "Healthy",
+      "tags": {
+        "environment": "prod",
+        "application": "network",
+        "owner": "platform",
+        "managedBy": "terraform",
+        "costCenter": "CC-1042"
+      },
+      "properties": {
+        "openPorts": "1433",
+        "source": "VirtualNetwork",
+        "rules": "4"
+      },
+      "estimatedMonthlyCost": 0,
+      "cpuUtilization": null,
+      "memoryUtilization": null,
+      "discoveredAt": "2026-09-18T06:00:00Z",
+      "lastSyncedAt": "2026-10-19T05:30:00Z",
+      "isManagedByIaC": true,
+      "complianceStatus": "Unknown",
+      "relationships": []
+    },
+    {
+      "id": "az:/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg-prod-core/providers/Microsoft.Network/networkInterfaces/nic-app-01",
+      "provider": "Azure",
+      "nativeId": "/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg-prod-core/providers/Microsoft.Network/networkInterfaces/nic-app-01",
+      "name": "nic-app-01",
+      "resourceType": "NetworkInterface",
+      "nativeResourceType": "Microsoft.Network/networkInterfaces",
+      "resourceGroup": "rg-prod-core",
+      "region": "eastus",
+      "status": "Healthy",
+      "tags": {
+        "environment": "prod",
+        "application": "app",
+        "owner": "platform",
+        "managedBy": "terraform",
+        "costCenter": "CC-1042"
+      },
+      "properties": {
+        "privateIp": "10.10.1.4",
+        "acceleratedNetworking": "True"
+      },
+      "estimatedMonthlyCost": 0,
+      "cpuUtilization": null,
+      "memoryUtilization": null,
+      "discoveredAt": "2026-09-18T06:00:00Z",
+      "lastSyncedAt": "2026-10-19T05:30:00Z",
+      "isManagedByIaC": true,
+      "complianceStatus": "Unknown",
+      "relationships": []
+    },
+    {
+      "id": "az:/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg-prod-core/providers/Microsoft.Network/networkInterfaces/nic-app-02",
+      "provider": "Azure",
+      "nativeId": "/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg-prod-core/providers/Microsoft.Network/networkInterfaces/nic-app-02",
+      "name": "nic-app-02",
+      "resourceType": "NetworkInterface",
+      "nativeResourceType": "Microsoft.Network/networkInterfaces",
+      "resourceGroup": "rg-prod-core",
+      "region": "eastus",
+      "status": "Healthy",
+      "tags": {
+        "environment": "prod",
+        "application": "app",
+        "owner": "platform",
+        "managedBy": "terraform",
+        "costCenter": "CC-1042"
+      },
+      "properties": {
+        "privateIp": "10.10.1.5",
+        "acceleratedNetworking": "True"
+      },
+      "estimatedMonthlyCost": 0,
+      "cpuUtilization": null,
+      "memoryUtilization": null,
+      "discoveredAt": "2026-09-18T06:00:00Z",
+      "lastSyncedAt": "2026-10-19T05:30:00Z",
+      "isManagedByIaC": true,
+      "complianceStatus": "Unknown",
+      "relationships": []
+    },
+    {
+      "id": "az:/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg-prod-core/providers/Microsoft.Network/networkInterfaces/nic-app-03",
+      "provider": "Azure",
+      "nativeId": "/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg-prod-core/providers/Microsoft.Network/networkInterfaces/nic-app-03",
+      "name": "nic-app-03",
+      "resourceType": "NetworkInterface",
+      "nativeResourceType": "Microsoft.Network/networkInterfaces",
+      "resourceGroup": "rg-prod-core",
+      "region": "eastus",
+      "status": "Healthy",
+      "tags": {
+        "environment": "prod",
+        "application": "app",
+        "owner": "platform",
+        "managedBy": "terraform",
+        "costCenter": "CC-1042"
+      },
+      "properties": {
+        "privateIp": "10.10.1.6"
+      },
+      "estimatedMonthlyCost": 0,
+      "cpuUtilization": null,
+      "memoryUtilization": null,
+      "discoveredAt": "2026-09-18T06:00:00Z",
+      "lastSyncedAt": "2026-10-19T05:30:00Z",
+      "isManagedByIaC": false,
+      "complianceStatus": "Unknown",
+      "relationships": []
+    },
+    {
+      "id": "az:/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg-prod-core/providers/Microsoft.Compute/virtualMachines/vm-app-01",
+      "provider": "Azure",
+      "nativeId": "/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg-prod-core/providers/Microsoft.Compute/virtualMachines/vm-app-01",
+      "name": "vm-app-01",
+      "resourceType": "VirtualMachine",
+      "nativeResourceType": "Microsoft.Compute/virtualMachines",
+      "resourceGroup": "rg-prod-core",
+      "region": "eastus",
+      "status": "Healthy",
+      "tags": {
+        "environment": "prod",
+        "application": "app",
+        "owner": "platform",
+        "managedBy": "terraform",
+        "costCenter": "CC-1042"
+      },
+      "properties": {
+        "size": "Standard_D4s_v5",
+        "os": "Ubuntu 22.04",
+        "diskEncryption": "True",
+        "patchCompliance": "Compliant",
+        "publicIp": "False"
+      },
+      "estimatedMonthlyCost": 342.4,
+      "cpuUtilization": 34,
+      "memoryUtilization": 58,
+      "discoveredAt": "2026-09-18T06:00:00Z",
+      "lastSyncedAt": "2026-10-19T05:30:00Z",
+      "isManagedByIaC": true,
+      "complianceStatus": "Unknown",
+      "relationships": []
+    },
+    {
+      "id": "az:/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg-prod-core/providers/Microsoft.Compute/virtualMachines/vm-app-02",
+      "provider": "Azure",
+      "nativeId": "/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg-prod-core/providers/Microsoft.Compute/virtualMachines/vm-app-02",
+      "name": "vm-app-02",
+      "resourceType": "VirtualMachine",
+      "nativeResourceType": "Microsoft.Compute/virtualMachines",
+      "resourceGroup": "rg-prod-core",
+      "region": "eastus",
+      "status": "Healthy",
+      "tags": {
+        "environment": "prod",
+        "application": "app",
+        "owner": "platform",
+        "managedBy": "terraform",
+        "costCenter": "CC-1042"
+      },
+      "properties": {
+        "size": "Standard_D4s_v5",
+        "os": "Ubuntu 22.04",
+        "diskEncryption": "True",
+        "patchCompliance": "Compliant"
+      },
+      "estimatedMonthlyCost": 342.4,
+      "cpuUtilization": 7,
+      "memoryUtilization": 41,
+      "discoveredAt": "2026-09-18T06:00:00Z",
+      "lastSyncedAt": "2026-10-19T05:30:00Z",
+      "isManagedByIaC": true,
+      "complianceStatus": "Unknown",
+      "relationships": []
+    },
+    {
+      "id": "az:/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg-prod-core/providers/Microsoft.Compute/virtualMachines/vm-app-03",
+      "provider": "Azure",
+      "nativeId": "/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg-prod-core/providers/Microsoft.Compute/virtualMachines/vm-app-03",
+      "name": "vm-app-03",
+      "resourceType": "VirtualMachine",
+      "nativeResourceType": "Microsoft.Compute/virtualMachines",
+      "resourceGroup": "rg-prod-core",
+      "region": "eastus",
+      "status": "Warning",
+      "tags": {
+        "environment": "prod"
+      },
+      "properties": {
+        "size": "Standard_B4ms",
+        "os": "Windows Server 2019",
+        "diskEncryption": "False",
+        "patchCompliance": "Outdated",
+        "tagsMissing": "True"
+      },
+      "estimatedMonthlyCost": 178.9,
+      "cpuUtilization": 71,
+      "memoryUtilization": 83,
+      "discoveredAt": "2026-09-18T06:00:00Z",
+      "lastSyncedAt": "2026-10-19T05:30:00Z",
+      "isManagedByIaC": false,
+      "complianceStatus": "Unknown",
+      "relationships": []
+    },
+    {
+      "id": "az:/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg-prod-core/providers/Microsoft.Compute/disks/disk-vm-app-01-os",
+      "provider": "Azure",
+      "nativeId": "/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg-prod-core/providers/Microsoft.Compute/disks/disk-vm-app-01-os",
+      "name": "disk-vm-app-01-os",
+      "resourceType": "Disk",
+      "nativeResourceType": "Microsoft.Compute/disks",
+      "resourceGroup": "rg-prod-core",
+      "region": "eastus",
+      "status": "Healthy",
+      "tags": {
+        "environment": "prod",
+        "application": "app",
+        "owner": "platform",
+        "managedBy": "terraform",
+        "costCenter": "CC-1042"
+      },
+      "properties": {
+        "sizeGb": "128",
+        "sku": "Premium_LRS",
+        "encryption": "Platform-managed"
+      },
+      "estimatedMonthlyCost": 19.2,
+      "cpuUtilization": null,
+      "memoryUtilization": null,
+      "discoveredAt": "2026-09-18T06:00:00Z",
+      "lastSyncedAt": "2026-10-19T05:30:00Z",
+      "isManagedByIaC": true,
+      "complianceStatus": "Unknown",
+      "relationships": []
+    },
+    {
+      "id": "az:/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg-prod-core/providers/Microsoft.Network/publicIPAddresses/pip-app-01",
+      "provider": "Azure",
+      "nativeId": "/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg-prod-core/providers/Microsoft.Network/publicIPAddresses/pip-app-01",
+      "name": "pip-app-01",
+      "resourceType": "PublicIpAddress",
+      "nativeResourceType": "Microsoft.Network/publicIPAddresses",
+      "resourceGroup": "rg-prod-core",
+      "region": "eastus",
+      "status": "Healthy",
+      "tags": {
+        "environment": "prod",
+        "application": "network",
+        "owner": "platform",
+        "managedBy": "terraform",
+        "costCenter": "CC-1042"
+      },
+      "properties": {
+        "allocation": "Static",
+        "associated": "lb-prod"
+      },
+      "estimatedMonthlyCost": 3.65,
+      "cpuUtilization": null,
+      "memoryUtilization": null,
+      "discoveredAt": "2026-09-18T06:00:00Z",
+      "lastSyncedAt": "2026-10-19T05:30:00Z",
+      "isManagedByIaC": true,
+      "complianceStatus": "Unknown",
+      "relationships": []
+    },
+    {
+      "id": "az:/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg-prod-core/providers/Microsoft.Network/publicIPAddresses/pip-orphan-01",
+      "provider": "Azure",
+      "nativeId": "/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg-prod-core/providers/Microsoft.Network/publicIPAddresses/pip-orphan-01",
+      "name": "pip-orphan-01",
+      "resourceType": "PublicIpAddress",
+      "nativeResourceType": "Microsoft.Network/publicIPAddresses",
+      "resourceGroup": "rg-prod-core",
+      "region": "eastus",
+      "status": "Warning",
+      "tags": {
+        "environment": "prod",
+        "application": "network",
+        "owner": "platform",
+        "managedBy": "terraform",
+        "costCenter": "CC-1042"
+      },
+      "properties": {
+        "allocation": "Static",
+        "associated": "none"
+      },
+      "estimatedMonthlyCost": 3.65,
+      "cpuUtilization": null,
+      "memoryUtilization": null,
+      "discoveredAt": "2026-09-18T06:00:00Z",
+      "lastSyncedAt": "2026-10-19T05:30:00Z",
+      "isManagedByIaC": false,
+      "complianceStatus": "Unknown",
+      "relationships": []
+    },
+    {
+      "id": "az:/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg-prod-core/providers/Microsoft.Network/loadBalancers/lb-prod",
+      "provider": "Azure",
+      "nativeId": "/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg-prod-core/providers/Microsoft.Network/loadBalancers/lb-prod",
+      "name": "lb-prod",
+      "resourceType": "LoadBalancer",
+      "nativeResourceType": "Microsoft.Network/loadBalancers",
+      "resourceGroup": "rg-prod-core",
+      "region": "eastus",
+      "status": "Healthy",
+      "tags": {
+        "environment": "prod",
+        "application": "network",
+        "owner": "platform",
+        "managedBy": "terraform",
+        "costCenter": "CC-1042"
+      },
+      "properties": {
+        "sku": "Standard",
+        "backendPool": "2",
+        "probes": "2"
+      },
+      "estimatedMonthlyCost": 24.8,
+      "cpuUtilization": null,
+      "memoryUtilization": null,
+      "discoveredAt": "2026-09-18T06:00:00Z",
+      "lastSyncedAt": "2026-10-19T05:30:00Z",
+      "isManagedByIaC": true,
+      "complianceStatus": "Unknown",
+      "relationships": []
+    },
+    {
+      "id": "az:/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg-prod-web/providers/Microsoft.Network/applicationGateways/agw-prod",
+      "provider": "Azure",
+      "nativeId": "/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg-prod-web/providers/Microsoft.Network/applicationGateways/agw-prod",
+      "name": "agw-prod",
+      "resourceType": "ApplicationGateway",
+      "nativeResourceType": "Microsoft.Network/applicationGateways",
+      "resourceGroup": "rg-prod-web",
+      "region": "westeurope",
+      "status": "Healthy",
+      "tags": {
+        "environment": "prod",
+        "application": "web",
+        "owner": "platform",
+        "managedBy": "terraform",
+        "costCenter": "CC-1042"
+      },
+      "properties": {
+        "sku": "WAF_v2",
+        "wafEnabled": "True",
+        "tlsPolicy": "TLS1_2"
+      },
+      "estimatedMonthlyCost": 191.2,
+      "cpuUtilization": null,
+      "memoryUtilization": null,
+      "discoveredAt": "2026-09-18T06:00:00Z",
+      "lastSyncedAt": "2026-10-19T05:30:00Z",
+      "isManagedByIaC": true,
+      "complianceStatus": "Unknown",
+      "relationships": []
+    },
+    {
+      "id": "az:/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg-prod-web/providers/Microsoft.Network/dnszones/cloudscope-demo.com",
+      "provider": "Azure",
+      "nativeId": "/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg-prod-web/providers/Microsoft.Network/dnszones/cloudscope-demo.com",
+      "name": "cloudscope-demo-com",
+      "resourceType": "DnsZone",
+      "nativeResourceType": "Microsoft.Network/dnszones",
+      "resourceGroup": "rg-prod-web",
+      "region": "westeurope",
+      "status": "Healthy",
+      "tags": {
+        "environment": "prod",
+        "application": "web",
+        "owner": "platform",
+        "managedBy": "terraform",
+        "costCenter": "CC-1042"
+      },
+      "properties": {
+        "recordSets": "14",
+        "autoRegistration": "True"
+      },
+      "estimatedMonthlyCost": 1.2,
+      "cpuUtilization": null,
+      "memoryUtilization": null,
+      "discoveredAt": "2026-09-18T06:00:00Z",
+      "lastSyncedAt": "2026-10-19T05:30:00Z",
+      "isManagedByIaC": true,
+      "complianceStatus": "Unknown",
+      "relationships": []
+    },
+    {
+      "id": "az:/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg-prod-web/providers/Microsoft.Web/sites/app-prod-web",
+      "provider": "Azure",
+      "nativeId": "/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg-prod-web/providers/Microsoft.Web/sites/app-prod-web",
+      "name": "app-prod-web",
+      "resourceType": "AppService",
+      "nativeResourceType": "Microsoft.Web/sites",
+      "resourceGroup": "rg-prod-web",
+      "region": "westeurope",
+      "status": "Healthy",
+      "tags": {
+        "environment": "prod",
+        "application": "web",
+        "owner": "platform",
+        "managedBy": "terraform",
+        "costCenter": "CC-1042"
+      },
+      "properties": {
+        "sku": "P1v3",
+        "httpsOnly": "True",
+        "minTlsVersion": "1.2",
+        "identity": "SystemAssigned",
+        "clientCertEnabled": "False"
+      },
+      "estimatedMonthlyCost": 146.0,
+      "cpuUtilization": null,
+      "memoryUtilization": null,
+      "discoveredAt": "2026-09-18T06:00:00Z",
+      "lastSyncedAt": "2026-10-19T05:30:00Z",
+      "isManagedByIaC": true,
+      "complianceStatus": "Unknown",
+      "relationships": []
+    },
+    {
+      "id": "az:/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg-prod-web/providers/Microsoft.Web/serverfarms/plan-prod-web",
+      "provider": "Azure",
+      "nativeId": "/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg-prod-web/providers/Microsoft.Web/serverfarms/plan-prod-web",
+      "name": "plan-prod-web",
+      "resourceType": "Other",
+      "nativeResourceType": "Microsoft.Web/serverfarms",
+      "resourceGroup": "rg-prod-web",
+      "region": "westeurope",
+      "status": "Healthy",
+      "tags": {
+        "environment": "prod",
+        "application": "web",
+        "owner": "platform",
+        "managedBy": "terraform",
+        "costCenter": "CC-1042"
+      },
+      "properties": {
+        "sku": "P1v3",
+        "instances": "3"
+      },
+      "estimatedMonthlyCost": 0,
+      "cpuUtilization": null,
+      "memoryUtilization": null,
+      "discoveredAt": "2026-09-18T06:00:00Z",
+      "lastSyncedAt": "2026-10-19T05:30:00Z",
+      "isManagedByIaC": true,
+      "complianceStatus": "Unknown",
+      "relationships": []
+    },
+    {
+      "id": "az:/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg-prod-core/providers/Microsoft.Web/sites/func-orders-api",
+      "provider": "Azure",
+      "nativeId": "/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg-prod-core/providers/Microsoft.Web/sites/func-orders-api",
+      "name": "func-orders-api",
+      "resourceType": "Function",
+      "nativeResourceType": "Microsoft.Web/sites",
+      "resourceGroup": "rg-prod-core",
+      "region": "eastus",
+      "status": "Healthy",
+      "tags": {
+        "environment": "prod",
+        "application": "orders",
+        "owner": "platform",
+        "managedBy": "terraform",
+        "costCenter": "CC-1042"
+      },
+      "properties": {
+        "runtime": "dotnet-isolated",
+        "httpsOnly": "True",
+        "minTlsVersion": "1.2",
+        "identity": "SystemAssigned"
+      },
+      "estimatedMonthlyCost": 32.4,
+      "cpuUtilization": null,
+      "memoryUtilization": null,
+      "discoveredAt": "2026-09-18T06:00:00Z",
+      "lastSyncedAt": "2026-10-19T05:30:00Z",
+      "isManagedByIaC": true,
+      "complianceStatus": "Unknown",
+      "relationships": []
+    },
+    {
+      "id": "az:/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg-prod-core/providers/Microsoft.ContainerService/managedClusters/aks-prod",
+      "provider": "Azure",
+      "nativeId": "/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg-prod-core/providers/Microsoft.ContainerService/managedClusters/aks-prod",
+      "name": "aks-prod",
+      "resourceType": "KubernetesCluster",
+      "nativeResourceType": "Microsoft.ContainerService/managedClusters",
+      "resourceGroup": "rg-prod-core",
+      "region": "eastus",
+      "status": "Healthy",
+      "tags": {
+        "environment": "prod",
+        "application": "platform",
+        "owner": "platform",
+        "managedBy": "terraform",
+        "costCenter": "CC-1042"
+      },
+      "properties": {
+        "version": "1.30.4",
+        "nodeCount": "6",
+        "privateCluster": "False",
+        "networkPolicy": "calico",
+        "rbac": "True"
+      },
+      "estimatedMonthlyCost": 728.0,
+      "cpuUtilization": null,
+      "memoryUtilization": null,
+      "discoveredAt": "2026-09-18T06:00:00Z",
+      "lastSyncedAt": "2026-10-19T05:30:00Z",
+      "isManagedByIaC": true,
+      "complianceStatus": "Unknown",
+      "relationships": []
+    },
+    {
+      "id": "az:/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg-prod-core/providers/Microsoft.ContainerRegistry/registries/acrprod",
+      "provider": "Azure",
+      "nativeId": "/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg-prod-core/providers/Microsoft.ContainerRegistry/registries/acrprod",
+      "name": "acrprod",
+      "resourceType": "Other",
+      "nativeResourceType": "Microsoft.ContainerRegistry/registries",
+      "resourceGroup": "rg-prod-core",
+      "region": "eastus",
+      "status": "Healthy",
+      "tags": {
+        "environment": "prod",
+        "owner": "platform"
+      },
+      "properties": {
+        "sku": "Standard",
+        "adminUserEnabled": "False",
+        "publicAccess": "True"
+      },
+      "estimatedMonthlyCost": 20.0,
+      "cpuUtilization": null,
+      "memoryUtilization": null,
+      "discoveredAt": "2026-09-18T06:00:00Z",
+      "lastSyncedAt": "2026-10-19T05:30:00Z",
+      "isManagedByIaC": true,
+      "complianceStatus": "Unknown",
+      "relationships": []
+    },
+    {
+      "id": "az:/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg-shared/providers/Microsoft.ManagedIdentity/userAssignedIdentities/id-prod-workload",
+      "provider": "Azure",
+      "nativeId": "/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg-shared/providers/Microsoft.ManagedIdentity/userAssignedIdentities/id-prod-workload",
+      "name": "id-prod-workload",
+      "resourceType": "ManagedIdentity",
+      "nativeResourceType": "Microsoft.ManagedIdentity/userAssignedIdentities",
+      "resourceGroup": "rg-shared",
+      "region": "eastus",
+      "status": "Healthy",
+      "tags": {
+        "environment": "prod",
+        "application": "identity",
+        "owner": "platform",
+        "managedBy": "terraform",
+        "costCenter": "CC-1042"
+      },
+      "properties": {
+        "roleAssignments": "4"
+      },
+      "estimatedMonthlyCost": 0,
+      "cpuUtilization": null,
+      "memoryUtilization": null,
+      "discoveredAt": "2026-09-18T06:00:00Z",
+      "lastSyncedAt": "2026-10-19T05:30:00Z",
+      "isManagedByIaC": true,
+      "complianceStatus": "Unknown",
+      "relationships": []
+    },
+    {
+      "id": "az:/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg-shared/providers/Microsoft.KeyVault/vaults/kv-prod-secrets",
+      "provider": "Azure",
+      "nativeId": "/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg-shared/providers/Microsoft.KeyVault/vaults/kv-prod-secrets",
+      "name": "kv-prod-secrets",
+      "resourceType": "KeyVault",
+      "nativeResourceType": "Microsoft.KeyVault/vaults",
+      "resourceGroup": "rg-shared",
+      "region": "eastus",
+      "status": "Healthy",
+      "tags": {
+        "environment": "prod",
+        "application": "security",
+        "owner": "platform",
+        "managedBy": "terraform",
+        "costCenter": "CC-1042"
+      },
+      "properties": {
+        "softDeleteEnabled": "True",
+        "purgeProtection": "False",
+        "publicNetworkAccess": "Enabled",
+        "rbacAuthorization": "True"
+      },
+      "estimatedMonthlyCost": 7.8,
+      "cpuUtilization": null,
+      "memoryUtilization": null,
+      "discoveredAt": "2026-09-18T06:00:00Z",
+      "lastSyncedAt": "2026-10-19T05:30:00Z",
+      "isManagedByIaC": true,
+      "complianceStatus": "Unknown",
+      "relationships": []
+    },
+    {
+      "id": "az:/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg-prod-data/providers/Microsoft.Sql/servers/sql-prod-orders/databases/orders",
+      "provider": "Azure",
+      "nativeId": "/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg-prod-data/providers/Microsoft.Sql/servers/sql-prod-orders/databases/orders",
+      "name": "sql-prod-orders",
+      "resourceType": "SqlDatabase",
+      "nativeResourceType": "Microsoft.Sql/servers/databases",
+      "resourceGroup": "rg-prod-data",
+      "region": "eastus",
+      "status": "Healthy",
+      "tags": {
+        "environment": "prod",
+        "application": "orders",
+        "owner": "platform",
+        "managedBy": "terraform",
+        "costCenter": "CC-1042"
+      },
+      "properties": {
+        "sku": "S3",
+        "tde": "True",
+        "auditingEnabled": "False",
+        "publicNetworkAccess": "Enabled",
+        "backupRetentionDays": "35",
+        "encryptionAtRest": "true"
+      },
+      "estimatedMonthlyCost": 482.0,
+      "cpuUtilization": null,
+      "memoryUtilization": null,
+      "discoveredAt": "2026-09-18T06:00:00Z",
+      "lastSyncedAt": "2026-10-19T05:30:00Z",
+      "isManagedByIaC": true,
+      "complianceStatus": "Unknown",
+      "relationships": []
+    },
+    {
+      "id": "az:/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg-prod-data/providers/Microsoft.DocumentDB/databaseAccounts/cosmos-prod-orders",
+      "provider": "Azure",
+      "nativeId": "/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg-prod-data/providers/Microsoft.DocumentDB/databaseAccounts/cosmos-prod-orders",
+      "name": "cosmos-prod-orders",
+      "resourceType": "CosmosDbAccount",
+      "nativeResourceType": "Microsoft.DocumentDB/databaseAccounts",
+      "resourceGroup": "rg-prod-data",
+      "region": "eastus",
+      "status": "Healthy",
+      "tags": {
+        "environment": "prod",
+        "application": "orders",
+        "owner": "platform",
+        "managedBy": "terraform",
+        "costCenter": "CC-1042"
+      },
+      "properties": {
+        "api": "Gremlin",
+        "consistency": "Session",
+        "publicNetworkAccess": "Enabled",
+        "disableLocalAuth": "True",
+        "multiRegion": "False",
+        "encryptionAtRest": "true"
+      },
+      "estimatedMonthlyCost": 611.3,
+      "cpuUtilization": null,
+      "memoryUtilization": null,
+      "discoveredAt": "2026-09-18T06:00:00Z",
+      "lastSyncedAt": "2026-10-19T05:30:00Z",
+      "isManagedByIaC": true,
+      "complianceStatus": "Unknown",
+      "relationships": []
+    },
+    {
+      "id": "az:/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg-prod-data/providers/Microsoft.Cache/redis/redis-prod-sessions",
+      "provider": "Azure",
+      "nativeId": "/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg-prod-data/providers/Microsoft.Cache/redis/redis-prod-sessions",
+      "name": "redis-prod-sessions",
+      "resourceType": "RedisCache",
+      "nativeResourceType": "Microsoft.Cache/redis",
+      "resourceGroup": "rg-prod-data",
+      "region": "eastus",
+      "status": "Healthy",
+      "tags": {
+        "environment": "prod",
+        "application": "sessions",
+        "owner": "platform",
+        "managedBy": "terraform",
+        "costCenter": "CC-1042"
+      },
+      "properties": {
+        "sku": "Standard C2",
+        "tlsOnly": "True",
+        "nonSslPort": "False",
+        "atRestEncryption": "true"
+      },
+      "estimatedMonthlyCost": 165.0,
+      "cpuUtilization": null,
+      "memoryUtilization": null,
+      "discoveredAt": "2026-09-18T06:00:00Z",
+      "lastSyncedAt": "2026-10-19T05:30:00Z",
+      "isManagedByIaC": true,
+      "complianceStatus": "Unknown",
+      "relationships": []
+    },
+    {
+      "id": "az:/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg-prod-data/providers/Microsoft.Storage/storageAccounts/stgprodapp",
+      "provider": "Azure",
+      "nativeId": "/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg-prod-data/providers/Microsoft.Storage/storageAccounts/stgprodapp",
+      "name": "stgprodapp",
+      "resourceType": "StorageAccount",
+      "nativeResourceType": "Microsoft.Storage/storageAccounts",
+      "resourceGroup": "rg-prod-data",
+      "region": "eastus",
+      "status": "Warning",
+      "tags": {
+        "environment": "prod",
+        "application": "orders",
+        "owner": "platform",
+        "managedBy": "terraform",
+        "costCenter": "CC-1042"
+      },
+      "properties": {
+        "sku": "Standard_LRS",
+        "httpsOnly": "True",
+        "minTlsVersion": "TLS1_0",
+        "allowBlobPublicAccess": "True",
+        "softDelete": "True",
+        "dataClassification": "internal",
+        "encryptionAtRest": "true"
+      },
+      "estimatedMonthlyCost": 44.6,
+      "cpuUtilization": null,
+      "memoryUtilization": null,
+      "discoveredAt": "2026-09-18T06:00:00Z",
+      "lastSyncedAt": "2026-10-19T05:30:00Z",
+      "isManagedByIaC": true,
+      "complianceStatus": "Unknown",
+      "relationships": []
+    },
+    {
+      "id": "az:/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg-prod-data/providers/Microsoft.Storage/storageAccounts/stgprodlogs",
+      "provider": "Azure",
+      "nativeId": "/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg-prod-data/providers/Microsoft.Storage/storageAccounts/stgprodlogs",
+      "name": "stgprodlogs",
+      "resourceType": "StorageAccount",
+      "nativeResourceType": "Microsoft.Storage/storageAccounts",
+      "resourceGroup": "rg-prod-data",
+      "region": "eastus",
+      "status": "Healthy",
+      "tags": {
+        "environment": "prod",
+        "application": "platform",
+        "owner": "platform",
+        "managedBy": "terraform",
+        "costCenter": "CC-1042"
+      },
+      "properties": {
+        "sku": "Standard_GRS",
+        "httpsOnly": "True",
+        "minTlsVersion": "TLS1_2",
+        "allowBlobPublicAccess": "False",
+        "softDelete": "True",
+        "encryptionAtRest": "true"
+      },
+      "estimatedMonthlyCost": 27.4,
+      "cpuUtilization": null,
+      "memoryUtilization": null,
+      "discoveredAt": "2026-09-18T06:00:00Z",
+      "lastSyncedAt": "2026-10-19T05:30:00Z",
+      "isManagedByIaC": true,
+      "complianceStatus": "Unknown",
+      "relationships": []
+    },
+    {
+      "id": "az:/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg-prod-data/providers/Microsoft.ServiceBus/namespaces/bus-prod-orders",
+      "provider": "Azure",
+      "nativeId": "/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg-prod-data/providers/Microsoft.ServiceBus/namespaces/bus-prod-orders",
+      "name": "bus-prod-orders",
+      "resourceType": "ServiceBus",
+      "nativeResourceType": "Microsoft.ServiceBus/namespaces",
+      "resourceGroup": "rg-prod-data",
+      "region": "eastus",
+      "status": "Healthy",
+      "tags": {
+        "environment": "prod",
+        "application": "orders",
+        "owner": "platform",
+        "managedBy": "terraform",
+        "costCenter": "CC-1042"
+      },
+      "properties": {
+        "sku": "Standard",
+        "queues": "6",
+        "topics": "2",
+        "tlsVersion": "1.2"
+      },
+      "estimatedMonthlyCost": 61.2,
+      "cpuUtilization": null,
+      "memoryUtilization": null,
+      "discoveredAt": "2026-09-18T06:00:00Z",
+      "lastSyncedAt": "2026-10-19T05:30:00Z",
+      "isManagedByIaC": true,
+      "complianceStatus": "Unknown",
+      "relationships": []
+    },
+    {
+      "id": "az:/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg-prod-data/providers/Microsoft.EventHub/namespaces/evh-prod-telemetry",
+      "provider": "Azure",
+      "nativeId": "/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg-prod-data/providers/Microsoft.EventHub/namespaces/evh-prod-telemetry",
+      "name": "evh-prod-telemetry",
+      "resourceType": "EventHub",
+      "nativeResourceType": "Microsoft.EventHub/namespaces",
+      "resourceGroup": "rg-prod-data",
+      "region": "eastus",
+      "status": "Healthy",
+      "tags": {
+        "environment": "prod",
+        "application": "telemetry",
+        "owner": "platform",
+        "managedBy": "terraform",
+        "costCenter": "CC-1042"
+      },
+      "properties": {
+        "sku": "Standard",
+        "throughputUnits": "4",
+        "capture": "True"
+      },
+      "estimatedMonthlyCost": 86.5,
+      "cpuUtilization": null,
+      "memoryUtilization": null,
+      "discoveredAt": "2026-09-18T06:00:00Z",
+      "lastSyncedAt": "2026-10-19T05:30:00Z",
+      "isManagedByIaC": true,
+      "complianceStatus": "Unknown",
+      "relationships": []
+    },
+    {
+      "id": "az:/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg-prod-data/providers/Microsoft.OperationalInsights/workspaces/law-prod",
+      "provider": "Azure",
+      "nativeId": "/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg-prod-data/providers/Microsoft.OperationalInsights/workspaces/law-prod",
+      "name": "law-prod",
+      "resourceType": "LogAnalytics",
+      "nativeResourceType": "Microsoft.OperationalInsights/workspaces",
+      "resourceGroup": "rg-prod-data",
+      "region": "eastus",
+      "status": "Healthy",
+      "tags": {
+        "environment": "prod",
+        "application": "observability",
+        "owner": "platform",
+        "managedBy": "terraform",
+        "costCenter": "CC-1042"
+      },
+      "properties": {
+        "sku": "PerGB2018",
+        "retentionDays": "90"
+      },
+      "estimatedMonthlyCost": 121.0,
+      "cpuUtilization": null,
+      "memoryUtilization": null,
+      "discoveredAt": "2026-09-18T06:00:00Z",
+      "lastSyncedAt": "2026-10-19T05:30:00Z",
+      "isManagedByIaC": true,
+      "complianceStatus": "Unknown",
+      "relationships": []
+    },
+    {
+      "id": "az:/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg-prod-data/providers/Microsoft.Insights/components/appi-prod",
+      "provider": "Azure",
+      "nativeId": "/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg-prod-data/providers/Microsoft.Insights/components/appi-prod",
+      "name": "appi-prod",
+      "resourceType": "ApplicationInsights",
+      "nativeResourceType": "Microsoft.Insights/components",
+      "resourceGroup": "rg-prod-data",
+      "region": "eastus",
+      "status": "Healthy",
+      "tags": {
+        "environment": "prod",
+        "application": "observability",
+        "owner": "platform",
+        "managedBy": "terraform",
+        "costCenter": "CC-1042"
+      },
+      "properties": {
+        "type": "web",
+        "samplingRate": "25"
+      },
+      "estimatedMonthlyCost": 94.7,
+      "cpuUtilization": null,
+      "memoryUtilization": null,
+      "discoveredAt": "2026-09-18T06:00:00Z",
+      "lastSyncedAt": "2026-10-19T05:30:00Z",
+      "isManagedByIaC": true,
+      "complianceStatus": "Unknown",
+      "relationships": []
+    },
+    {
+      "id": "az:/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg-prod-core/providers/Microsoft.Network/virtualNetworkGateways/vpn-prod-hub",
+      "provider": "Azure",
+      "nativeId": "/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg-prod-core/providers/Microsoft.Network/virtualNetworkGateways/vpn-prod-hub",
+      "name": "vpn-prod-hub",
+      "resourceType": "VpnGateway",
+      "nativeResourceType": "Microsoft.Network/virtualNetworkGateways",
+      "resourceGroup": "rg-prod-core",
+      "region": "eastus",
+      "status": "Healthy",
+      "tags": {
+        "environment": "prod",
+        "application": "network",
+        "owner": "platform",
+        "managedBy": "terraform",
+        "costCenter": "CC-1042"
+      },
+      "properties": {
+        "sku": "VpnGw2",
+        "activeActive": "True",
+        "bgp": "True"
+      },
+      "estimatedMonthlyCost": 138.0,
+      "cpuUtilization": null,
+      "memoryUtilization": null,
+      "discoveredAt": "2026-09-18T06:00:00Z",
+      "lastSyncedAt": "2026-10-19T05:30:00Z",
+      "isManagedByIaC": true,
+      "complianceStatus": "Unknown",
+      "relationships": []
+    },
+    {
+      "id": "aws:arn:aws:ec2:us-east-1:123456789012:vpc/vpc-0a1b2c3d4e5f6a7b8",
+      "provider": "AWS",
+      "nativeId": "arn:aws:ec2:us-east-1:123456789012:vpc/vpc-0a1b2c3d4e5f6a7b8",
+      "name": "vpc-prod-use1",
+      "resourceType": "VirtualNetwork",
+      "nativeResourceType": "AWS::EC2::VPC",
+      "resourceGroup": "aws-prod-network",
+      "region": "us-east-1",
+      "status": "Healthy",
+      "tags": {
+        "environment": "prod",
+        "application": "network",
+        "owner": "platform",
+        "managedBy": "terraform",
+        "costCenter": "CC-1042"
+      },
+      "properties": {
+        "cidr": "10.20.0.0/16",
+        "tenancy": "default",
+        "flowLogs": "True"
+      },
+      "estimatedMonthlyCost": 0,
+      "cpuUtilization": null,
+      "memoryUtilization": null,
+      "discoveredAt": "2026-09-18T06:00:00Z",
+      "lastSyncedAt": "2026-10-19T05:30:00Z",
+      "isManagedByIaC": true,
+      "complianceStatus": "Unknown",
+      "relationships": []
+    },
+    {
+      "id": "aws:arn:aws:ec2:us-east-1:123456789012:subnet/subnet-0a1b2c3d4e5f60001",
+      "provider": "AWS",
+      "nativeId": "arn:aws:ec2:us-east-1:123456789012:subnet/subnet-0a1b2c3d4e5f60001",
+      "name": "subnet-prod-public-a",
+      "resourceType": "Subnet",
+      "nativeResourceType": "AWS::EC2::Subnet",
+      "resourceGroup": "aws-prod-network",
+      "region": "us-east-1",
+      "status": "Healthy",
+      "tags": {
+        "environment": "prod",
+        "application": "network",
+        "owner": "platform",
+        "managedBy": "terraform",
+        "costCenter": "CC-1042"
+      },
+      "properties": {
+        "cidr": "10.20.1.0/24",
+        "az": "us-east-1a",
+        "public": "True"
+      },
+      "estimatedMonthlyCost": 0,
+      "cpuUtilization": null,
+      "memoryUtilization": null,
+      "discoveredAt": "2026-09-18T06:00:00Z",
+      "lastSyncedAt": "2026-10-19T05:30:00Z",
+      "isManagedByIaC": true,
+      "complianceStatus": "Unknown",
+      "relationships": []
+    },
+    {
+      "id": "aws:arn:aws:ec2:us-east-1:123456789012:subnet/subnet-0a1b2c3d4e5f60002",
+      "provider": "AWS",
+      "nativeId": "arn:aws:ec2:us-east-1:123456789012:subnet/subnet-0a1b2c3d4e5f60002",
+      "name": "subnet-prod-private-b",
+      "resourceType": "Subnet",
+      "nativeResourceType": "AWS::EC2::Subnet",
+      "resourceGroup": "aws-prod-network",
+      "region": "us-east-1",
+      "status": "Healthy",
+      "tags": {
+        "environment": "prod",
+        "application": "network",
+        "owner": "platform",
+        "managedBy": "terraform",
+        "costCenter": "CC-1042"
+      },
+      "properties": {
+        "cidr": "10.20.2.0/24",
+        "az": "us-east-1b",
+        "public": "False"
+      },
+      "estimatedMonthlyCost": 0,
+      "cpuUtilization": null,
+      "memoryUtilization": null,
+      "discoveredAt": "2026-09-18T06:00:00Z",
+      "lastSyncedAt": "2026-10-19T05:30:00Z",
+      "isManagedByIaC": true,
+      "complianceStatus": "Unknown",
+      "relationships": []
+    },
+    {
+      "id": "aws:arn:aws:ec2:us-east-1:123456789012:security-group/sg-0a1b2c3d4e5f60003",
+      "provider": "AWS",
+      "nativeId": "arn:aws:ec2:us-east-1:123456789012:security-group/sg-0a1b2c3d4e5f60003",
+      "name": "sg-prod-web",
+      "resourceType": "SecurityGroup",
+      "nativeResourceType": "AWS::EC2::SecurityGroup",
+      "resourceGroup": "aws-prod-network",
+      "region": "us-east-1",
+      "status": "Healthy",
+      "tags": {
+        "environment": "prod",
+        "application": "network",
+        "owner": "platform",
+        "managedBy": "terraform",
+        "costCenter": "CC-1042"
+      },
+      "properties": {
+        "ingress": "443",
+        "source": "0.0.0.0/0",
+        "egress": "all",
+        "openPorts": "443"
+      },
+      "estimatedMonthlyCost": 0,
+      "cpuUtilization": null,
+      "memoryUtilization": null,
+      "discoveredAt": "2026-09-18T06:00:00Z",
+      "lastSyncedAt": "2026-10-19T05:30:00Z",
+      "isManagedByIaC": true,
+      "complianceStatus": "Unknown",
+      "relationships": []
+    },
+    {
+      "id": "aws:arn:aws:ec2:us-east-1:123456789012:security-group/sg-0a1b2c3d4e5f60004",
+      "provider": "AWS",
+      "nativeId": "arn:aws:ec2:us-east-1:123456789012:security-group/sg-0a1b2c3d4e5f60004",
+      "name": "sg-prod-data",
+      "resourceType": "SecurityGroup",
+      "nativeResourceType": "AWS::EC2::SecurityGroup",
+      "resourceGroup": "aws-prod-network",
+      "region": "us-east-1",
+      "status": "Healthy",
+      "tags": {
+        "environment": "prod",
+        "application": "data",
+        "owner": "platform",
+        "managedBy": "terraform",
+        "costCenter": "CC-1042"
+      },
+      "properties": {
+        "ingress": "5432",
+        "source": "sg-prod-web",
+        "openPorts": "5432"
+      },
+      "estimatedMonthlyCost": 0,
+      "cpuUtilization": null,
+      "memoryUtilization": null,
+      "discoveredAt": "2026-09-18T06:00:00Z",
+      "lastSyncedAt": "2026-10-19T05:30:00Z",
+      "isManagedByIaC": true,
+      "complianceStatus": "Unknown",
+      "relationships": []
+    },
+    {
+      "id": "aws:arn:aws:ec2:us-east-1:123456789012:instance/i-0a1b2c3d4e5f60005",
+      "provider": "AWS",
+      "nativeId": "arn:aws:ec2:us-east-1:123456789012:instance/i-0a1b2c3d4e5f60005",
+      "name": "i-prod-api-01",
+      "resourceType": "VirtualMachine",
+      "nativeResourceType": "AWS::EC2::Instance",
+      "resourceGroup": "aws-prod-app",
+      "region": "us-east-1",
+      "status": "Healthy",
+      "tags": {
+        "environment": "prod",
+        "application": "api",
+        "owner": "platform",
+        "managedBy": "terraform",
+        "costCenter": "CC-1042"
+      },
+      "properties": {
+        "instanceType": "m6i.xlarge",
+        "ami": "amazon-linux-2023",
+        "ebsEncrypted": "True",
+        "detailedMonitoring": "False"
+      },
+      "estimatedMonthlyCost": 212.8,
+      "cpuUtilization": 13,
+      "memoryUtilization": 44,
+      "discoveredAt": "2026-09-18T06:00:00Z",
+      "lastSyncedAt": "2026-10-19T05:30:00Z",
+      "isManagedByIaC": true,
+      "complianceStatus": "Unknown",
+      "relationships": []
+    },
+    {
+      "id": "aws:arn:aws:ec2:us-east-1:123456789012:instance/i-0a1b2c3d4e5f60006",
+      "provider": "AWS",
+      "nativeId": "arn:aws:ec2:us-east-1:123456789012:instance/i-0a1b2c3d4e5f60006",
+      "name": "i-prod-api-02",
+      "resourceType": "VirtualMachine",
+      "nativeResourceType": "AWS::EC2::Instance",
+      "resourceGroup": "aws-prod-app",
+      "region": "us-east-1",
+      "status": "Healthy",
+      "tags": {
+        "environment": "prod",
+        "application": "api",
+        "owner": "platform",
+        "managedBy": "terraform",
+        "costCenter": "CC-1042"
+      },
+      "properties": {
+        "instanceType": "m6i.xlarge",
+        "ami": "amazon-linux-2023",
+        "ebsEncrypted": "True",
+        "detailedMonitoring": "True"
+      },
+      "estimatedMonthlyCost": 212.8,
+      "cpuUtilization": 63,
+      "memoryUtilization": 71,
+      "discoveredAt": "2026-09-18T06:00:00Z",
+      "lastSyncedAt": "2026-10-19T05:30:00Z",
+      "isManagedByIaC": true,
+      "complianceStatus": "Unknown",
+      "relationships": []
+    },
+    {
+      "id": "aws:arn:aws:elasticloadbalancing:us-east-1:123456789012:loadbalancer/app/alb-prod-api/8f3a2b",
+      "provider": "AWS",
+      "nativeId": "arn:aws:elasticloadbalancing:us-east-1:123456789012:loadbalancer/app/alb-prod-api/8f3a2b",
+      "name": "alb-prod-api",
+      "resourceType": "LoadBalancer",
+      "nativeResourceType": "AWS::ElasticLoadBalancingV2::LoadBalancer",
+      "resourceGroup": "aws-prod-app",
+      "region": "us-east-1",
+      "status": "Healthy",
+      "tags": {
+        "environment": "prod",
+        "application": "api",
+        "owner": "platform",
+        "managedBy": "terraform",
+        "costCenter": "CC-1042"
+      },
+      "properties": {
+        "type": "application",
+        "scheme": "internet-facing",
+        "waf": "True",
+        "deletionProtection": "True"
+      },
+      "estimatedMonthlyCost": 22.4,
+      "cpuUtilization": null,
+      "memoryUtilization": null,
+      "discoveredAt": "2026-09-18T06:00:00Z",
+      "lastSyncedAt": "2026-10-19T05:30:00Z",
+      "isManagedByIaC": true,
+      "complianceStatus": "Unknown",
+      "relationships": []
+    },
+    {
+      "id": "aws:arn:aws:ec2:us-east-1:123456789012:eip/eipalloc-0a1b2c3d4e5f60007",
+      "provider": "AWS",
+      "nativeId": "arn:aws:ec2:us-east-1:123456789012:eip/eipalloc-0a1b2c3d4e5f60007",
+      "name": "eip-prod-api",
+      "resourceType": "PublicIpAddress",
+      "nativeResourceType": "AWS::EC2::EIP",
+      "resourceGroup": "aws-prod-app",
+      "region": "us-east-1",
+      "status": "Healthy",
+      "tags": {
+        "environment": "prod",
+        "application": "api",
+        "owner": "platform",
+        "managedBy": "terraform",
+        "costCenter": "CC-1042"
+      },
+      "properties": {
+        "association": "alb-prod-api"
+      },
+      "estimatedMonthlyCost": 3.65,
+      "cpuUtilization": null,
+      "memoryUtilization": null,
+      "discoveredAt": "2026-09-18T06:00:00Z",
+      "lastSyncedAt": "2026-10-19T05:30:00Z",
+      "isManagedByIaC": true,
+      "complianceStatus": "Unknown",
+      "relationships": []
+    },
+    {
+      "id": "aws:arn:aws:s3:us-east-1:123456789012:s3-prod-assets",
+      "provider": "AWS",
+      "nativeId": "arn:aws:s3:us-east-1:123456789012:s3-prod-assets",
+      "name": "s3-prod-assets",
+      "resourceType": "StorageAccount",
+      "nativeResourceType": "AWS::S3::Bucket",
+      "resourceGroup": "aws-prod-storage",
+      "region": "us-east-1",
+      "status": "Healthy",
+      "tags": {
+        "environment": "prod",
+        "application": "assets",
+        "owner": "platform",
+        "managedBy": "terraform",
+        "costCenter": "CC-1042"
+      },
+      "properties": {
+        "versioning": "True",
+        "encryption": "AES256",
+        "publicAccessBlock": "True",
+        "logging": "True",
+        "dataClassification": "internal"
+      },
+      "estimatedMonthlyCost": 38.2,
+      "cpuUtilization": null,
+      "memoryUtilization": null,
+      "discoveredAt": "2026-09-18T06:00:00Z",
+      "lastSyncedAt": "2026-10-19T05:30:00Z",
+      "isManagedByIaC": true,
+      "complianceStatus": "Unknown",
+      "relationships": []
+    },
+    {
+      "id": "aws:arn:aws:s3:eu-west-1:123456789012:s3-prod-backups",
+      "provider": "AWS",
+      "nativeId": "arn:aws:s3:eu-west-1:123456789012:s3-prod-backups",
+      "name": "s3-prod-backups",
+      "resourceType": "StorageAccount",
+      "nativeResourceType": "AWS::S3::Bucket",
+      "resourceGroup": "aws-prod-storage",
+      "region": "eu-west-1",
+      "status": "Warning",
+      "tags": {
+        "environment": "prod",
+        "application": "backup",
+        "owner": "platform",
+        "managedBy": "terraform",
+        "costCenter": "CC-1042"
+      },
+      "properties": {
+        "versioning": "False",
+        "encryption": "AES256",
+        "publicAccessBlock": "True",
+        "logging": "False"
+      },
+      "estimatedMonthlyCost": 22.1,
+      "cpuUtilization": null,
+      "memoryUtilization": null,
+      "discoveredAt": "2026-09-18T06:00:00Z",
+      "lastSyncedAt": "2026-10-19T05:30:00Z",
+      "isManagedByIaC": true,
+      "complianceStatus": "Unknown",
+      "relationships": []
+    },
+    {
+      "id": "aws:arn:aws:rds:us-east-1:123456789012:db:rds-prod-orders",
+      "provider": "AWS",
+      "nativeId": "arn:aws:rds:us-east-1:123456789012:db:rds-prod-orders",
+      "name": "rds-prod-orders",
+      "resourceType": "SqlDatabase",
+      "nativeResourceType": "AWS::RDS::DBInstance",
+      "resourceGroup": "aws-prod-data",
+      "region": "us-east-1",
+      "status": "Warning",
+      "tags": {
+        "environment": "prod",
+        "application": "orders",
+        "owner": "platform",
+        "managedBy": "terraform",
+        "costCenter": "CC-1042"
+      },
+      "properties": {
+        "engine": "postgres",
+        "instanceClass": "db.r6g.xlarge",
+        "multiAz": "True",
+        "storageEncrypted": "False",
+        "backupRetentionDays": "14",
+        "publiclyAccessible": "False"
+      },
+      "estimatedMonthlyCost": 521.6,
+      "cpuUtilization": null,
+      "memoryUtilization": null,
+      "discoveredAt": "2026-09-18T06:00:00Z",
+      "lastSyncedAt": "2026-10-19T05:30:00Z",
+      "isManagedByIaC": true,
+      "complianceStatus": "Unknown",
+      "relationships": []
+    },
+    {
+      "id": "aws:arn:aws:dynamodb:us-east-1:123456789012:table/ddb-prod-sessions",
+      "provider": "AWS",
+      "nativeId": "arn:aws:dynamodb:us-east-1:123456789012:table/ddb-prod-sessions",
+      "name": "ddb-prod-sessions",
+      "resourceType": "DynamoDbTable",
+      "nativeResourceType": "AWS::DynamoDB::Table",
+      "resourceGroup": "aws-prod-data",
+      "region": "us-east-1",
+      "status": "Healthy",
+      "tags": {
+        "environment": "prod",
+        "application": "sessions",
+        "owner": "platform",
+        "managedBy": "terraform",
+        "costCenter": "CC-1042"
+      },
+      "properties": {
+        "billingMode": "PAY_PER_REQUEST",
+        "encryption": "True",
+        "pitr": "True",
+        "ttl": "True"
+      },
+      "estimatedMonthlyCost": 84.3,
+      "cpuUtilization": null,
+      "memoryUtilization": null,
+      "discoveredAt": "2026-09-18T06:00:00Z",
+      "lastSyncedAt": "2026-10-19T05:30:00Z",
+      "isManagedByIaC": true,
+      "complianceStatus": "Unknown",
+      "relationships": []
+    },
+    {
+      "id": "aws:arn:aws:lambda:us-east-1:123456789012:function:lambda-auth",
+      "provider": "AWS",
+      "nativeId": "arn:aws:lambda:us-east-1:123456789012:function:lambda-auth",
+      "name": "lambda-auth",
+      "resourceType": "Function",
+      "nativeResourceType": "AWS::Lambda::Function",
+      "resourceGroup": "aws-prod-app",
+      "region": "us-east-1",
+      "status": "Healthy",
+      "tags": {
+        "environment": "prod",
+        "application": "auth",
+        "owner": "platform",
+        "managedBy": "terraform",
+        "costCenter": "CC-1042"
+      },
+      "properties": {
+        "runtime": "dotnet8",
+        "memoryMb": "512",
+        "timeoutSec": "30",
+        "tracing": "True"
+      },
+      "estimatedMonthlyCost": 12.4,
+      "cpuUtilization": null,
+      "memoryUtilization": null,
+      "discoveredAt": "2026-09-18T06:00:00Z",
+      "lastSyncedAt": "2026-10-19T05:30:00Z",
+      "isManagedByIaC": true,
+      "complianceStatus": "Unknown",
+      "relationships": []
+    },
+    {
+      "id": "aws:arn:aws:eks:us-east-1:123456789012:cluster/eks-prod",
+      "provider": "AWS",
+      "nativeId": "arn:aws:eks:us-east-1:123456789012:cluster/eks-prod",
+      "name": "eks-prod",
+      "resourceType": "KubernetesCluster",
+      "nativeResourceType": "AWS::EKS::Cluster",
+      "resourceGroup": "aws-prod-platform",
+      "region": "us-east-1",
+      "status": "Healthy",
+      "tags": {
+        "environment": "prod",
+        "application": "platform",
+        "owner": "platform",
+        "managedBy": "terraform",
+        "costCenter": "CC-1042"
+      },
+      "properties": {
+        "version": "1.30",
+        "nodeGroups": "3",
+        "privateEndpoint": "True",
+        "logging": "api,audit"
+      },
+      "estimatedMonthlyCost": 318.0,
+      "cpuUtilization": null,
+      "memoryUtilization": null,
+      "discoveredAt": "2026-09-18T06:00:00Z",
+      "lastSyncedAt": "2026-10-19T05:30:00Z",
+      "isManagedByIaC": true,
+      "complianceStatus": "Unknown",
+      "relationships": []
+    },
+    {
+      "id": "aws:arn:aws:sqs:us-east-1:123456789012:sqs-prod-jobs",
+      "provider": "AWS",
+      "nativeId": "arn:aws:sqs:us-east-1:123456789012:sqs-prod-jobs",
+      "name": "sqs-prod-jobs",
+      "resourceType": "Queue",
+      "nativeResourceType": "AWS::SQS::Queue",
+      "resourceGroup": "aws-prod-app",
+      "region": "us-east-1",
+      "status": "Healthy",
+      "tags": {
+        "environment": "prod",
+        "application": "jobs",
+        "owner": "platform",
+        "managedBy": "terraform",
+        "costCenter": "CC-1042"
+      },
+      "properties": {
+        "type": "standard",
+        "dlq": "True",
+        "encryption": "SQS-managed"
+      },
+      "estimatedMonthlyCost": 2.8,
+      "cpuUtilization": null,
+      "memoryUtilization": null,
+      "discoveredAt": "2026-09-18T06:00:00Z",
+      "lastSyncedAt": "2026-10-19T05:30:00Z",
+      "isManagedByIaC": true,
+      "complianceStatus": "Unknown",
+      "relationships": []
+    },
+    {
+      "id": "aws:arn:aws:sns:us-east-1:123456789012:sns-prod-alerts",
+      "provider": "AWS",
+      "nativeId": "arn:aws:sns:us-east-1:123456789012:sns-prod-alerts",
+      "name": "sns-prod-alerts",
+      "resourceType": "ServiceBus",
+      "nativeResourceType": "AWS::SNS::Topic",
+      "resourceGroup": "aws-prod-platform",
+      "region": "us-east-1",
+      "status": "Healthy",
+      "tags": {
+        "environment": "prod",
+        "application": "alerts",
+        "owner": "platform",
+        "managedBy": "terraform",
+        "costCenter": "CC-1042"
+      },
+      "properties": {
+        "subscriptions": "4",
+        "encryption": "KMS"
+      },
+      "estimatedMonthlyCost": 4.6,
+      "cpuUtilization": null,
+      "memoryUtilization": null,
+      "discoveredAt": "2026-09-18T06:00:00Z",
+      "lastSyncedAt": "2026-10-19T05:30:00Z",
+      "isManagedByIaC": true,
+      "complianceStatus": "Unknown",
+      "relationships": []
+    },
+    {
+      "id": "aws:arn:aws:cloudwatch:us-east-1:123456789012:alarm:cw-prod-alarms",
+      "provider": "AWS",
+      "nativeId": "arn:aws:cloudwatch:us-east-1:123456789012:alarm:cw-prod-alarms",
+      "name": "cw-prod-alarms",
+      "resourceType": "ApplicationInsights",
+      "nativeResourceType": "AWS::CloudWatch::Alarm",
+      "resourceGroup": "aws-prod-platform",
+      "region": "us-east-1",
+      "status": "Healthy",
+      "tags": {
+        "environment": "prod",
+        "application": "observability",
+        "owner": "platform",
+        "managedBy": "terraform",
+        "costCenter": "CC-1042"
+      },
+      "properties": {
+        "alarms": "18",
+        "compositeAlarms": "3"
+      },
+      "estimatedMonthlyCost": 29.8,
+      "cpuUtilization": null,
+      "memoryUtilization": null,
+      "discoveredAt": "2026-09-18T06:00:00Z",
+      "lastSyncedAt": "2026-10-19T05:30:00Z",
+      "isManagedByIaC": true,
+      "complianceStatus": "Unknown",
+      "relationships": []
+    },
+    {
+      "id": "aws:arn:aws:kms:us-east-1:123456789012:key/kms-prod",
+      "provider": "AWS",
+      "nativeId": "arn:aws:kms:us-east-1:123456789012:key/kms-prod",
+      "name": "kms-prod",
+      "resourceType": "KeyVault",
+      "nativeResourceType": "AWS::KMS::Key",
+      "resourceGroup": "aws-prod-security",
+      "region": "us-east-1",
+      "status": "Healthy",
+      "tags": {
+        "environment": "prod",
+        "application": "security",
+        "owner": "platform",
+        "managedBy": "terraform",
+        "costCenter": "CC-1042"
+      },
+      "properties": {
+        "rotationEnabled": "True",
+        "keySpec": "SYMMETRIC_DEFAULT",
+        "multiRegion": "False"
+      },
+      "estimatedMonthlyCost": 4.2,
+      "cpuUtilization": null,
+      "memoryUtilization": null,
+      "discoveredAt": "2026-09-18T06:00:00Z",
+      "lastSyncedAt": "2026-10-19T05:30:00Z",
+      "isManagedByIaC": true,
+      "complianceStatus": "Unknown",
+      "relationships": []
+    },
+    {
+      "id": "aws:arn:aws:elasticache:eu-west-1:123456789012:cluster:elasticache-prod-sessions",
+      "provider": "AWS",
+      "nativeId": "arn:aws:elasticache:eu-west-1:123456789012:cluster:elasticache-prod-sessions",
+      "name": "elasticache-prod-sessions",
+      "resourceType": "RedisCache",
+      "nativeResourceType": "AWS::ElastiCache::CacheCluster",
+      "resourceGroup": "aws-prod-data",
+      "region": "eu-west-1",
+      "status": "Healthy",
+      "tags": {
+        "environment": "prod",
+        "application": "sessions",
+        "owner": "platform",
+        "managedBy": "terraform",
+        "costCenter": "CC-1042"
+      },
+      "properties": {
+        "engine": "redis",
+        "nodeType": "cache.r7g.large",
+        "transitEncryption": "True",
+        "atRestEncryption": "True"
+      },
+      "estimatedMonthlyCost": 188.4,
+      "cpuUtilization": null,
+      "memoryUtilization": null,
+      "discoveredAt": "2026-09-18T06:00:00Z",
+      "lastSyncedAt": "2026-10-19T05:30:00Z",
+      "isManagedByIaC": true,
+      "complianceStatus": "Unknown",
+      "relationships": []
+    }
+  ],
+  "relationships": [
+    {
+      "sourceResourceId": "az:/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg-prod-core/providers/Microsoft.Network/virtualNetworks/vnet-prod-eastus",
+      "targetResourceId": "az:/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg-prod-core/providers/Microsoft.Network/virtualNetworks/vnet-prod-eastus/subnets/snet-app",
+      "relationshipType": "Contains",
+      "description": "VNet contains snet-app",
+      "properties": {}
+    },
+    {
+      "sourceResourceId": "az:/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg-prod-core/providers/Microsoft.Network/virtualNetworks/vnet-prod-eastus",
+      "targetResourceId": "az:/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg-prod-core/providers/Microsoft.Network/virtualNetworks/vnet-prod-eastus/subnets/snet-data",
+      "relationshipType": "Contains",
+      "description": "VNet contains snet-data",
+      "properties": {}
+    },
+    {
+      "sourceResourceId": "az:/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg-prod-core/providers/Microsoft.Network/virtualNetworks/vnet-prod-eastus/subnets/snet-app",
+      "targetResourceId": "az:/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg-prod-core/providers/Microsoft.Network/networkSecurityGroups/nsg-app",
+      "relationshipType": "SecuredBy",
+      "description": "Subnet traffic filtered by nsg-app",
+      "properties": {}
+    },
+    {
+      "sourceResourceId": "az:/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg-prod-core/providers/Microsoft.Network/virtualNetworks/vnet-prod-eastus/subnets/snet-data",
+      "targetResourceId": "az:/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg-prod-core/providers/Microsoft.Network/networkSecurityGroups/nsg-data",
+      "relationshipType": "SecuredBy",
+      "description": "Subnet traffic filtered by nsg-data",
+      "properties": {}
+    },
+    {
+      "sourceResourceId": "az:/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg-prod-core/providers/Microsoft.Network/networkInterfaces/nic-app-01",
+      "targetResourceId": "az:/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg-prod-core/providers/Microsoft.Network/virtualNetworks/vnet-prod-eastus/subnets/snet-app",
+      "relationshipType": "DependsOn",
+      "description": "NIC attached to snet-app",
+      "properties": {}
+    },
+    {
+      "sourceResourceId": "az:/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg-prod-core/providers/Microsoft.Network/networkInterfaces/nic-app-02",
+      "targetResourceId": "az:/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg-prod-core/providers/Microsoft.Network/virtualNetworks/vnet-prod-eastus/subnets/snet-app",
+      "relationshipType": "DependsOn",
+      "description": "NIC attached to snet-app",
+      "properties": {}
+    },
+    {
+      "sourceResourceId": "az:/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg-prod-core/providers/Microsoft.Network/networkInterfaces/nic-app-03",
+      "targetResourceId": "az:/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg-prod-core/providers/Microsoft.Network/virtualNetworks/vnet-prod-eastus/subnets/snet-app",
+      "relationshipType": "DependsOn",
+      "description": "NIC attached to snet-app",
+      "properties": {}
+    },
+    {
+      "sourceResourceId": "az:/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg-prod-core/providers/Microsoft.Network/networkInterfaces/nic-app-01",
+      "targetResourceId": "az:/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg-prod-core/providers/Microsoft.Network/networkSecurityGroups/nsg-app",
+      "relationshipType": "SecuredBy",
+      "description": "NIC filtered by nsg-app",
+      "properties": {}
+    },
+    {
+      "sourceResourceId": "az:/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg-prod-core/providers/Microsoft.Network/networkInterfaces/nic-app-02",
+      "targetResourceId": "az:/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg-prod-core/providers/Microsoft.Network/networkSecurityGroups/nsg-app",
+      "relationshipType": "SecuredBy",
+      "description": "NIC filtered by nsg-app",
+      "properties": {}
+    },
+    {
+      "sourceResourceId": "az:/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg-prod-core/providers/Microsoft.Compute/virtualMachines/vm-app-01",
+      "targetResourceId": "az:/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg-prod-core/providers/Microsoft.Network/networkInterfaces/nic-app-01",
+      "relationshipType": "DependsOn",
+      "description": "VM uses nic-app-01",
+      "properties": {}
+    },
+    {
+      "sourceResourceId": "az:/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg-prod-core/providers/Microsoft.Compute/virtualMachines/vm-app-02",
+      "targetResourceId": "az:/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg-prod-core/providers/Microsoft.Network/networkInterfaces/nic-app-02",
+      "relationshipType": "DependsOn",
+      "description": "VM uses nic-app-02",
+      "properties": {}
+    },
+    {
+      "sourceResourceId": "az:/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg-prod-core/providers/Microsoft.Compute/virtualMachines/vm-app-03",
+      "targetResourceId": "az:/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg-prod-core/providers/Microsoft.Network/networkInterfaces/nic-app-03",
+      "relationshipType": "DependsOn",
+      "description": "VM uses nic-app-03",
+      "properties": {}
+    },
+    {
+      "sourceResourceId": "az:/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg-prod-core/providers/Microsoft.Compute/virtualMachines/vm-app-01",
+      "targetResourceId": "az:/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg-prod-core/providers/Microsoft.Compute/disks/disk-vm-app-01-os",
+      "relationshipType": "DeployedOn",
+      "description": "OS disk attached to vm-app-01",
+      "properties": {}
+    },
+    {
+      "sourceResourceId": "az:/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg-prod-core/providers/Microsoft.Compute/virtualMachines/vm-app-01",
+      "targetResourceId": "az:/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg-shared/providers/Microsoft.ManagedIdentity/userAssignedIdentities/id-prod-workload",
+      "relationshipType": "ManagedBy",
+      "description": "Managed identity assigned",
+      "properties": {}
+    },
+    {
+      "sourceResourceId": "az:/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg-prod-core/providers/Microsoft.Compute/virtualMachines/vm-app-02",
+      "targetResourceId": "az:/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg-shared/providers/Microsoft.ManagedIdentity/userAssignedIdentities/id-prod-workload",
+      "relationshipType": "ManagedBy",
+      "description": "Managed identity assigned",
+      "properties": {}
+    },
+    {
+      "sourceResourceId": "az:/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg-prod-core/providers/Microsoft.Network/publicIPAddresses/pip-app-01",
+      "targetResourceId": "az:/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg-prod-core/providers/Microsoft.Network/loadBalancers/lb-prod",
+      "relationshipType": "ConnectsTo",
+      "description": "Public IP frontend",
+      "properties": {}
+    },
+    {
+      "sourceResourceId": "az:/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg-prod-core/providers/Microsoft.Network/loadBalancers/lb-prod",
+      "targetResourceId": "az:/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg-prod-core/providers/Microsoft.Compute/virtualMachines/vm-app-01",
+      "relationshipType": "RoutesTo",
+      "description": "Backend pool member",
+      "properties": {}
+    },
+    {
+      "sourceResourceId": "az:/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg-prod-core/providers/Microsoft.Network/loadBalancers/lb-prod",
+      "targetResourceId": "az:/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg-prod-core/providers/Microsoft.Compute/virtualMachines/vm-app-02",
+      "relationshipType": "RoutesTo",
+      "description": "Backend pool member",
+      "properties": {}
+    },
+    {
+      "sourceResourceId": "az:/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg-prod-web/providers/Microsoft.Network/applicationGateways/agw-prod",
+      "targetResourceId": "az:/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg-prod-core/providers/Microsoft.Network/loadBalancers/lb-prod",
+      "relationshipType": "RoutesTo",
+      "description": "Gateway routes to internal load balancer",
+      "properties": {}
+    },
+    {
+      "sourceResourceId": "az:/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg-prod-web/providers/Microsoft.Network/dnszones/cloudscope-demo.com",
+      "targetResourceId": "az:/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg-prod-web/providers/Microsoft.Network/applicationGateways/agw-prod",
+      "relationshipType": "RoutesTo",
+      "description": "DNS A record points at application gateway",
+      "properties": {}
+    },
+    {
+      "sourceResourceId": "az:/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg-prod-web/providers/Microsoft.Web/sites/app-prod-web",
+      "targetResourceId": "az:/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg-prod-web/providers/Microsoft.Web/serverfarms/plan-prod-web",
+      "relationshipType": "DependsOn",
+      "description": "App Service Plan hosts app-prod-web",
+      "properties": {}
+    },
+    {
+      "sourceResourceId": "az:/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg-prod-web/providers/Microsoft.Web/sites/app-prod-web",
+      "targetResourceId": "az:/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg-shared/providers/Microsoft.KeyVault/vaults/kv-prod-secrets",
+      "relationshipType": "ConnectsTo",
+      "description": "Reads secrets from Key Vault",
+      "properties": {}
+    },
+    {
+      "sourceResourceId": "az:/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg-prod-web/providers/Microsoft.Web/sites/app-prod-web",
+      "targetResourceId": "az:/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg-prod-data/providers/Microsoft.Insights/components/appi-prod",
+      "relationshipType": "Monitors",
+      "description": "Telemetry to Application Insights",
+      "properties": {}
+    },
+    {
+      "sourceResourceId": "az:/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg-prod-core/providers/Microsoft.Web/sites/func-orders-api",
+      "targetResourceId": "az:/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg-prod-data/providers/Microsoft.Storage/storageAccounts/stgprodapp",
+      "relationshipType": "StoredIn",
+      "description": "Function state in storage account",
+      "properties": {}
+    },
+    {
+      "sourceResourceId": "az:/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg-prod-core/providers/Microsoft.Web/sites/func-orders-api",
+      "targetResourceId": "az:/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg-prod-data/providers/Microsoft.ServiceBus/namespaces/bus-prod-orders",
+      "relationshipType": "ConnectsTo",
+      "description": "Publishes order events",
+      "properties": {}
+    },
+    {
+      "sourceResourceId": "az:/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg-prod-core/providers/Microsoft.Web/sites/func-orders-api",
+      "targetResourceId": "az:/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg-prod-data/providers/Microsoft.Sql/servers/sql-prod-orders/databases/orders",
+      "relationshipType": "ConnectsTo",
+      "description": "Writes orders to SQL",
+      "properties": {}
+    },
+    {
+      "sourceResourceId": "az:/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg-prod-data/providers/Microsoft.ServiceBus/namespaces/bus-prod-orders",
+      "targetResourceId": "az:/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg-prod-data/providers/Microsoft.EventHub/namespaces/evh-prod-telemetry",
+      "relationshipType": "ConnectsTo",
+      "description": "Forwards telemetry to Event Hubs",
+      "properties": {}
+    },
+    {
+      "sourceResourceId": "az:/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg-prod-core/providers/Microsoft.ContainerService/managedClusters/aks-prod",
+      "targetResourceId": "az:/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg-prod-core/providers/Microsoft.Network/virtualNetworks/vnet-prod-eastus/subnets/snet-app",
+      "relationshipType": "ConnectsTo",
+      "description": "Node pool subnet",
+      "properties": {}
+    },
+    {
+      "sourceResourceId": "az:/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg-prod-core/providers/Microsoft.ContainerService/managedClusters/aks-prod",
+      "targetResourceId": "az:/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg-shared/providers/Microsoft.ManagedIdentity/userAssignedIdentities/id-prod-workload",
+      "relationshipType": "DeployedOn",
+      "description": "Cluster identity",
+      "properties": {}
+    },
+    {
+      "sourceResourceId": "az:/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg-prod-core/providers/Microsoft.ContainerRegistry/registries/acrprod",
+      "targetResourceId": "az:/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg-prod-core/providers/Microsoft.ContainerService/managedClusters/aks-prod",
+      "relationshipType": "ConnectsTo",
+      "description": "Image pull source",
+      "properties": {}
+    },
+    {
+      "sourceResourceId": "az:/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg-prod-web/providers/Microsoft.Web/sites/app-prod-web",
+      "targetResourceId": "az:/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg-prod-core/providers/Microsoft.ContainerRegistry/registries/acrprod",
+      "relationshipType": "ConnectsTo",
+      "description": "Container images",
+      "properties": {}
+    },
+    {
+      "sourceResourceId": "az:/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg-prod-data/providers/Microsoft.DocumentDB/databaseAccounts/cosmos-prod-orders",
+      "targetResourceId": "az:/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg-prod-core/providers/Microsoft.Network/virtualNetworks/vnet-prod-eastus/subnets/snet-data",
+      "relationshipType": "ConnectsTo",
+      "description": "Private endpoint in snet-data",
+      "properties": {}
+    },
+    {
+      "sourceResourceId": "az:/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg-prod-data/providers/Microsoft.Sql/servers/sql-prod-orders/databases/orders",
+      "targetResourceId": "az:/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg-prod-core/providers/Microsoft.Network/virtualNetworks/vnet-prod-eastus/subnets/snet-data",
+      "relationshipType": "ConnectsTo",
+      "description": "Private endpoint in snet-data",
+      "properties": {}
+    },
+    {
+      "sourceResourceId": "az:/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg-prod-data/providers/Microsoft.Cache/redis/redis-prod-sessions",
+      "targetResourceId": "az:/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg-prod-core/providers/Microsoft.Network/virtualNetworks/vnet-prod-eastus/subnets/snet-data",
+      "relationshipType": "ConnectsTo",
+      "description": "Private endpoint in snet-data",
+      "properties": {}
+    },
+    {
+      "sourceResourceId": "az:/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg-prod-data/providers/Microsoft.Insights/components/appi-prod",
+      "targetResourceId": "az:/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg-prod-data/providers/Microsoft.OperationalInsights/workspaces/law-prod",
+      "relationshipType": "StoredIn",
+      "description": "Workspace-based Application Insights",
+      "properties": {}
+    },
+    {
+      "sourceResourceId": "az:/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg-prod-data/providers/Microsoft.OperationalInsights/workspaces/law-prod",
+      "targetResourceId": "az:/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg-prod-data/providers/Microsoft.Storage/storageAccounts/stgprodlogs",
+      "relationshipType": "ConnectsTo",
+      "description": "Diagnostic archive",
+      "properties": {}
+    },
+    {
+      "sourceResourceId": "az:/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg-prod-core/providers/Microsoft.Network/virtualNetworkGateways/vpn-prod-hub",
+      "targetResourceId": "az:/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg-prod-core/providers/Microsoft.Network/virtualNetworks/vnet-prod-eastus",
+      "relationshipType": "ConnectsTo",
+      "description": "Site-to-site VPN into hub VNet",
+      "properties": {}
+    },
+    {
+      "sourceResourceId": "az:/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg-shared/providers/Microsoft.KeyVault/vaults/kv-prod-secrets",
+      "targetResourceId": "az:/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg-prod-data/providers/Microsoft.OperationalInsights/workspaces/law-prod",
+      "relationshipType": "Monitors",
+      "description": "Audit logs shipped to Log Analytics",
+      "properties": {}
+    },
+    {
+      "sourceResourceId": "az:/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg-shared/providers/Microsoft.ManagedIdentity/userAssignedIdentities/id-prod-workload",
+      "targetResourceId": "az:/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg-shared/providers/Microsoft.KeyVault/vaults/kv-prod-secrets",
+      "relationshipType": "ConnectsTo",
+      "description": "Managed identity reads secrets",
+      "properties": {}
+    },
+    {
+      "sourceResourceId": "az:/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg-prod-core/providers/Microsoft.Compute/virtualMachines/vm-app-03",
+      "targetResourceId": "az:/subscriptions/11111111-2222-3333-4444-555555555555/resourceGroups/rg-shared/providers/Microsoft.KeyVault/vaults/kv-prod-secrets",
+      "relationshipType": "ConnectsTo",
+      "description": "Application reads secrets",
+      "properties": {}
+    },
+    {
+      "sourceResourceId": "aws:arn:aws:ec2:us-east-1:123456789012:vpc/vpc-0a1b2c3d4e5f6a7b8",
+      "targetResourceId": "aws:arn:aws:ec2:us-east-1:123456789012:subnet/subnet-0a1b2c3d4e5f60001",
+      "relationshipType": "Contains",
+      "description": "VPC contains public subnet",
+      "properties": {}
+    },
+    {
+      "sourceResourceId": "aws:arn:aws:ec2:us-east-1:123456789012:vpc/vpc-0a1b2c3d4e5f6a7b8",
+      "targetResourceId": "aws:arn:aws:ec2:us-east-1:123456789012:subnet/subnet-0a1b2c3d4e5f60002",
+      "relationshipType": "Contains",
+      "description": "VPC contains private subnet",
+      "properties": {}
+    },
+    {
+      "sourceResourceId": "aws:arn:aws:ec2:us-east-1:123456789012:security-group/sg-0a1b2c3d4e5f60003",
+      "targetResourceId": "aws:arn:aws:ec2:us-east-1:123456789012:vpc/vpc-0a1b2c3d4e5f6a7b8",
+      "relationshipType": "DependsOn",
+      "description": "Security group belongs to VPC",
+      "properties": {}
+    },
+    {
+      "sourceResourceId": "aws:arn:aws:ec2:us-east-1:123456789012:security-group/sg-0a1b2c3d4e5f60004",
+      "targetResourceId": "aws:arn:aws:ec2:us-east-1:123456789012:vpc/vpc-0a1b2c3d4e5f6a7b8",
+      "relationshipType": "DependsOn",
+      "description": "Security group belongs to VPC",
+      "properties": {}
+    },
+    {
+      "sourceResourceId": "aws:arn:aws:ec2:us-east-1:123456789012:instance/i-0a1b2c3d4e5f60005",
+      "targetResourceId": "aws:arn:aws:ec2:us-east-1:123456789012:subnet/subnet-0a1b2c3d4e5f60001",
+      "relationshipType": "DependsOn",
+      "description": "Instance launched in subnet",
+      "properties": {}
+    },
+    {
+      "sourceResourceId": "aws:arn:aws:ec2:us-east-1:123456789012:instance/i-0a1b2c3d4e5f60006",
+      "targetResourceId": "aws:arn:aws:ec2:us-east-1:123456789012:subnet/subnet-0a1b2c3d4e5f60001",
+      "relationshipType": "DependsOn",
+      "description": "Instance launched in subnet",
+      "properties": {}
+    },
+    {
+      "sourceResourceId": "aws:arn:aws:ec2:us-east-1:123456789012:instance/i-0a1b2c3d4e5f60005",
+      "targetResourceId": "aws:arn:aws:ec2:us-east-1:123456789012:security-group/sg-0a1b2c3d4e5f60003",
+      "relationshipType": "SecuredBy",
+      "description": "Instance uses web security group",
+      "properties": {}
+    },
+    {
+      "sourceResourceId": "aws:arn:aws:ec2:us-east-1:123456789012:instance/i-0a1b2c3d4e5f60006",
+      "targetResourceId": "aws:arn:aws:ec2:us-east-1:123456789012:security-group/sg-0a1b2c3d4e5f60003",
+      "relationshipType": "SecuredBy",
+      "description": "Instance uses web security group",
+      "properties": {}
+    },
+    {
+      "sourceResourceId": "aws:arn:aws:elasticloadbalancing:us-east-1:123456789012:loadbalancer/app/alb-prod-api/8f3a2b",
+      "targetResourceId": "aws:arn:aws:ec2:us-east-1:123456789012:instance/i-0a1b2c3d4e5f60005",
+      "relationshipType": "RoutesTo",
+      "description": "Target group member",
+      "properties": {}
+    },
+    {
+      "sourceResourceId": "aws:arn:aws:elasticloadbalancing:us-east-1:123456789012:loadbalancer/app/alb-prod-api/8f3a2b",
+      "targetResourceId": "aws:arn:aws:ec2:us-east-1:123456789012:instance/i-0a1b2c3d4e5f60006",
+      "relationshipType": "RoutesTo",
+      "description": "Target group member",
+      "properties": {}
+    },
+    {
+      "sourceResourceId": "aws:arn:aws:ec2:us-east-1:123456789012:eip/eipalloc-0a1b2c3d4e5f60007",
+      "targetResourceId": "aws:arn:aws:elasticloadbalancing:us-east-1:123456789012:loadbalancer/app/alb-prod-api/8f3a2b",
+      "relationshipType": "ConnectsTo",
+      "description": "Elastic IP attached to ALB",
+      "properties": {}
+    },
+    {
+      "sourceResourceId": "aws:arn:aws:rds:us-east-1:123456789012:db:rds-prod-orders",
+      "targetResourceId": "aws:arn:aws:ec2:us-east-1:123456789012:subnet/subnet-0a1b2c3d4e5f60002",
+      "relationshipType": "DependsOn",
+      "description": "Database subnet group",
+      "properties": {}
+    },
+    {
+      "sourceResourceId": "aws:arn:aws:rds:us-east-1:123456789012:db:rds-prod-orders",
+      "targetResourceId": "aws:arn:aws:ec2:us-east-1:123456789012:security-group/sg-0a1b2c3d4e5f60004",
+      "relationshipType": "SecuredBy",
+      "description": "Database security group",
+      "properties": {}
+    },
+    {
+      "sourceResourceId": "aws:arn:aws:lambda:us-east-1:123456789012:function:lambda-auth",
+      "targetResourceId": "aws:arn:aws:dynamodb:us-east-1:123456789012:table/ddb-prod-sessions",
+      "relationshipType": "ConnectsTo",
+      "description": "Reads/writes session table",
+      "properties": {}
+    },
+    {
+      "sourceResourceId": "aws:arn:aws:lambda:us-east-1:123456789012:function:lambda-auth",
+      "targetResourceId": "aws:arn:aws:sqs:us-east-1:123456789012:sqs-prod-jobs",
+      "relationshipType": "ConnectsTo",
+      "description": "Enqueues background jobs",
+      "properties": {}
+    },
+    {
+      "sourceResourceId": "aws:arn:aws:lambda:us-east-1:123456789012:function:lambda-auth",
+      "targetResourceId": "aws:arn:aws:sns:us-east-1:123456789012:sns-prod-alerts",
+      "relationshipType": "ConnectsTo",
+      "description": "Publishes auth alerts",
+      "properties": {}
+    },
+    {
+      "sourceResourceId": "aws:arn:aws:cloudwatch:us-east-1:123456789012:alarm:cw-prod-alarms",
+      "targetResourceId": "aws:arn:aws:sns:us-east-1:123456789012:sns-prod-alerts",
+      "relationshipType": "ConnectsTo",
+      "description": "Alarm notifications",
+      "properties": {}
+    },
+    {
+      "sourceResourceId": "aws:arn:aws:eks:us-east-1:123456789012:cluster/eks-prod",
+      "targetResourceId": "aws:arn:aws:ec2:us-east-1:123456789012:subnet/subnet-0a1b2c3d4e5f60001",
+      "relationshipType": "DependsOn",
+      "description": "Cluster subnets",
+      "properties": {}
+    },
+    {
+      "sourceResourceId": "aws:arn:aws:eks:us-east-1:123456789012:cluster/eks-prod",
+      "targetResourceId": "aws:arn:aws:ec2:us-east-1:123456789012:subnet/subnet-0a1b2c3d4e5f60002",
+      "relationshipType": "DependsOn",
+      "description": "Cluster subnets",
+      "properties": {}
+    },
+    {
+      "sourceResourceId": "aws:arn:aws:elasticache:eu-west-1:123456789012:cluster:elasticache-prod-sessions",
+      "targetResourceId": "aws:arn:aws:ec2:us-east-1:123456789012:subnet/subnet-0a1b2c3d4e5f60002",
+      "relationshipType": "DependsOn",
+      "description": "Cache subnet",
+      "properties": {}
+    },
+    {
+      "sourceResourceId": "aws:arn:aws:elasticache:eu-west-1:123456789012:cluster:elasticache-prod-sessions",
+      "targetResourceId": "aws:arn:aws:ec2:us-east-1:123456789012:security-group/sg-0a1b2c3d4e5f60004",
+      "relationshipType": "SecuredBy",
+      "description": "Cache security group",
+      "properties": {}
+    },
+    {
+      "sourceResourceId": "aws:arn:aws:dynamodb:us-east-1:123456789012:table/ddb-prod-sessions",
+      "targetResourceId": "aws:arn:aws:kms:us-east-1:123456789012:key/kms-prod",
+      "relationshipType": "SecuredBy",
+      "description": "Table encrypted with KMS key",
+      "properties": {}
+    },
+    {
+      "sourceResourceId": "aws:arn:aws:s3:eu-west-1:123456789012:s3-prod-backups",
+      "targetResourceId": "aws:arn:aws:kms:us-east-1:123456789012:key/kms-prod",
+      "relationshipType": "ConnectsTo",
+      "description": "Backups encrypted with KMS",
+      "properties": {}
+    },
+    {
+      "sourceResourceId": "aws:arn:aws:s3:us-east-1:123456789012:s3-prod-assets",
+      "targetResourceId": "aws:arn:aws:kms:us-east-1:123456789012:key/kms-prod",
+      "relationshipType": "ConnectsTo",
+      "description": "Object encryption key",
+      "properties": {}
+    },
+    {
+      "sourceResourceId": "aws:arn:aws:s3:us-east-1:123456789012:s3-prod-assets",
+      "targetResourceId": "aws:arn:aws:cloudwatch:us-east-1:123456789012:alarm:cw-prod-alarms",
+      "relationshipType": "Monitors",
+      "description": "Access logging",
+      "properties": {}
+    }
+  ]
+}

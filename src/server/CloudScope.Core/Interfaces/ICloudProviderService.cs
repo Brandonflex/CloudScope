@@ -14,6 +14,11 @@ public interface ICloudProviderService
     Domain.Enums.CloudProvider Provider { get; }
 
     /// <summary>
+    /// True when the provider has enough configuration/credentials to call its APIs.
+    /// </summary>
+    bool IsConfigured { get; }
+
+    /// <summary>
     /// Discover all resources in the configured scope.
     /// </summary>
     Task<IEnumerable<CloudResource>> DiscoverResourcesAsync(CancellationToken ct = default);

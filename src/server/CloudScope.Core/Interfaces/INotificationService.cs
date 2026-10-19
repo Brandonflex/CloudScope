@@ -1,3 +1,4 @@
+using CloudScope.Core.Domain.Enums;
 using CloudScope.Core.Domain.Models;
 
 namespace CloudScope.Core.Interfaces;
@@ -11,5 +12,6 @@ public interface INotificationService
     Task NotifyComplianceViolation(ComplianceViolation violation);
     Task NotifyCostAnomaly(CostAnomaly anomaly);
     Task NotifyScanProgress(string scanType, int progress, int total);
+    Task NotifyDiscoveryProgress(CloudProvider provider, int completed, int total);
     Task NotifyDiscoveryCompleted(int totalResources, TimeSpan duration);
 }

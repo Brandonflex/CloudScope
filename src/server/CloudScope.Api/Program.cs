@@ -1,22 +1,37 @@
+using System.Text.Json.Serialization;
+using CloudScope.Api.HostedServices;
+using CloudScope.Api.Hubs;
+using CloudScope.Api.Middleware;
 using CloudScope.Core.Interfaces;
 using CloudScope.GraphEngine.Services;
 using CloudScope.Infrastructure.Configuration;
+using CloudScope.Infrastructure.Persistence;
+using CloudScope.Infrastructure.Repositories;
+using CloudScope.Infrastructure.Runtime;
 using CloudScope.Infrastructure.Services.AWS;
 using CloudScope.Infrastructure.Services.Azure;
+using CloudScope.Infrastructure.Services.Discovery;
+using Microsoft.ApplicationInsights.Extensibility;
 using Serilog;
+using Serilog.Sinks.ApplicationInsights.TelemetryConverters;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // ─── Serilog ──────────────────────────────────────────────
-Log.Logger = new LoggerConfiguration()
+var loggerConfiguration = new LoggerConfiguration()
     .ReadFrom.Configuration(builder.Configuration)
     .Enrich.FromLogContext()
-    .WriteTo.Console()
-    .WriteTo.ApplicationInsights(
-        builder.Configuration["ApplicationInsights:ConnectionString"] ?? "",
-        TelemetryConverter.Traces)
-    .CreateLogger();
+    .WriteTo.Console();
 
+var appInsightsConnection = builder.Configuration["ApplicationInsights:ConnectionString"];
+if (!string.IsNullOrWhiteSpace(appInsightsConnection))
+{
+    loggerConfiguration.WriteTo.ApplicationInsights(
+        new TelemetryConfiguration { ConnectionString = appInsightsConnection },
+        TelemetryConverter.Traces);
+}
+
+Log.Logger = loggerConfiguration.CreateLogger();
 builder.Host.UseSerilog();
 
 // ─── Configuration binding ────────────────────────────────
@@ -25,49 +40,95 @@ builder.Services.Configure<CosmosDbOptions>(builder.Configuration.GetSection(Cos
 builder.Services.Configure<AwsOptions>(builder.Configuration.GetSection(AwsOptions.SectionName));
 builder.Services.Configure<AzureOpenAIOptions>(builder.Configuration.GetSection(AzureOpenAIOptions.SectionName));
 builder.Services.Configure<SignalROptions>(builder.Configuration.GetSection(SignalROptions.SectionName));
+builder.Services.Configure<PlatformOptions>(builder.Configuration.GetSection(PlatformOptions.SectionName));
+builder.Services.Configure<DiscoveryOptions>(builder.Configuration.GetSection(DiscoveryOptions.SectionName));
 
-// ─── Caching (Redis) ──────────────────────────────────────
-builder.Services.AddStackExchangeRedisCache(options =>
+var platformOptions = builder.Configuration.GetSection(PlatformOptions.SectionName).Get<PlatformOptions>()
+                      ?? new PlatformOptions();
+var cosmosOptions = builder.Configuration.GetSection(CosmosDbOptions.SectionName).Get<CosmosDbOptions>()
+                    ?? new CosmosDbOptions();
+
+// ─── Runtime state ────────────────────────────────────────
+builder.Services.AddSingleton<RuntimeState>();
+
+// ─── Caching ──────────────────────────────────────────────
+var redisConnection = builder.Configuration.GetConnectionString("Redis");
+if (!string.IsNullOrWhiteSpace(redisConnection))
 {
-    options.Configuration = builder.Configuration.GetConnectionString("Redis") ?? "localhost:6379";
-    options.InstanceName = "CloudScope:";
-});
+    builder.Services.AddStackExchangeRedisCache(options =>
+    {
+        options.Configuration = redisConnection;
+        options.InstanceName = "CloudScope:";
+    });
+}
+else
+{
+    // Zero-dependency default so the API runs without Redis.
+    builder.Services.AddDistributedMemoryCache();
+}
+
 builder.Services.AddSingleton<ICacheService, RedisCacheService>();
 
-// ─── Cloud Provider Services ──────────────────────────────
+// ─── Storage ──────────────────────────────────────────────
+var useCosmos = platformOptions.StorageProvider.Equals("Cosmos", StringComparison.OrdinalIgnoreCase)
+                && cosmosOptions.IsConfigured;
+
+if (useCosmos)
+{
+    builder.Services.AddSingleton<CosmosDatabase>();
+    builder.Services.AddScoped<IResourceRepository, CosmosResourceRepository>();
+    builder.Services.AddScoped<IGraphRepository, CosmosGraphRepository>();
+}
+else
+{
+    builder.Services.AddSingleton<InMemoryCloudStore>();
+    builder.Services.AddSingleton<IResourceRepository>(sp => sp.GetRequiredService<InMemoryCloudStore>());
+    builder.Services.AddSingleton<IGraphRepository>(sp => sp.GetRequiredService<InMemoryCloudStore>());
+}
+
+// ─── Cloud provider services ──────────────────────────────
 builder.Services.AddScoped<AzureResourceGraphService>();
 builder.Services.AddScoped<AwsConfigService>();
 
-// Register as ICloudProviderService collection for multi-cloud resolution
 builder.Services.AddScoped<ICloudProviderService>(sp => sp.GetRequiredService<AzureResourceGraphService>());
 builder.Services.AddScoped<ICloudProviderService>(sp => sp.GetRequiredService<AwsConfigService>());
 
-// ─── Domain Services ──────────────────────────────────────
-// TODO: Register actual implementations once Cosmos DB repository is fully implemented
-// builder.Services.AddScoped<IResourceRepository, CosmosResourceRepository>();
-// builder.Services.AddScoped<IGraphRepository, CosmosGraphRepository>();
+// ─── Domain services ──────────────────────────────────────
 builder.Services.AddScoped<ICostService, AzureCostService>();
 builder.Services.AddScoped<IComplianceService, AzureComplianceService>();
 builder.Services.AddScoped<IAIQueryService, AzureAIQueryService>();
 builder.Services.AddScoped<IBlastRadiusService, BlastRadiusService>();
+builder.Services.AddScoped<IDiscoveryService, CloudDiscoveryService>();
+builder.Services.AddScoped<IPlatformStatusService, PlatformStatusService>();
+builder.Services.AddSingleton<INotificationService, SignalRNotificationService>();
 
 // ─── SignalR ──────────────────────────────────────────────
 builder.Services.AddSignalR();
 
-// ─── HTTP Clients ─────────────────────────────────────────
+// ─── HTTP clients ─────────────────────────────────────────
 builder.Services.AddHttpClient("AzureManagement", client =>
 {
     client.BaseAddress = new Uri("https://management.azure.com/");
     client.DefaultRequestHeaders.Add("Accept", "application/json");
+    client.Timeout = TimeSpan.FromSeconds(60);
 });
 
-builder.Services.AddHttpClient("AwsCostExplorer", client =>
+builder.Services.AddHttpClient("AzureOpenAI", client =>
 {
-    client.BaseAddress = new Uri($"https://ce.{builder.Configuration["AWS:Region"] ?? "us-east-1"}.amazonaws.com/");
+    client.DefaultRequestHeaders.Add("Accept", "application/json");
+    client.Timeout = TimeSpan.FromSeconds(60);
 });
 
-// ─── API Services ─────────────────────────────────────────
-builder.Services.AddControllers();
+builder.Services.AddHttpClient();
+
+// ─── API services ─────────────────────────────────────────
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+        options.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
+    });
+
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
 {
@@ -75,7 +136,8 @@ builder.Services.AddSwaggerGen(options =>
     {
         Title = "CloudScope API",
         Version = "v1",
-        Description = "Multi-Cloud Infrastructure Intelligence Platform API",
+        Description = "Multi-cloud infrastructure intelligence platform — discovery, graph, blast radius, " +
+                      "cost intelligence, compliance and natural-language query.",
         Contact = new Microsoft.OpenApi.Models.OpenApiContact
         {
             Name = "Brandonflex",
@@ -85,13 +147,20 @@ builder.Services.AddSwaggerGen(options =>
 });
 
 // ─── CORS ─────────────────────────────────────────────────
+var allowedOrigins = (builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? Array.Empty<string>())
+    .Concat(new[]
+    {
+        "http://localhost:4200", "https://localhost:4200",
+        "http://127.0.0.1:4200", "http://localhost:4300"
+    })
+    .Distinct(StringComparer.OrdinalIgnoreCase)
+    .ToArray();
+
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAngular", policy =>
     {
-        policy.WithOrigins(
-                "http://localhost:4200",   // Angular dev server
-                "https://localhost:4200")
+        policy.WithOrigins(allowedOrigins)
             .AllowAnyHeader()
             .AllowAnyMethod()
             .AllowCredentials(); // Required for SignalR
@@ -101,24 +170,43 @@ builder.Services.AddCors(options =>
 // ─── Application Insights ─────────────────────────────────
 builder.Services.AddApplicationInsightsTelemetry();
 
+// ─── Authentication/authorization plumbing ────────────────
+// Phase 1 runs without an identity provider; the middleware is wired so Entra ID
+// (OIDC) can be enabled later without changing the pipeline.
+builder.Services.AddAuthentication();
+builder.Services.AddAuthorization();
+
+// ─── Background discovery ─────────────────────────────────
+builder.Services.AddHostedService<DiscoveryBackgroundService>();
+
 var app = builder.Build();
 
-// ─── Middleware Pipeline ──────────────────────────────────
-if (app.Environment.IsDevelopment())
+// ─── Middleware pipeline ──────────────────────────────────
+app.UseMiddleware<ExceptionHandlingMiddleware>();
+
+if (app.Environment.IsDevelopment() || builder.Configuration.GetValue("Swagger:Enabled", true))
 {
     app.UseSwagger();
-    app.UseSwaggerUI();
+    app.UseSwaggerUI(options =>
+    {
+        options.SwaggerEndpoint("/swagger/v1/swagger.json", "CloudScope API v1");
+        options.RoutePrefix = "swagger";
+    });
 }
 
-app.UseHttpsRedirection();
-app.UseCors("AllowAngular");
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
 
+app.UseCors("AllowAngular");
 app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+app.MapHub<NotificationHub>("/hubs/notifications");
 
-// ─── Health Check Endpoint ────────────────────────────────
+app.MapGet("/", () => Results.Redirect("/swagger"));
 app.MapGet("/health", () => Results.Ok(new
 {
     status = "Healthy",
@@ -126,10 +214,14 @@ app.MapGet("/health", () => Results.Ok(new
     version = typeof(Program).Assembly.GetName().Version?.ToString() ?? "1.0.0"
 }));
 
-// ─── SignalR Hub ──────────────────────────────────────────
-// app.MapHub<NotificationHub>("/hubs/notifications");
+app.Services.GetRequiredService<RuntimeState>().StorageProvider = useCosmos ? "Cosmos" : "InMemory";
+
+Log.Information(
+    "CloudScope API starting. Storage={Storage}, DemoSeeding={SeedDemo}, Swagger=/swagger",
+    useCosmos ? "Cosmos" : "InMemory",
+    platformOptions.SeedDemoData);
 
 app.Run();
 
-// Make Program accessible for integration tests
+// Make Program accessible for integration tests.
 public partial class Program { }

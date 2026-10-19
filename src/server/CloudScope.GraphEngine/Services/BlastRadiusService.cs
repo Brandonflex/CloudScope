@@ -50,21 +50,34 @@ public class BlastRadiusService : IBlastRadiusService
         var dependencies = await _graphRepository.GetTransitiveDependenciesAsync(resourceId, maxDepth, ct);
         var dependencyList = dependencies.ToList();
 
-        // Get direct dependents (1 hop)
-        var neighbors = await _graphRepository.GetNeighborsAsync(resourceId, ct: ct);
-        var directCount = neighbors.Count();
+        // Enrich dependent nodes with metadata (region, type, cost) from the inventory.
+        var dependents = new List<(BlastRadiusNode Node, CloudResource? Resource)>();
+        foreach (var dependency in dependencyList)
+        {
+            var dependentResource = await _resourceRepository.GetByIdAsync(dependency.ResourceId, ct);
+
+            if (dependentResource is not null)
+            {
+                dependency.ResourceName = dependentResource.Name;
+                dependency.ResourceType = dependentResource.ResourceType;
+                dependency.Provider = dependentResource.Provider;
+            }
+
+            dependents.Add((dependency, dependentResource));
+        }
 
         // Categorize by type and region
-        var byType = dependencyList
-            .GroupBy(d => d.ResourceType)
+        var byType = dependents
+            .GroupBy(d => d.Node.ResourceType)
             .ToDictionary(g => g.Key, g => g.Count());
 
-        var byRegion = dependencyList
-            .GroupBy(d => "N/A") // Region info would come from resource lookup
+        var byRegion = dependents
+            .GroupBy(d => string.IsNullOrWhiteSpace(d.Resource?.Region) ? "unknown" : d.Resource!.Region)
             .ToDictionary(g => g.Key, g => g.Count());
 
-        // Calculate affected monthly cost
-        var affectedCost = resource.EstimatedMonthlyCost;
+        // Calculate affected monthly cost: the resource itself plus everything downstream.
+        var affectedCost = resource.EstimatedMonthlyCost +
+                           dependents.Sum(d => d.Resource?.EstimatedMonthlyCost ?? 0m);
 
         // Determine risk level
         var riskLevel = CalculateRiskLevel(dependencyList.Count, affectedCost);
@@ -79,7 +92,7 @@ public class BlastRadiusService : IBlastRadiusService
             TransitiveDependents = dependencyList.Where(d => d.HopCount > 1).ToList(),
             AffectedByType = byType,
             AffectedByRegion = byRegion,
-            AffectedMonthlyCost = affectedCost,
+            AffectedMonthlyCost = Math.Round(affectedCost, 2),
             Summary = GenerateSummary(resource, dependencyList.Count, riskLevel)
         };
 

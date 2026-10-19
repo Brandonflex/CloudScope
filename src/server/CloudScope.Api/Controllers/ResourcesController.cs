@@ -14,18 +14,18 @@ namespace CloudScope.Api.Controllers;
 public class ResourcesController : ControllerBase
 {
     private readonly IResourceRepository _resourceRepository;
-    private readonly ICloudProviderService[] _cloudProviders;
+    private readonly IDiscoveryService _discoveryService;
     private readonly IBlastRadiusService _blastRadiusService;
     private readonly ILogger<ResourcesController> _logger;
 
     public ResourcesController(
         IResourceRepository resourceRepository,
-        ICloudProviderService[] cloudProviders,
+        IDiscoveryService discoveryService,
         IBlastRadiusService blastRadiusService,
         ILogger<ResourcesController> logger)
     {
         _resourceRepository = resourceRepository;
-        _cloudProviders = cloudProviders;
+        _discoveryService = discoveryService;
         _blastRadiusService = blastRadiusService;
         _logger = logger;
     }
@@ -94,37 +94,29 @@ public class ResourcesController : ControllerBase
     /// Trigger resource discovery across all connected cloud providers.
     /// </summary>
     [HttpPost("discover")]
-    [ProducesResponseType(StatusCodes.Status202Accepted)]
+    [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<IActionResult> TriggerDiscovery(CancellationToken ct)
     {
         _logger.LogInformation("Resource discovery triggered via API");
 
-        // In a real implementation, this would dispatch a background job
-        // via MediatR/Service Bus and return 202 Accepted with a job ID
-        var discoveredCount = 0;
+        var result = await _discoveryService.DiscoverAsync(ct);
 
-        foreach (var provider in _cloudProviders)
+        return Ok(new
         {
-            try
+            message = result.DemoMode
+                ? "Demo estate loaded (no cloud credentials configured)"
+                : "Resource discovery completed",
+            demoMode = result.DemoMode,
+            resourcesDiscovered = result.ResourcesDiscovered,
+            relationshipsDiscovered = result.RelationshipsDiscovered,
+            durationSeconds = Math.Round(result.Duration.TotalSeconds, 1),
+            providers = result.Providers.Select(p => new
             {
-                var resources = await provider.DiscoverResourcesAsync(ct);
-                var resourceList = resources.ToList();
-                discoveredCount += resourceList.Count;
-
-                // TODO: Upsert to repository and graph
-                // await _resourceRepository.UpsertBatchAsync(resourceList, ct);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Discovery failed for provider {Provider}", provider.Provider);
-            }
-        }
-
-        return Accepted(new
-        {
-            message = "Resource discovery initiated",
-            resourcesDiscovered = discoveredCount,
-            providers = _cloudProviders.Select(p => p.Provider.ToString()).ToArray()
+                provider = p.Provider.ToString(),
+                configured = p.Configured,
+                resources = p.ResourcesDiscovered,
+                error = p.Error
+            })
         });
     }
 }

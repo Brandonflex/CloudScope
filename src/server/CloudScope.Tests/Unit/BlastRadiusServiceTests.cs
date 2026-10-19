@@ -20,6 +20,9 @@ public class BlastRadiusServiceTests
         _graphRepoMock = new Mock<IGraphRepository>();
         _resourceRepoMock = new Mock<IResourceRepository>();
         _loggerMock = new Mock<ILogger<BlastRadiusService>>();
+        _resourceRepoMock
+            .Setup(r => r.GetByIdAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((CloudResource?)null);
         _service = new BlastRadiusService(
             _graphRepoMock.Object,
             _resourceRepoMock.Object,

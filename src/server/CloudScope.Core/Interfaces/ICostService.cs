@@ -52,4 +52,10 @@ public interface ICostService
     Task<IEnumerable<ResourceCost>> GetTopResourcesAsync(
         int count = 10,
         CancellationToken ct = default);
+
+    /// <summary>
+    /// Generate right-sizing and waste-elimination recommendations.
+    /// </summary>
+    Task<IEnumerable<CostRecommendation>> GetRecommendationsAsync(
+        CancellationToken ct = default);
 }
