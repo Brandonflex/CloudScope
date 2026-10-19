@@ -1,5 +1,6 @@
 # CloudScope — Azure Deployment Pipeline
-# Deploys to Azure on push to main (after CI passes)
+# Deploys infrastructure and a single App Service that hosts both the .NET API
+# and the Angular SPA (published into wwwroot). One origin, no CORS or SWA token.
 
 name: Deploy to Azure
 
@@ -7,6 +8,19 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      profile:
+        description: 'Deployment profile (demo = smallest SKUs + Cosmos free tier)'
+        type: choice
+        options: [prod, demo, dev]
+        default: prod
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cloudscope-production
+  cancel-in-progress: false
 
 env:
   AZURE_RESOURCE_GROUP: 'cloudscope-rg'
@@ -15,10 +29,34 @@ env:
   NODE_VERSION: '20'
 
 jobs:
+  # ─── Configuration guard ─────────────────────────────────
+  # Nothing is deployed until the Azure credentials secret exists, so merging
+  # this workflow before the subscription is wired up does not fail the build.
+  guard:
+    name: Check deployment configuration
+    runs-on: ubuntu-latest
+    outputs:
+      configured: ${{ steps.check.outputs.configured }}
+    steps:
+      - name: Check for AZURE_CREDENTIALS
+        id: check
+        env:
+          AZURE_CREDENTIALS: ${{ secrets.AZURE_CREDENTIALS }}
+        run: |
+          if [ -n "$AZURE_CREDENTIALS" ]; then
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+            echo "Azure credentials found — deploying."
+          else
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::AZURE_CREDENTIALS is not set. Add it in Settings → Secrets and variables → Actions, then re-run this workflow."
+          fi
+
   # ─── Deploy Infrastructure ───────────────────────────────
   deploy-infra:
     name: Deploy Azure Infrastructure
     runs-on: ubuntu-latest
+    needs: guard
+    if: needs.guard.outputs.configured == 'true'
     environment: production
 
     steps:
@@ -34,19 +72,33 @@ jobs:
         run: az group create --name ${{ env.AZURE_RESOURCE_GROUP }} --location ${{ env.AZURE_LOCATION }}
 
       - name: Deploy Bicep Template
+        env:
+          PROFILE: ${{ github.event.inputs.profile || 'prod' }}
+          TENANT_ID: ${{ secrets.AZURE_AD_TENANT_ID }}
+          CLIENT_ID: ${{ secrets.AZURE_AD_CLIENT_ID }}
         run: |
-          az deployment group create \
-            --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
-            --template-file infra/bicep/main.bicep \
-            --parameters infra/bicep/parameters.prod.json \
-            --parameters aadTenantId=${{ secrets.AZURE_AD_TENANT_ID }} \
-            --parameters aadClientId=${{ secrets.AZURE_AD_CLIENT_ID }}
+          # Inputs reach the shell through env (never inline) and are validated
+          # against a whitelist, so a crafted dispatch payload cannot inject.
+          case "$PROFILE" in
+            dev|demo|prod) ;;
+            *) echo "::error::Unknown profile '$PROFILE'"; exit 1 ;;
+          esac
+          test -f "infra/bicep/parameters.$PROFILE.json" || { echo "::error::Missing parameter file"; exit 1; }
 
-  # ─── Build & Deploy Backend ──────────────────────────────
-  deploy-backend:
-    name: Deploy .NET API
+          echo "Profile: $PROFILE"
+          az deployment group create \
+            --resource-group "$AZURE_RESOURCE_GROUP" \
+            --name "cloudscope-${{ github.run_number }}" \
+            --template-file infra/bicep/main.bicep \
+            --parameters "infra/bicep/parameters.$PROFILE.json" \
+            --parameters aadTenantId="$TENANT_ID" aadClientId="$CLIENT_ID"
+
+  # ─── Build & Deploy API + SPA ────────────────────────────
+  deploy-app:
+    name: Build & Deploy API + SPA
     runs-on: ubuntu-latest
-    needs: deploy-infra
+    needs: [guard, deploy-infra]
+    if: needs.guard.outputs.configured == 'true'
     environment: production
 
     steps:
@@ -58,36 +110,6 @@ jobs:
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
-      - name: Restore + Build + Publish
-        run: |
-          dotnet restore src/server/CloudScope.Api/CloudScope.Api.csproj
-          dotnet publish src/server/CloudScope.Api/CloudScope.Api.csproj \
-            --configuration Release \
-            --output ./publish
-
-      - name: Azure Login
-        uses: azure/login@v2
-        with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
-
-      - name: Deploy to App Service
-        run: |
-          az webapp deployment source config-zip \
-            --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
-            --name ${{ secrets.APP_SERVICE_NAME }} \
-            --src ./publish.zip
-
-  # ─── Build & Deploy Frontend ─────────────────────────────
-  deploy-frontend:
-    name: Deploy Angular App
-    runs-on: ubuntu-latest
-    needs: deploy-infra
-    environment: production
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -95,15 +117,79 @@ jobs:
           cache: 'npm'
           cache-dependency-path: src/client/package-lock.json
 
-      - name: Install and Build
+      - name: Build Angular SPA
         working-directory: src/client
         run: |
           npm ci
           npx ng build --configuration production
 
-      - name: Deploy to Azure Static Web Apps
-        uses: Azure/static-web-apps-deploy@v1
+      - name: Stage SPA into the API wwwroot
+        run: |
+          rm -rf src/server/CloudScope.Api/wwwroot
+          mkdir -p src/server/CloudScope.Api/wwwroot
+          cp -R src/client/dist/cloudscope/browser/. src/server/CloudScope.Api/wwwroot/
+
+      - name: Restore + Publish API
+        run: |
+          dotnet restore src/server/CloudScope.Api/CloudScope.Api.csproj
+          dotnet publish src/server/CloudScope.Api/CloudScope.Api.csproj \
+            --configuration Release \
+            --no-restore \
+            --output ./publish \
+            -p:Version=1.0.${{ github.run_number }}
+
+      - name: Package deployment artefact
+        run: |
+          cd publish
+          zip -qr ../publish.zip .
+          unzip -l ../publish.zip | tail -5
+
+      - name: Upload artefact
+        uses: actions/upload-artifact@v4
         with:
-          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
-          app_location: 'src/client'
-          output_location: 'dist/cloudscope/browser'
+          name: cloudscope-api-${{ github.run_number }}
+          path: publish.zip
+          retention-days: 14
+
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      # Optional APP_SERVICE_NAME secret wins; otherwise the name is discovered
+      # from the resource group created by the Bicep deployment.
+      - name: Resolve App Service
+        id: app
+        env:
+          PREFERRED_NAME: ${{ secrets.APP_SERVICE_NAME }}
+        run: |
+          name="$PREFERRED_NAME"
+          if [ -z "$name" ]; then
+            name=$(az webapp list \
+              --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+              --query "[?starts_with(name, 'cloudscope')].name | [0]" -o tsv)
+          fi
+          if [ -z "$name" ]; then
+            echo "::error::No App Service found in ${{ env.AZURE_RESOURCE_GROUP }}."
+            exit 1
+          fi
+          echo "name=$name" >> "$GITHUB_OUTPUT"
+          echo "Deploying to $name"
+
+      - name: Deploy to App Service
+        run: |
+          az webapp deployment source config-zip \
+            --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+            --name ${{ steps.app.outputs.name }} \
+            --src ./publish.zip \
+            --timeout 600
+
+      - name: Smoke test
+        run: |
+          host=$(az webapp show \
+            --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+            --name ${{ steps.app.outputs.name }} \
+            --query defaultHostName -o tsv)
+          echo "Deployed to https://$host"
+          curl -fsS --retry 12 --retry-delay 5 --retry-connrefused "https://$host/health"
+          curl -fsS --retry 12 --retry-delay 5 --retry-connrefused "https://$host/" | grep -q "<title>CloudScope"

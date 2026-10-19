@@ -2,7 +2,14 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { CostSummary, CostTrend, CostForecast, CostAnomaly } from '../models';
+import {
+  CostAnomaly,
+  CostForecast,
+  CostRecommendation,
+  CostSummary,
+  CostTrend,
+  ResourceCost
+} from '../models';
 
 @Injectable({ providedIn: 'root' })
 export class CostService {
@@ -27,7 +34,7 @@ export class CostService {
 
   getForecast(daysAhead = 30): Observable<CostForecast[]> {
     return this.http.get<CostForecast[]>(`${this.baseUrl}/forecast`, {
-      params: { daysAhead: daysAhead.toString() }
+      params: { daysAhead: String(daysAhead) }
     });
   }
 
@@ -35,9 +42,13 @@ export class CostService {
     return this.http.get<CostAnomaly[]>(`${this.baseUrl}/anomalies`);
   }
 
-  getTopResources(count = 10) {
-    return this.http.get(`${this.baseUrl}/top-resources`, {
-      params: { count: count.toString() }
+  getTopResources(count = 10): Observable<ResourceCost[]> {
+    return this.http.get<ResourceCost[]>(`${this.baseUrl}/top-resources`, {
+      params: { count: String(count) }
     });
+  }
+
+  getRecommendations(): Observable<CostRecommendation[]> {
+    return this.http.get<CostRecommendation[]>(`${this.baseUrl}/recommendations`);
   }
 }

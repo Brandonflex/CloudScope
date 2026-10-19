@@ -1,85 +1,23 @@
 using CloudScope.Core.Domain.Enums;
 using CloudScope.Core.Domain.Models;
 using CloudScope.Core.Interfaces;
+using CloudScope.Infrastructure.Compliance;
 using Microsoft.Extensions.Logging;
 
 namespace CloudScope.Infrastructure.Services.Azure;
 
 /// <summary>
-/// Compliance scanning service that evaluates resources against policy rules.
+/// Evaluates the built-in policy-as-code catalog against the live resource
+/// inventory and produces posture scores, reports and remediation guidance.
 /// </summary>
 public class AzureComplianceService : IComplianceService
 {
     private readonly IResourceRepository _resourceRepository;
     private readonly ILogger<AzureComplianceService> _logger;
+    private readonly object _scanLock = new();
 
-    private static readonly Dictionary<ComplianceFramework, List<CompliancePolicy>> DefaultPolicies = new()
-    {
-        [ComplianceFramework.CIS] = new()
-        {
-            new CompliancePolicy
-            {
-                Id = "CIS-AZ-1.1",
-                Name = "Ensure MFA is enabled for all privileged users",
-                Description = "Multi-factor authentication should be enabled for all subscription owners.",
-                Framework = ComplianceFramework.CIS,
-                Category = "Identity & Access",
-                Severity = "Critical",
-                ApplicableResourceTypes = new[] { ResourceType.ManagedIdentity },
-                Remediation = "Enable MFA in Azure AD for all privileged accounts."
-            },
-            new CompliancePolicy
-            {
-                Id = "CIS-AZ-2.1",
-                Name = "Ensure storage accounts are not publicly accessible",
-                Description = "Storage accounts should restrict public access.",
-                Framework = ComplianceFramework.CIS,
-                Category = "Storage",
-                Severity = "High",
-                ApplicableResourceTypes = new[] { ResourceType.StorageAccount },
-                Remediation = "Set storage account public network access to Disabled or use private endpoints."
-            },
-            new CompliancePolicy
-            {
-                Id = "CIS-AWS-2.1.1",
-                Name = "Ensure S3 bucket encryption is enabled",
-                Description = "S3 buckets should have default encryption enabled.",
-                Framework = ComplianceFramework.CIS,
-                Category = "Storage",
-                Severity = "High",
-                ApplicableResourceTypes = new[] { ResourceType.StorageAccount },
-                Remediation = "Enable default encryption (SSE-S3 or SSE-KMS) on the S3 bucket."
-            }
-        },
-        [ComplianceFramework.SOC2] = new()
-        {
-            new CompliancePolicy
-            {
-                Id = "SOC2-CC6.1",
-                Name = "Network segmentation controls",
-                Description = "Resources should be deployed within properly segmented networks.",
-                Framework = ComplianceFramework.SOC2,
-                Category = "Network Security",
-                Severity = "High",
-                ApplicableResourceTypes = new[] { ResourceType.VirtualNetwork, ResourceType.Subnet },
-                Remediation = "Implement network security groups and subnet-level segmentation."
-            }
-        },
-        [ComplianceFramework.HIPAA] = new()
-        {
-            new CompliancePolicy
-            {
-                Id = "HIPAA-164.312",
-                Name = "Encryption at rest for data stores",
-                Description = "All data stores containing PHI must be encrypted at rest.",
-                Framework = ComplianceFramework.HIPAA,
-                Category = "Encryption",
-                Severity = "Critical",
-                ApplicableResourceTypes = new[] { ResourceType.StorageAccount, ResourceType.SqlDatabase, ResourceType.CosmosDbAccount },
-                Remediation = "Enable encryption at rest on all data stores using customer-managed keys."
-            }
-        }
-    };
+    private List<ComplianceResult> _lastScan = new();
+    private DateTime _lastScanAt = DateTime.MinValue;
 
     public AzureComplianceService(
         IResourceRepository resourceRepository,
@@ -92,17 +30,30 @@ public class AzureComplianceService : IComplianceService
     /// <inheritdoc/>
     public async Task<CompliancePosture> GetPostureAsync(CancellationToken ct = default)
     {
-        _logger.LogInformation("Calculating compliance posture...");
+        var resources = await LoadAllResourcesAsync(ct);
+        var results = Evaluate(CompliancePolicyCatalog.All, resources);
+        var policies = CompliancePolicyCatalog.All.Select(p => p.Policy).ToList();
 
         var posture = new CompliancePosture
         {
-            LastScanAt = DateTime.UtcNow
+            LastScanAt = DateTime.UtcNow,
+            TotalViolations = results.Count(r => r.Status == ComplianceStatus.NonCompliant)
         };
+
+        var violations = BuildViolations(results, policies);
+        posture.CriticalViolations = violations.Count(v => v.Severity.Equals("Critical", StringComparison.OrdinalIgnoreCase));
+        posture.HighViolations = violations.Count(v => v.Severity.Equals("High", StringComparison.OrdinalIgnoreCase));
 
         foreach (var framework in Enum.GetValues<ComplianceFramework>())
         {
-            // TODO: Run actual compliance checks
-            posture.FrameworkScores[framework] = 0.0;
+            var frameworkPolicies = CompliancePolicyCatalog.ForFramework(framework).ToList();
+            if (frameworkPolicies.Count == 0) continue;
+
+            var frameworkResults = results
+                .Where(r => r.Framework == framework)
+                .ToList();
+
+            posture.FrameworkScores[framework] = Score(frameworkPolicies.Select(p => p.Policy.Id).Distinct(), frameworkResults);
         }
 
         return posture;
@@ -113,19 +64,41 @@ public class AzureComplianceService : IComplianceService
         ComplianceFramework framework,
         CancellationToken ct = default)
     {
-        _logger.LogInformation("Generating compliance report for {Framework}...", framework);
+        var resources = await LoadAllResourcesAsync(ct);
+        var definitions = CompliancePolicyCatalog.ForFramework(framework).ToList();
+        var policies = definitions.Select(d => d.Policy).ToList();
+        var results = Evaluate(definitions, resources);
 
-        var policies = await GetPoliciesAsync(framework, ct);
-
-        // TODO: Evaluate each policy against discovered resources
-        // For each policy, query resources by applicable types and evaluate rules
-
-        return new ComplianceReport
+        var report = new ComplianceReport
         {
             Framework = framework,
-            TotalPolicies = policies.Count(),
-            GeneratedAt = DateTime.UtcNow
+            GeneratedAt = DateTime.UtcNow,
+            TotalPolicies = policies.Count,
+            Results = results
         };
+
+        foreach (var policy in policies)
+        {
+            var policyResults = results.Where(r => r.PolicyId == policy.Id).ToList();
+
+            if (policyResults.Any(r => r.Status == ComplianceStatus.NonCompliant))
+                report.NonCompliantCount++;
+            else if (policyResults.Any(r => r.Status == ComplianceStatus.Compliant))
+                report.CompliantCount++;
+            else
+                report.NotApplicableCount++;
+        }
+
+        report.TopViolations = BuildViolations(results, policies)
+            .OrderByDescending(v => SeverityRank(v.Severity))
+            .Take(10)
+            .ToList();
+
+        _logger.LogInformation(
+            "Compliance report for {Framework}: {Compliant}/{Total} policies passing.",
+            framework, report.CompliantCount, report.TotalPolicies);
+
+        return report;
     }
 
     /// <inheritdoc/>
@@ -133,25 +106,192 @@ public class AzureComplianceService : IComplianceService
         ComplianceFramework? framework = null,
         CancellationToken ct = default)
     {
-        _logger.LogInformation("Running compliance scan (framework={Framework})...", framework);
+        var resources = await LoadAllResourcesAsync(ct);
+        var definitions = framework.HasValue
+            ? CompliancePolicyCatalog.ForFramework(framework.Value).ToList()
+            : CompliancePolicyCatalog.All.ToList();
 
-        // TODO: For each policy, find matching resources and evaluate
+        _logger.LogInformation("Running compliance scan for {Count} policies against {Resources} resources.",
+            definitions.Count, resources.Count);
 
-        return Enumerable.Empty<ComplianceResult>();
+        var results = Evaluate(definitions, resources);
+
+        lock (_scanLock)
+        {
+            _lastScan = results;
+            _lastScanAt = DateTime.UtcNow;
+        }
+
+        return results;
     }
 
     /// <inheritdoc/>
-    public async Task<IEnumerable<CompliancePolicy>> GetPoliciesAsync(
+    public Task<IEnumerable<CompliancePolicy>> GetPoliciesAsync(
         ComplianceFramework? framework = null,
         CancellationToken ct = default)
     {
-        if (framework.HasValue)
+        var policies = framework.HasValue
+            ? CompliancePolicyCatalog.ForFramework(framework.Value).Select(d => d.Policy)
+            : CompliancePolicyCatalog.All.Select(d => d.Policy);
+
+        return Task.FromResult(policies);
+    }
+
+    // ── Internals ────────────────────────────────────────────────────────
+    private async Task<List<CloudResource>> LoadAllResourcesAsync(CancellationToken ct)
+    {
+        var all = new List<CloudResource>();
+        var page = 1;
+        const int pageSize = 500;
+
+        while (true)
         {
-            return DefaultPolicies.TryGetValue(framework.Value, out var policies)
-                ? policies
-                : Enumerable.Empty<CompliancePolicy>();
+            var batch = await _resourceRepository.GetAllAsync(page, pageSize, ct: ct);
+            all.AddRange(batch.Items);
+
+            if (batch.Items.Count < pageSize || all.Count >= batch.TotalCount) break;
+            page++;
         }
 
-        return DefaultPolicies.Values.SelectMany(p => p);
+        return all;
+    }
+
+    private static List<ComplianceResult> Evaluate(
+        IEnumerable<PolicyDefinition> definitions,
+        IReadOnlyCollection<CloudResource> resources)
+    {
+        var results = new List<ComplianceResult>();
+
+        foreach (var definition in definitions)
+        {
+            var policy = definition.Policy;
+            if (!policy.Enabled) continue;
+
+            var applicable = policy.ApplicableResourceTypes.Length == 0
+                ? resources
+                : resources.Where(r => policy.ApplicableResourceTypes.Contains(r.ResourceType)).ToList();
+
+            var evaluatedAny = false;
+
+            foreach (var resource in applicable)
+            {
+                PolicyEvaluation evaluation;
+                try
+                {
+                    evaluation = definition.Evaluate(resource);
+                }
+                catch (Exception)
+                {
+                    evaluation = PolicyEvaluation.NotApplicable();
+                }
+
+                if (evaluation.Status == ComplianceStatus.NotApplicable) continue;
+
+                evaluatedAny = true;
+                results.Add(new ComplianceResult
+                {
+                    PolicyId = policy.Id,
+                    PolicyName = policy.Name,
+                    ResourceId = resource.Id,
+                    ResourceName = resource.Name,
+                    Framework = policy.Framework,
+                    Status = evaluation.Status,
+                    Details = evaluation.Details,
+                    EvaluatedAt = DateTime.UtcNow
+                });
+            }
+
+            if (!evaluatedAny)
+            {
+                results.Add(new ComplianceResult
+                {
+                    PolicyId = policy.Id,
+                    PolicyName = policy.Name,
+                    ResourceId = string.Empty,
+                    ResourceName = "(no applicable resources)",
+                    Framework = policy.Framework,
+                    Status = ComplianceStatus.NotApplicable,
+                    Details = "No resources of the applicable types were found.",
+                    EvaluatedAt = DateTime.UtcNow
+                });
+            }
+        }
+
+        return results;
+    }
+
+    private static double Score(IEnumerable<string> policyIds, IReadOnlyCollection<ComplianceResult> results)
+    {
+        var compliant = 0;
+        var nonCompliant = 0;
+
+        foreach (var policyId in policyIds)
+        {
+            var policyResults = results.Where(r => r.PolicyId == policyId).ToList();
+
+            if (policyResults.Any(r => r.Status == ComplianceStatus.NonCompliant)) nonCompliant++;
+            else if (policyResults.Any(r => r.Status == ComplianceStatus.Compliant)) compliant++;
+        }
+
+        var total = compliant + nonCompliant;
+        return total == 0 ? 0 : Math.Round((double)compliant / total * 100, 1);
+    }
+
+    private static List<ComplianceViolation> BuildViolations(
+        IEnumerable<ComplianceResult> results,
+        IReadOnlyCollection<CompliancePolicy> policies)
+    {
+        var byId = policies.ToDictionary(p => p.Id);
+
+        return results
+            .Where(r => r.Status == ComplianceStatus.NonCompliant)
+            .Select(r =>
+            {
+                byId.TryGetValue(r.PolicyId, out var policy);
+                return new ComplianceViolation
+                {
+                    PolicyName = r.PolicyName,
+                    ResourceName = r.ResourceName,
+                    ResourceId = r.ResourceId,
+                    Severity = policy?.Severity ?? "Medium",
+                    Details = r.Details ?? string.Empty,
+                    Remediation = policy?.Remediation ?? string.Empty
+                };
+            })
+            .ToList();
+    }
+
+    private static int SeverityRank(string severity) => severity.ToLowerInvariant() switch
+    {
+        "critical" => 4,
+        "high" => 3,
+        "medium" => 2,
+        _ => 1
+    };
+
+    /// <summary>
+    /// The results of the most recent scan (used by the SignalR notification loop
+    /// and exposed for diagnostics).
+    /// </summary>
+    public IReadOnlyList<ComplianceResult> LastScan
+    {
+        get
+        {
+            lock (_scanLock)
+            {
+                return _lastScan;
+            }
+        }
+    }
+
+    public DateTime LastScanAt
+    {
+        get
+        {
+            lock (_scanLock)
+            {
+                return _lastScanAt;
+            }
+        }
     }
 }

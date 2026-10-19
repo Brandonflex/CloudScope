@@ -1,200 +1,439 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  DestroyRef,
+  OnInit,
+  computed,
+  inject,
+  signal
+} from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { MatCardModule } from '@angular/material/card';
-import { MatTableModule } from '@angular/material/table';
-import { MatButtonModule } from '@angular/material/button';
+import { RouterLink } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
+import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
-import { MatChipsModule } from '@angular/material/chips';
 import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
+import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
+import { MatSnackBarModule } from '@angular/material/snack-bar';
+import { debounceTime, distinctUntilChanged, Subject } from 'rxjs';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { EmptyStateComponent } from '../../shared/components/empty-state/empty-state.component';
+import { LoadingSpinnerComponent } from '../../shared/components/loading-spinner/loading-spinner.component';
 import { ResourceService } from '../../core/services/resource.service';
-import { CloudResource, PagedResult, CloudProvider, ResourceType } from '../../core/models';
+import { RefreshService } from '../../core/services/refresh.service';
+import { ToastService } from '../../core/services/toast.service';
+import { ResourceDetailDialogComponent } from './resource-detail-dialog.component';
+import {
+  CloudProvider,
+  CloudResource,
+  RESOURCE_TYPE_LABELS,
+  RESOURCE_TYPES,
+  ResourceType,
+  STATUS_COLORS
+} from '../../core/models';
+import { currency, resourceIcon, typeLabel } from '../../core/utils/format';
 
 @Component({
   selector: 'app-resources',
-  standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    CommonModule, FormsModule, MatCardModule, MatTableModule, MatButtonModule,
-    MatIconModule, MatFormFieldModule, MatInputModule,
-    MatSelectModule, MatChipsModule, MatPaginatorModule, MatTooltipModule
+    FormsModule,
+    RouterLink,
+    MatIconModule,
+    MatButtonModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatSelectModule,
+    MatPaginatorModule,
+    MatProgressBarModule,
+    MatTooltipModule,
+    MatDialogModule,
+    MatSnackBarModule,
+    EmptyStateComponent,
+    LoadingSpinnerComponent
   ],
   template: `
-    <div class="resources-page">
-      <div class="page-header">
-        <h1>Resource Inventory</h1>
-        <p class="page-subtitle">All discovered resources across clouds</p>
-      </div>
-
-      <div class="toolbar">
-        <mat-form-field appearance="outline" class="search-field">
-          <mat-label>Search resources</mat-label>
-          <input matInput [(ngModel)]="searchTerm" (keyup.enter)="search()" placeholder="Name, type, region...">
-          <button matSuffix mat-icon-button (click)="search()">
-            <mat-icon>search</mat-icon>
+    <div class="page">
+      <div class="page-head">
+        <div>
+          <h1>Resource inventory</h1>
+          <p class="subtitle">
+            {{ totalCount() }} resources discovered across Azure and AWS
+            @if (search() || provider() || resourceType() || region()) {
+              · filtered
+            }
+          </p>
+        </div>
+        <div class="actions">
+          <button mat-stroked-button type="button" (click)="resetFilters()">
+            <mat-icon>filter_alt_off</mat-icon> Reset
           </button>
-        </mat-form-field>
-
-        <mat-select [(value)]="filterProvider" placeholder="Provider" class="filter-select">
-          <mat-option [value]="null">All</mat-option>
-          <mat-option [value]="0">Azure</mat-option>
-          <mat-option [value]="1">AWS</mat-option>
-        </mat-select>
-
-        <button mat-raised-button color="primary" (click)="triggerDiscovery()">
-          <mat-icon>sync</mat-icon> Discover
-        </button>
+          <a mat-flat-button color="primary" routerLink="/graph">
+            <mat-icon>hub</mat-icon> View in graph
+          </a>
+        </div>
       </div>
 
-      <mat-card class="table-card">
-        <table mat-table [dataSource]="resources()" class="resources-table">
-          <ng-container matColumnDef="status">
-            <th mat-header-cell *matHeaderCellDef>Status</th>
-            <td mat-cell *matCellDef="let r">
-              <span class="status-dot" [class]="'status-' + r.status"></span>
-            </td>
-          </ng-container>
+      <div class="panel filters">
+        <div class="filters-grid">
+          <mat-form-field appearance="outline" class="search-field">
+            <mat-label>Search name, type or tag</mat-label>
+            <mat-icon matPrefix>search</mat-icon>
+            <input
+              matInput
+              type="text"
+              [ngModel]="search()"
+              (ngModelChange)="search.set($event); onSearchChange()"
+              placeholder="e.g. prod, vm-app-01, kubernetes"
+            />
+          </mat-form-field>
 
-          <ng-container matColumnDef="name">
-            <th mat-header-cell *matHeaderCellDef>Name</th>
-            <td mat-cell *matCellDef="let r">
-              <span class="resource-name">{{ r.name }}</span>
-              <span class="resource-type">{{ r.resourceType }}</span>
-            </td>
-          </ng-container>
+          <mat-form-field appearance="outline">
+            <mat-label>Provider</mat-label>
+            <mat-select [ngModel]="provider()" (ngModelChange)="provider.set($event); reload(1)">
+              <mat-option [value]="null">All providers</mat-option>
+              <mat-option value="Azure">Azure</mat-option>
+              <mat-option value="AWS">AWS</mat-option>
+            </mat-select>
+          </mat-form-field>
 
-          <ng-container matColumnDef="provider">
-            <th mat-header-cell *matHeaderCellDef>Provider</th>
-            <td mat-cell *matCellDef="let r">
-              <span class="provider-badge" [class]="'provider-' + r.provider">
-                {{ r.provider === 0 ? 'Azure' : 'AWS' }}
-              </span>
-            </td>
-          </ng-container>
-
-          <ng-container matColumnDef="region">
-            <th mat-header-cell *matHeaderCellDef>Region</th>
-            <td mat-cell *matCellDef="let r">{{ r.region }}</td>
-          </ng-container>
-
-          <ng-container matColumnDef="cost">
-            <th mat-header-cell *matHeaderCellDef>Monthly Cost</th>
-            <td mat-cell *matCellDef="let r">
-              {{ r.estimatedMonthlyCost | currency:'USD':'symbol':'1.2-2' }}
-            </td>
-          </ng-container>
-
-          <ng-container matColumnDef="iac">
-            <th mat-header-cell *matHeaderCellDef>IaC</th>
-            <td mat-cell *matCellDef="let r">
-              @if (r.isManagedByIaC) {
-                <mat-icon class="iac-yes" matTooltip="Managed by IaC">check_circle</mat-icon>
-              } @else {
-                <mat-icon class="iac-no" matTooltip="Not managed by IaC">warning</mat-icon>
+          <mat-form-field appearance="outline">
+            <mat-label>Type</mat-label>
+            <mat-select
+              [ngModel]="resourceType()"
+              (ngModelChange)="resourceType.set($event); reload(1)"
+            >
+              <mat-option [value]="null">All types</mat-option>
+              @for (type of resourceTypes; track type) {
+                <mat-option [value]="type">{{ labelFor(type) }}</mat-option>
               }
-            </td>
-          </ng-container>
+            </mat-select>
+          </mat-form-field>
 
-          <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-          <tr mat-row *matRowDef="let row; columns: displayedColumns;"
-              class="resource-row" (click)="selectResource(row)"></tr>
-        </table>
+          <mat-form-field appearance="outline">
+            <mat-label>Region</mat-label>
+            <mat-select [ngModel]="region()" (ngModelChange)="region.set($event); reload(1)">
+              <mat-option [value]="null">All regions</mat-option>
+              @for (item of regions(); track item) {
+                <mat-option [value]="item">{{ item }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+        </div>
+      </div>
 
-        <mat-paginator
-          [length]="totalCount()"
-          [pageSize]="pageSize"
-          [pageSizeOptions]="[25, 50, 100]"
-          (page)="onPage($event)" />
-      </mat-card>
+      @if (loading() && resources().length === 0) {
+        <app-loading-spinner message="Loading inventory…" />
+      } @else if (error()) {
+        <app-empty-state
+          icon="cloud_off"
+          title="Inventory unavailable"
+          message="The API did not return any resources. Start the API and try again."
+          actionLabel="Retry"
+          (action)="reload(pageIndex())"
+        />
+      } @else if (resources().length === 0) {
+        <app-empty-state
+          icon="search_off"
+          title="No resources match these filters"
+          message="Try clearing the search box or selecting a different provider."
+          actionLabel="Clear filters"
+          (action)="resetFilters()"
+        />
+      } @else {
+        <div class="panel">
+          @if (loading()) {
+            <mat-progress-bar mode="indeterminate" />
+          }
+          <div class="table-scroll">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Resource</th>
+                  <th>Type</th>
+                  <th>Provider</th>
+                  <th>Region</th>
+                  <th>Status</th>
+                  <th>IaC</th>
+                  <th>Compliance</th>
+                  <th class="cell-right">Monthly</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (resource of resources(); track resource.id) {
+                  <tr class="clickable" (click)="openDetail(resource)">
+                    <td>
+                      <div class="resource-cell">
+                        <div class="resource-icon" [style.color]="statusColor(resource.status)">
+                          <mat-icon>{{ iconFor(resource.resourceType) }}</mat-icon>
+                        </div>
+                        <div>
+                          <div class="cell-strong">{{ resource.name }}</div>
+                          <div class="cell-sub">
+                            {{ resource.resourceGroup }} · {{ resource.nativeResourceType }}
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+                    <td>{{ labelFor(resource.resourceType) }}</td>
+                    <td>
+                      <span
+                        class="chip"
+                        [class]="resource.provider === 'Azure' ? 'chip-azure' : 'chip-aws'"
+                      >
+                        {{ resource.provider }}
+                      </span>
+                    </td>
+                    <td class="cell-muted">{{ resource.region }}</td>
+                    <td>
+                      <span class="status-inline">
+                        <span
+                          class="status-dot"
+                          [style.background]="statusColor(resource.status)"
+                        ></span>
+                        {{ resource.status }}
+                      </span>
+                    </td>
+                    <td>
+                      @if (resource.isManagedByIaC) {
+                        <span class="chip chip-good"><mat-icon>verified</mat-icon> Managed</span>
+                      } @else {
+                        <span class="chip chip-warn"><mat-icon>warning</mat-icon> Manual</span>
+                      }
+                    </td>
+                    <td>
+                      <span class="chip" [class]="complianceChip(resource.complianceStatus)">
+                        {{ resource.complianceStatus }}
+                      </span>
+                    </td>
+                    <td class="cell-right cell-mono">
+                      {{ currency(resource.estimatedMonthlyCost) }}
+                    </td>
+                    <td class="cell-right">
+                      <button
+                        mat-icon-button
+                        type="button"
+                        matTooltip="Details"
+                        (click)="openDetail(resource); $event.stopPropagation()"
+                      >
+                        <mat-icon>chevron_right</mat-icon>
+                      </button>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+
+          <mat-paginator
+            [length]="totalCount()"
+            [pageSize]="pageSize()"
+            [pageIndex]="pageIndex()"
+            [pageSizeOptions]="[25, 50, 100]"
+            (page)="onPage($event)"
+            showFirstLastButtons
+          />
+        </div>
+      }
     </div>
   `,
-  styles: [`
-    .resources-page { max-width: 1400px; }
-    .page-header { margin-bottom: 24px; }
-    .page-header h1 { margin: 0; font-size: 1.8rem; }
-    .page-subtitle { margin: 4px 0 0; opacity: 0.5; font-size: 0.9rem; }
-    .toolbar {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      margin-bottom: 16px;
-      flex-wrap: wrap;
-    }
-    .search-field { flex: 1; min-width: 300px; }
-    .filter-select { width: 160px; }
-    .table-card { background: #161b22; border-radius: 8px; overflow: hidden; }
-    .resources-table { width: 100%; }
-    .resource-name { display: block; font-weight: 500; }
-    .resource-type { display: block; font-size: 0.75rem; opacity: 0.5; }
-    .status-dot {
-      display: inline-block;
-      width: 10px; height: 10px;
-      border-radius: 50%;
-    }
-    .status-1 { background: #66bb6a; } /* Healthy */
-    .status-2 { background: #ffa726; } /* Warning */
-    .status-3 { background: #ef5350; } /* Critical */
-    .status-0 { background: #757575; } /* Unknown */
-    .provider-badge {
-      padding: 2px 8px;
-      border-radius: 4px;
-      font-size: 0.75rem;
-      font-weight: 600;
-    }
-    .provider-0 { background: rgba(0,120,212,0.2); color: #4fc3f7; } /* Azure */
-    .provider-1 { background: rgba(255,153,0,0.2); color: #ffb74d; } /* AWS */
-    .iac-yes { color: #66bb6a; font-size: 18px; width: 18px; height: 18px; }
-    .iac-no { color: #ffa726; font-size: 18px; width: 18px; height: 18px; }
-    .resource-row { cursor: pointer; transition: background 0.15s; }
-    .resource-row:hover { background: rgba(255,255,255,0.04); }
-  `]
+  styles: [
+    `
+      .filters {
+        margin-bottom: 16px;
+        padding: 14px 18px 4px;
+      }
+      .filters-grid {
+        display: grid;
+        grid-template-columns: minmax(240px, 2fr) repeat(3, minmax(150px, 1fr));
+        gap: 14px;
+        align-items: center;
+      }
+      .search-field {
+        width: 100%;
+      }
+      .search-field mat-icon[matPrefix] {
+        margin-right: 6px;
+        color: var(--text-dim);
+      }
+
+      .resource-cell {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .resource-icon {
+        width: 30px;
+        height: 30px;
+        border-radius: 9px;
+        background: rgba(240, 246, 252, 0.05);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+      }
+      .resource-icon mat-icon {
+        font-size: 16px;
+        width: 16px;
+        height: 16px;
+      }
+      .status-inline {
+        display: inline-flex;
+        align-items: center;
+        font-size: 0.82rem;
+      }
+
+      @media (max-width: 1100px) {
+        .filters-grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+      @media (max-width: 640px) {
+        .filters-grid {
+          grid-template-columns: minmax(0, 1fr);
+        }
+      }
+    `
+  ]
 })
 export class ResourcesComponent implements OnInit {
   private readonly resourceService = inject(ResourceService);
+  private readonly refresh = inject(RefreshService);
+  private readonly toast = inject(ToastService);
+  private readonly dialog = inject(MatDialog);
+  private readonly destroyRef = inject(DestroyRef);
 
-  displayedColumns = ['status', 'name', 'provider', 'region', 'cost', 'iac'];
-  resources = signal<CloudResource[]>([]);
-  totalCount = signal(0);
-  searchTerm = '';
-  filterProvider: number | null = null;
-  pageSize = 50;
-  currentPage = 1;
+  readonly resourceTypes = RESOURCE_TYPES;
+  readonly resources = signal<CloudResource[]>([]);
+  readonly totalCount = signal(0);
+  readonly pageIndex = signal(0);
+  readonly pageSize = signal(25);
+  readonly loading = signal(false);
+  readonly error = signal(false);
+
+  readonly search = signal('');
+  readonly provider = signal<CloudProvider | null>(null);
+  readonly resourceType = signal<ResourceType | null>(null);
+  readonly region = signal<string | null>(null);
+  readonly regions = signal<string[]>([]);
+
+  private readonly searchInput$ = new Subject<string>();
+
+  readonly activeFilterCount = computed(
+    () =>
+      [this.provider(), this.resourceType(), this.region()].filter((value) => value !== null)
+        .length + (this.search() ? 1 : 0)
+  );
+
+  constructor() {
+    this.searchInput$
+      .pipe(debounceTime(300), distinctUntilChanged(), takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => this.reload(1));
+  }
 
   ngOnInit(): void {
-    this.loadResources();
-  }
+    this.loadRegions();
+    this.reload(1);
 
-  loadResources(): void {
-    // TODO: Wire up to actual API
-    // this.resourceService.getAll(this.currentPage, this.pageSize, this.filterProvider)
-    //   .subscribe(result => {
-    //     this.resources.set(result.items);
-    //     this.totalCount.set(result.totalCount);
-    //   });
-  }
-
-  search(): void {
-    this.currentPage = 1;
-    this.loadResources();
-  }
-
-  onPage(event: PageEvent): void {
-    this.currentPage = event.pageIndex + 1;
-    this.pageSize = event.pageSize;
-    this.loadResources();
-  }
-
-  triggerDiscovery(): void {
-    this.resourceService.triggerDiscovery().subscribe(() => {
-      this.loadResources();
+    this.refresh.refreshed$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
+      this.loadRegions();
+      this.reload(this.pageIndex() + 1);
     });
   }
 
-  selectResource(resource: CloudResource): void {
-    // TODO: Open resource detail panel or navigate to graph view
-    console.log('Selected resource:', resource.name);
+  load(): void {
+    this.reload(1);
   }
+
+  reload(page: number): void {
+    this.loading.set(true);
+    this.error.set(false);
+
+    this.resourceService
+      .getAll({
+        pageNumber: page,
+        pageSize: this.pageSize(),
+        provider: this.provider(),
+        resourceType: this.resourceType(),
+        region: this.region(),
+        search: this.search() || null
+      })
+      .subscribe({
+        next: (result) => {
+          this.resources.set(result.items);
+          this.totalCount.set(result.totalCount);
+          this.pageIndex.set(Math.max(0, result.pageNumber - 1));
+          this.loading.set(false);
+        },
+        error: () => {
+          this.loading.set(false);
+          this.error.set(true);
+          this.toast.error('Failed to load resources.');
+        }
+      });
+  }
+
+  private loadRegions(): void {
+    this.resourceService.getAll({ pageSize: 500 }).subscribe({
+      next: (result) => {
+        const regions = [...new Set(result.items.map((item) => item.region))]
+          .filter(Boolean)
+          .sort();
+        this.regions.set(regions);
+      },
+      error: () => this.regions.set([])
+    });
+  }
+
+  onSearchChange(): void {
+    this.searchInput$.next(this.search());
+  }
+
+  onPage(event: PageEvent): void {
+    this.pageSize.set(event.pageSize);
+    this.reload(event.pageIndex + 1);
+  }
+
+  resetFilters(): void {
+    this.search.set('');
+    this.provider.set(null);
+    this.resourceType.set(null);
+    this.region.set(null);
+    this.reload(1);
+  }
+
+  openDetail(resource: CloudResource): void {
+    this.dialog.open(ResourceDetailDialogComponent, {
+      data: resource,
+      width: '760px',
+      maxWidth: '95vw',
+      maxHeight: '90vh',
+      panelClass: 'resource-dialog'
+    });
+  }
+
+  iconFor(type: string): string {
+    return resourceIcon(type);
+  }
+
+  labelFor(type: ResourceType): string {
+    return RESOURCE_TYPE_LABELS[type] ?? typeLabel(type);
+  }
+
+  statusColor(status: string): string {
+    return STATUS_COLORS[status as keyof typeof STATUS_COLORS] ?? '#8b949e';
+  }
+
+  complianceChip(status: string): string {
+    if (status === 'Compliant') return 'chip-good';
+    if (status === 'NonCompliant') return 'chip-bad';
+    return 'chip-neutral';
+  }
+
+  protected readonly currency = currency;
 }

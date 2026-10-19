@@ -1,6 +1,8 @@
+using System.Diagnostics;
 using System.Net;
 using System.Text.Json;
 using CloudScope.Core.Exceptions;
+using Microsoft.AspNetCore.WebUtilities;
 
 namespace CloudScope.Api.Middleware;
 
@@ -35,32 +37,50 @@ public class ExceptionHandlingMiddleware
         var (statusCode, message) = exception switch
         {
             ResourceNotFoundException ex => (HttpStatusCode.NotFound, ex.Message),
-            CloudProviderException ex => (HttpStatusCode.BadGateway, ex.Message),
-            AIQueryException ex => (HttpStatusCode.InternalServerError, ex.Message),
+            CloudProviderException => (HttpStatusCode.BadGateway, UpstreamMessage),
+            AIQueryException => (HttpStatusCode.InternalServerError, UpstreamMessage),
             ArgumentException ex => (HttpStatusCode.BadRequest, ex.Message),
             UnauthorizedAccessException => (HttpStatusCode.Unauthorized, "Unauthorized"),
-            _ => (HttpStatusCode.InternalServerError, "An unexpected error occurred")
+            _ => (HttpStatusCode.InternalServerError, GenericMessage)
         };
 
-        if (statusCode == HttpStatusCode.InternalServerError)
+        // The trace id is the only server-side detail a client needs for 5xx;
+        // upstream URLs, response bodies and stack traces stay in the logs.
+        var traceId = Activity.Current?.Id ?? context.TraceIdentifier;
+
+        if ((int)statusCode >= 500)
         {
-            _logger.LogError(exception, "Unhandled exception: {Message}", exception.Message);
+            _logger.LogError(exception, "Request {Method} {Path} failed ({StatusCode}). TraceId={TraceId}",
+                context.Request.Method, context.Request.Path, (int)statusCode, traceId);
         }
         else
         {
-            _logger.LogWarning("Domain exception ({StatusCode}): {Message}", statusCode, message);
+            _logger.LogWarning("Request {Method} {Path} rejected ({StatusCode}): {Message}",
+                context.Request.Method, context.Request.Path, (int)statusCode, message);
         }
 
-        context.Response.ContentType = "application/json";
+        if (context.Response.HasStarted)
+        {
+            _logger.LogWarning("Response already started; cannot write error payload.");
+            return;
+        }
+
+        context.Response.ContentType = "application/problem+json";
         context.Response.StatusCode = (int)statusCode;
 
         var response = new
         {
-            error = message,
-            statusCode = (int)statusCode,
+            type = $"https://httpstatuses.io/{(int)statusCode}",
+            title = ReasonPhrases.GetReasonPhrase((int)statusCode),
+            status = (int)statusCode,
+            detail = message,
+            traceId,
             timestamp = DateTime.UtcNow
         };
 
         await context.Response.WriteAsync(JsonSerializer.Serialize(response));
     }
+
+    private const string GenericMessage = "An unexpected error occurred. Quote the trace id when reporting it.";
+    private const string UpstreamMessage = "An upstream cloud service did not respond successfully. See the server logs.";
 }

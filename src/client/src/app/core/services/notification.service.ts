@@ -1,53 +1,79 @@
-import { Injectable, inject } from '@angular/core';
+import { Injectable, signal } from '@angular/core';
 import { Subject, Observable } from 'rxjs';
 import * as signalR from '@microsoft/signalr';
 import { environment } from '../../../environments/environment';
 
-export interface NotificationEvent {
-  type: string;
+export type RealtimeEventType =
+  | 'resourceDiscovered'
+  | 'complianceViolation'
+  | 'costAnomaly'
+  | 'scanProgress'
+  | 'discoveryProgress'
+  | 'discoveryCompleted';
+
+export interface RealtimeEvent {
+  type: RealtimeEventType;
   data: unknown;
   timestamp: Date;
 }
 
+/**
+ * SignalR client. Connection failures are non-fatal: the UI keeps working with
+ * HTTP data and simply shows "offline" for realtime updates.
+ */
 @Injectable({ providedIn: 'root' })
 export class NotificationService {
   private hubConnection: signalR.HubConnection | null = null;
-  private readonly notifications$ = new Subject<NotificationEvent>();
+  private readonly events$ = new Subject<RealtimeEvent>();
 
-  get notifications(): Observable<NotificationEvent> {
-    return this.notifications$.asObservable();
+  readonly connected = signal(false);
+  readonly lastEvent = signal<RealtimeEvent | null>(null);
+
+  get events(): Observable<RealtimeEvent> {
+    return this.events$.asObservable();
   }
 
   startConnection(): void {
+    if (this.hubConnection) return;
+
     this.hubConnection = new signalR.HubConnectionBuilder()
       .withUrl(environment.signalRHubUrl)
-      .withAutomaticReconnect()
-      .configureLogging(signalR.LogLevel.Information)
+      .withAutomaticReconnect([0, 2000, 5000, 10000, 30000])
+      .configureLogging(signalR.LogLevel.Warning)
       .build();
 
-    this.hubConnection
+    this.hubConnection.onreconnected(() => this.connected.set(true));
+    this.hubConnection.onreconnecting(() => this.connected.set(false));
+    this.hubConnection.onclose(() => this.connected.set(false));
+
+    const handlers: RealtimeEventType[] = [
+      'resourceDiscovered',
+      'complianceViolation',
+      'costAnomaly',
+      'scanProgress',
+      'discoveryProgress',
+      'discoveryCompleted'
+    ];
+
+    for (const handler of handlers) {
+      this.hubConnection.on(handler, (data: unknown) => this.publish(handler, data));
+    }
+
+    void this.hubConnection
       .start()
-      .then(() => console.log('SignalR connected'))
-      .catch(err => console.error('SignalR connection error:', err));
-
-    this.hubConnection.on('resourceDiscovered', (data) => {
-      this.notifications$.next({ type: 'resourceDiscovered', data, timestamp: new Date() });
-    });
-
-    this.hubConnection.on('complianceViolation', (data) => {
-      this.notifications$.next({ type: 'complianceViolation', data, timestamp: new Date() });
-    });
-
-    this.hubConnection.on('costAnomaly', (data) => {
-      this.notifications$.next({ type: 'costAnomaly', data, timestamp: new Date() });
-    });
-
-    this.hubConnection.on('scanProgress', (data) => {
-      this.notifications$.next({ type: 'scanProgress', data, timestamp: new Date() });
-    });
+      .then(() => this.connected.set(true))
+      .catch(() => this.connected.set(false));
   }
 
   stopConnection(): void {
-    this.hubConnection?.stop();
+    void this.hubConnection?.stop();
+    this.hubConnection = null;
+    this.connected.set(false);
+  }
+
+  private publish(type: RealtimeEventType, data: unknown): void {
+    const event: RealtimeEvent = { type, data, timestamp: new Date() };
+    this.lastEvent.set(event);
+    this.events$.next(event);
   }
 }

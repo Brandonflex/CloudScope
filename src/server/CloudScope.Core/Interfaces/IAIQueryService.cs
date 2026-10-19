@@ -28,4 +28,9 @@ public class AIQueryResult
     public bool Success { get; set; }
     public string? Error { get; set; }
     public TimeSpan ProcessingTime { get; set; }
+
+    /// <summary>
+    /// Where the answer came from: "AzureOpenAI" or "Local".
+    /// </summary>
+    public string Source { get; set; } = "Local";
 }

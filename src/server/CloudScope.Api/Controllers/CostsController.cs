@@ -75,6 +75,16 @@ public class CostsController : ControllerBase
     }
 
     /// <summary>
+    /// Get right-sizing and waste-elimination recommendations.
+    /// </summary>
+    [HttpGet("recommendations")]
+    public async Task<IActionResult> GetRecommendations(CancellationToken ct)
+    {
+        var recommendations = await _costService.GetRecommendationsAsync(ct);
+        return Ok(recommendations);
+    }
+
+    /// <summary>
     /// Get top N most expensive resources.
     /// </summary>
     [HttpGet("top-resources")]

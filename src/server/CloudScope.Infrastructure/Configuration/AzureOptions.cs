@@ -26,6 +26,9 @@ public class CosmosDbOptions
     public string DatabaseName { get; set; } = "CloudScope";
     public string ResourcesContainer { get; set; } = "Resources";
     public string GraphContainer { get; set; } = "Graph";
+
+    public bool IsConfigured =>
+        !string.IsNullOrWhiteSpace(Endpoint) && !string.IsNullOrWhiteSpace(Key);
 }
 
 /// <summary>
@@ -38,6 +41,16 @@ public class AwsOptions
     public string AccessKeyId { get; set; } = string.Empty;
     public string SecretAccessKey { get; set; } = string.Empty;
     public string Region { get; set; } = "us-east-1";
+
+    /// <summary>
+    /// Optional 12-digit AWS account id used to build ARNs for relationship edges.
+    /// </summary>
+    public string AccountId { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Optional endpoint override (LocalStack / VPC endpoints).
+    /// </summary>
+    public string ServiceUrl { get; set; } = string.Empty;
 }
 
 /// <summary>

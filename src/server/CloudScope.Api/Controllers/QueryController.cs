@@ -11,6 +11,8 @@ namespace CloudScope.Api.Controllers;
 [Produces("application/json")]
 public class QueryController : ControllerBase
 {
+    private const int MaxQuestionLength = 1000;
+
     private readonly IAIQueryService _aiQueryService;
     private readonly ILogger<QueryController> _logger;
 
@@ -24,16 +26,37 @@ public class QueryController : ControllerBase
     /// Ask a natural language question about your cloud infrastructure.
     /// </summary>
     [HttpPost("ask")]
+    [RequestSizeLimit(16 * 1024)]
     public async Task<IActionResult> Ask([FromBody] QueryRequest request, CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(request.Question))
             return BadRequest(new { message = "Question is required" });
 
-        _logger.LogInformation("AI query received: {Question}", request.Question);
+        if (request.Question.Length > MaxQuestionLength)
+            return BadRequest(new { message = $"Question must be {MaxQuestionLength} characters or fewer" });
+
+        // Truncated so an oversized-but-allowed question cannot bloat the logs.
+        _logger.LogInformation("AI query received: {Question}", request.Question.Length > 200
+            ? request.Question[..200] + "…"
+            : request.Question);
 
         var result = await _aiQueryService.QueryAsync(request.Question, ct);
 
-        return result.Success ? Ok(result) : StatusCode(500, result);
+        // Project to a UI-friendly shape: TimeSpan would otherwise serialize as
+        // "00:00:00.0120000", which is noise in the chat transcript.
+        var payload = new
+        {
+            question = result.Question,
+            answer = result.Answer,
+            generatedQuery = result.GeneratedQuery,
+            data = result.Data,
+            success = result.Success,
+            error = result.Error,
+            processingTime = $"{result.ProcessingTime.TotalMilliseconds:0} ms",
+            source = result.Source
+        };
+
+        return result.Success ? Ok(payload) : StatusCode(500, payload);
     }
 
     /// <summary>

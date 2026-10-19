@@ -1,6 +1,12 @@
 # Project Proposal: CloudScope
 ## Multi-Cloud Infrastructure Intelligence Platform
 
+> **Status: historical document.** This is the original pre-implementation
+> proposal, kept to show the design reasoning. A few choices changed during
+> delivery — most notably Cosmos DB **SQL API** instead of Gremlin, no MediatR,
+> and Angular 20 instead of the then-current 17. For what was actually built,
+> see [architecture.md](architecture.md) and [IMPLEMENTATION.md](IMPLEMENTATION.md).
+
 ---
 
 ## The Problem (Real, Open, Recurrent)

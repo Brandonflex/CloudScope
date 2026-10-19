@@ -2,16 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
-
-export interface AIQueryResult {
-  question: string;
-  answer: string;
-  generatedQuery?: string;
-  data?: unknown;
-  success: boolean;
-  error?: string;
-  processingTime: string;
-}
+import { AIQueryResult } from '../models';
 
 @Injectable({ providedIn: 'root' })
 export class QueryService {
