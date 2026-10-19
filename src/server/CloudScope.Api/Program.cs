@@ -12,6 +12,7 @@ using CloudScope.Infrastructure.Services.AWS;
 using CloudScope.Infrastructure.Services.Azure;
 using CloudScope.Infrastructure.Services.Discovery;
 using Microsoft.ApplicationInsights.Extensibility;
+using Microsoft.AspNetCore.HttpOverrides;
 using Serilog;
 using Serilog.Sinks.ApplicationInsights.TelemetryConverters;
 
@@ -122,6 +123,15 @@ builder.Services.AddHttpClient("AzureOpenAI", client =>
 builder.Services.AddHttpClient();
 
 // ─── API services ─────────────────────────────────────────
+// ─── Reverse proxy (App Service terminates TLS) ───────────
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+    // App Service forwards traffic from platform-internal addresses.
+    options.KnownNetworks.Clear();
+    options.KnownProxies.Clear();
+});
+
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
     {
@@ -182,6 +192,7 @@ builder.Services.AddHostedService<DiscoveryBackgroundService>();
 var app = builder.Build();
 
 // ─── Middleware pipeline ──────────────────────────────────
+app.UseForwardedHeaders();
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 
 if (app.Environment.IsDevelopment() || builder.Configuration.GetValue("Swagger:Enabled", true))
@@ -199,6 +210,31 @@ if (!app.Environment.IsDevelopment())
     app.UseHttpsRedirection();
 }
 
+// ─── Static SPA hosting ───────────────────────────────────
+// A published build ships the Angular bundle in wwwroot, so one App Service
+// serves both the SPA and the API from a single origin. This removes the
+// cross-origin configuration (and the extra Static Web App) from deployment.
+var webRoot = app.Environment.WebRootPath
+              ?? Path.Combine(app.Environment.ContentRootPath, "wwwroot");
+var spaIndex = Path.Combine(webRoot, "index.html");
+var servesSpa = File.Exists(spaIndex);
+
+if (servesSpa)
+{
+    app.UseDefaultFiles();
+    app.UseStaticFiles(new StaticFileOptions
+    {
+        OnPrepareResponse = context =>
+        {
+            var fileName = context.File.Name;
+            context.Context.Response.Headers.CacheControl =
+                fileName.EndsWith(".html", StringComparison.OrdinalIgnoreCase)
+                    ? "no-cache"
+                    : "public,max-age=31536000,immutable";
+        }
+    });
+}
+
 app.UseCors("AllowAngular");
 app.UseAuthentication();
 app.UseAuthorization();
@@ -206,7 +242,28 @@ app.UseAuthorization();
 app.MapControllers();
 app.MapHub<NotificationHub>("/hubs/notifications");
 
-app.MapGet("/", () => Results.Redirect("/swagger"));
+if (servesSpa)
+{
+    // Client-side routes (/dashboard, /graph, …) resolve to the SPA shell.
+    // Unknown API and hub paths must stay 404s rather than returning HTML.
+    app.MapFallback(async context =>
+    {
+        if (context.Request.Path.StartsWithSegments("/api") ||
+            context.Request.Path.StartsWithSegments("/hubs"))
+        {
+            context.Response.StatusCode = StatusCodes.Status404NotFound;
+            return;
+        }
+
+        context.Response.ContentType = "text/html; charset=utf-8";
+        context.Response.Headers.CacheControl = "no-cache";
+        await context.Response.SendFileAsync(Path.Combine(webRoot, "index.html"));
+    });
+}
+else
+{
+    app.MapGet("/", () => Results.Redirect("/swagger"));
+}
 app.MapGet("/health", () => Results.Ok(new
 {
     status = "Healthy",

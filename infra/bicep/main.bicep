@@ -1,5 +1,10 @@
 // CloudScope — Main Azure Infrastructure (Bicep)
-// Deploys: App Service, Cosmos DB, Azure SQL, Redis, SignalR, Service Bus, OpenAI, Key Vault
+// Deploys: App Service (API + Angular SPA), Cosmos DB (SQL API), Redis,
+// Azure OpenAI, Application Insights and Key Vault.
+//
+// The SPA is published into the API's wwwroot, so a single App Service serves
+// both from one origin — no Static Web App, no CORS configuration and no
+// cross-origin API base URL to maintain.
 
 @description('Primary Azure region for all resources')
 param location string = resourceGroup().location
@@ -19,13 +24,19 @@ param aadClientId string
 
 var appName = 'cloudscope'
 var resourcePrefix = '${appName}-${environment}-${uniqueSuffix}'
+var cosmosDatabaseName = 'CloudScope'
+var resourcesContainerName = 'Resources'
+var graphContainerName = 'Graph'
 var tags = {
   Application: 'CloudScope'
   Environment: environment
   ManagedBy: 'Bicep'
 }
 
-// ─── Azure Cosmos DB (Gremlin API) ────────────────────────
+// ─── Azure Cosmos DB (SQL API) ────────────────────────────
+// The repositories use the SQL API with two containers:
+//   Resources — partitioned by /provider
+//   Graph     — partitioned by /sourceResourceId
 resource cosmosAccount 'Microsoft.DocumentDB/databaseAccounts@2024-05-15' = {
   name: '${resourcePrefix}-cosmos'
   location: location
@@ -44,62 +55,52 @@ resource cosmosAccount 'Microsoft.DocumentDB/databaseAccounts@2024-05-15' = {
     ]
     databaseAccountOfferType: 'Standard'
     enableFreeTier: environment == 'dev'
-    capabilities: [
-      {
-        name: 'EnableGremlin'
-      }
-    ]
   }
 }
 
-resource cosmosDatabase 'Microsoft.DocumentDB/databaseAccounts/gremlinDatabases@2024-05-15' = {
-  name: 'cloudscope'
+resource cosmosDatabase 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases@2024-05-15' = {
   parent: cosmosAccount
+  name: cosmosDatabaseName
   properties: {
     resource: {
-      id: 'cloudscope'
+      id: cosmosDatabaseName
     }
   }
 }
 
-resource graphContainer 'Microsoft.DocumentDB/databaseAccounts/gremlinDatabases/graphs@2024-05-15' = {
-  name: 'graph'
+resource resourcesContainer 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers@2024-05-15' = {
   parent: cosmosDatabase
+  name: resourcesContainerName
   properties: {
     resource: {
-      id: 'graph'
+      id: resourcesContainerName
       partitionKey: {
-        paths: ['/partitionKey']
+        paths: ['/provider']
+        kind: 'Hash'
+      }
+      indexingPolicy: {
+        indexingMode: 'consistent'
+        automatic: true
       }
     }
   }
 }
 
-// ─── Azure SQL Server + Database ──────────────────────────
-resource sqlServer 'Microsoft.Sql/servers@2023-08-01-preview' = {
-  name: '${resourcePrefix}-sql'
-  location: location
-  tags: tags
+resource graphContainer 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers@2024-05-15' = {
+  parent: cosmosDatabase
+  name: graphContainerName
   properties: {
-    administratorLogin: 'cloudscopeadmin'
-    administratorLoginPassword: 'CHANGE_ME_USE_KEY_VAULT'
-    minimalTlsVersion: '1.2'
-    publicNetworkAccess: environment == 'dev' ? 'Enabled' : 'Disabled'
-  }
-}
-
-resource sqlDatabase 'Microsoft.Sql/servers/databases@2023-08-01-preview' = {
-  name: 'CloudScope'
-  parent: sqlServer
-  location: location
-  tags: tags
-  sku: {
-    name: environment == 'dev' ? 'Basic' : 'Standard'
-    tier: environment == 'dev' ? 'Basic' : 'Standard'
-  }
-  properties: {
-    collation: 'SQL_Latin1_General_CP1_CI_AS'
-    maxSizeBytes: environment == 'dev' ? 2147483648 : 268435456000
+    resource: {
+      id: graphContainerName
+      partitionKey: {
+        paths: ['/sourceResourceId']
+        kind: 'Hash'
+      }
+      indexingPolicy: {
+        indexingMode: 'consistent'
+        automatic: true
+      }
+    }
   }
 }
 
@@ -111,61 +112,11 @@ resource redis 'Microsoft.Cache/redis@2024-03-01-preview' = {
   properties: {
     sku: {
       name: environment == 'dev' ? 'Basic' : 'Standard'
-      family: environment == 'dev' ? 'C' : 'C'
+      family: 'C'
       capacity: environment == 'dev' ? 0 : 1
     }
     enableNonSslPort: false
     minimumTlsVersion: '1.2'
-  }
-}
-
-// ─── Azure SignalR Service ────────────────────────────────
-resource signalR 'Microsoft.SignalRService/signalR@2024-03-01-preview' = {
-  name: '${resourcePrefix}-signalr'
-  location: location
-  tags: tags
-  sku: {
-    name: environment == 'dev' ? 'Free_F1' : 'Standard_S1'
-    capacity: environment == 'dev' ? 1 : 2
-  }
-  properties: {
-    features: [
-      {
-        flag: 'ServiceMode'
-        value: 'Default'
-      }
-    ]
-  }
-}
-
-// ─── Azure Service Bus ────────────────────────────────────
-resource serviceBus 'Microsoft.ServiceBus/namespaces@2024-01-01-preview' = {
-  name: '${resourcePrefix}-sb'
-  location: location
-  tags: tags
-  sku: {
-    name: environment == 'dev' ? 'Basic' : 'Standard'
-  }
-}
-
-resource discoveryQueue 'Microsoft.ServiceBus/namespaces/queues@2024-01-01-preview' = {
-  name: 'resource-discovery'
-  parent: serviceBus
-  properties: {
-    lockDuration: 'PT5M'
-    maxDeliveryCount: 5
-    defaultMessageTimeToLive: 'P14D'
-    deadLetteringOnMessageExpiration: true
-  }
-}
-
-resource complianceQueue 'Microsoft.ServiceBus/namespaces/queues@2024-01-01-preview' = {
-  name: 'compliance-scan'
-  parent: serviceBus
-  properties: {
-    lockDuration: 'PT5M'
-    maxDeliveryCount: 3
-    defaultMessageTimeToLive: 'P7D'
   }
 }
 
@@ -181,6 +132,18 @@ resource openAI 'Microsoft.CognitiveServices/accounts@2024-06-01-preview' = {
   properties: {
     publicNetworkAccess: environment == 'dev' ? 'Enabled' : 'Disabled'
     customSubDomainName: '${resourcePrefix}-openai'
+  }
+}
+
+// ─── Application Insights ─────────────────────────────────
+resource appInsights 'Microsoft.Insights/components@2020-02-02' = {
+  name: '${resourcePrefix}-ai'
+  location: location
+  tags: tags
+  kind: 'web'
+  properties: {
+    Application_Type: 'web'
+    RetentionInDays: 30
   }
 }
 
@@ -200,7 +163,7 @@ resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' = {
     }
     sku: {
       family: 'A'
-      name: environment == 'dev' ? 'standard' : 'standard'
+      name: 'standard'
     }
   }
 }
@@ -219,20 +182,36 @@ resource appServicePlan 'Microsoft.Web/serverfarms@2023-12-01' = {
   }
 }
 
-// ─── App Service (Backend API) ────────────────────────────
+// ─── App Service (API + SPA) ──────────────────────────────
 resource appService 'Microsoft.Web/sites@2023-12-01' = {
   name: '${resourcePrefix}-api'
   location: location
   tags: tags
   kind: 'app,linux'
+  identity: {
+    type: 'SystemAssigned'
+  }
   properties: {
     serverFarmId: appServicePlan.id
+    httpsOnly: true
     siteConfig: {
       linuxFxVersion: 'DOTNETCORE|8.0'
+      alwaysOn: environment != 'dev'
+      http20Enabled: true
+      ftpsState: 'Disabled'
+      minTlsVersion: '1.2'
       appSettings: [
         {
           name: 'ASPNETCORE_ENVIRONMENT'
           value: environment == 'dev' ? 'Development' : 'Production'
+        }
+        {
+          name: 'Platform__StorageProvider'
+          value: 'Cosmos'
+        }
+        {
+          name: 'Platform__SeedDemoData'
+          value: environment == 'dev' ? 'true' : 'false'
         }
         {
           name: 'CosmosDb__Endpoint'
@@ -241,6 +220,34 @@ resource appService 'Microsoft.Web/sites@2023-12-01' = {
         {
           name: 'CosmosDb__Key'
           value: cosmosAccount.listKeys().primaryMasterKey
+        }
+        {
+          name: 'CosmosDb__DatabaseName'
+          value: cosmosDatabaseName
+        }
+        {
+          name: 'CosmosDb__ResourcesContainer'
+          value: resourcesContainerName
+        }
+        {
+          name: 'CosmosDb__GraphContainer'
+          value: graphContainerName
+        }
+        {
+          name: 'ConnectionStrings__Redis'
+          value: '${redis.properties.hostName}:${redis.properties.sslPort},password=${redis.listKeys().primaryKey},ssl=True,abortConnect=False'
+        }
+        {
+          name: 'AzureOpenAI__Endpoint'
+          value: openAI.properties.endpoint
+        }
+        {
+          name: 'AzureOpenAI__ApiKey'
+          value: openAI.listKeys().key1
+        }
+        {
+          name: 'ApplicationInsights__ConnectionString'
+          value: appInsights.properties.ConnectionString
         }
         {
           name: 'AzureAd__TenantId'
@@ -252,34 +259,14 @@ resource appService 'Microsoft.Web/sites@2023-12-01' = {
         }
       ]
     }
-    httpsOnly: true
-  }
-}
-
-// ─── Static Web App (Frontend) ────────────────────────────
-resource staticWebApp 'Microsoft.Web/staticSites@2023-12-01' = {
-  name: '${resourcePrefix}-frontend'
-  location: location
-  tags: tags
-  sku: {
-    name: environment == 'dev' ? 'Free' : 'Standard'
-  }
-  properties: {
-    repositoryUrl: 'https://github.com/Brandonflex/Azure'
-    branch: 'main'
-    buildProperties: {
-      appLocation: 'src/client'
-      outputLocation: 'dist/cloudscope/browser'
-    }
   }
 }
 
 // ─── Outputs ──────────────────────────────────────────────
 output appServiceUrl string = 'https://${appService.properties.defaultHostName}'
-output staticWebAppUrl string = staticWebApp.properties.defaultHostname
+output appServiceName string = appService.name
 output cosmosEndpoint string = cosmosAccount.properties.documentEndpoint
-output signalRConnectionString string = signalR.listKeys().primaryConnectionString
-output serviceBusConnectionString string = serviceBus.listKeys().primaryConnectionString
 output keyVaultUri string = keyVault.properties.vaultUri
 output openAIEndpoint string = openAI.properties.endpoint
 output redisHostName string = redis.properties.hostName
+output appInsightsConnectionString string = appInsights.properties.ConnectionString

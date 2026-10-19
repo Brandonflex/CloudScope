@@ -35,7 +35,6 @@ import {
   CompliancePolicy,
   CompliancePosture,
   ComplianceReport,
-  ComplianceResult
 } from '../../core/models';
 import { dateTime, percent } from '../../core/utils/format';
 

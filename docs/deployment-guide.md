@@ -1,110 +1,169 @@
 # CloudScope — Deployment Guide
 
+CloudScope ships as **one App Service** that hosts the .NET API and the Angular
+SPA from the same origin. The SPA is published into the API's `wwwroot`, so
+there is no separate Static Web App, no CORS configuration and no absolute API
+URL to maintain.
+
 ## Prerequisites
 
-### Azure Resources Required
-- Azure Subscription (with Contributor access)
-- Azure Entra ID tenant (for authentication)
-- Azure OpenAI Service (GPT-4 deployment)
+| Purpose | Requirement |
+|---------|-------------|
+| Local development | .NET 8 SDK, Node.js 20+ |
+| Azure deployment | Azure subscription (Contributor), Entra ID tenant, GitHub repository secrets |
+| Live discovery (optional) | Azure subscription read access and/or AWS Config + Cost Explorer |
+| AI query (optional) | Azure OpenAI resource with a `gpt-4`-class deployment |
 
-### AWS Resources Required
-- AWS Account (with admin access for initial setup)
-- AWS Config enabled in target regions
-- Cost Explorer enabled
+## Local development
 
-## Local Development
-
-### 1. Clone and setup
-
-```bash
-git clone https://github.com/Brandonflex/Azure.git
-cd Azure
-```
-
-### 2. Start infrastructure services
-
-```bash
-docker-compose up -d
-```
-
-This starts:
-- **Cosmos DB Emulator** on port 8081 (Gremlin API on 10251)
-- **Redis** on port 6379
-- **Azure SQL Edge** on port 1433
-
-### 3. Configure the backend
-
-```bash
-cd src/server
-
-# Copy template and fill in your values
-cp CloudScope.Api/appsettings.Development.template.json \
-   CloudScope.Api/appsettings.Development.json
-
-# Set user secrets for sensitive values
-dotnet user-secrets init --project CloudScope.Api
-dotnet user-secrets set "AzureAd:ClientId" "your-client-id" --project CloudScope.Api
-dotnet user-secrets set "AzureAd:TenantId" "your-tenant-id" --project CloudScope.Api
-dotnet user-secrets set "AzureOpenAI:ApiKey" "your-api-key" --project CloudScope.Api
-dotnet user-secrets set "AWS:AccessKeyId" "your-access-key" --project CloudScope.Api
-dotnet user-secrets set "AWS:SecretAccessKey" "your-secret-key" --project CloudScope.Api
-```
-
-### 4. Run the backend
-
-```bash
-dotnet restore
-dotnet run --project CloudScope.Api
-```
-
-API available at `https://localhost:5001` (Swagger at `/swagger`).
-
-### 5. Run the frontend
+### 1. Frontend only (no .NET required)
 
 ```bash
 cd src/client
-npm install
-ng serve
+npm ci
+npm run preview:demo        # http://localhost:4300
 ```
 
-Dashboard available at `http://localhost:4200`.
+This builds the SPA and serves it with the demo API from
+`src/client/mock-api/server.mjs`. Use `npm run mock:api` + `npm run start:mock`
+for hot reload on port 4200.
 
-## Azure Deployment
-
-### Using Bicep
+### 2. Full stack
 
 ```bash
-# Login to Azure
-az login
+# Terminal 1 — API
+cd src/server
+dotnet restore
+dotnet run --project CloudScope.Api    # http://localhost:5001, Swagger at /swagger
 
-# Create resource group
-az group create --name cloudscope-rg --location eastus
-
-# Deploy infrastructure
-az deployment group create \
-  --resource-group cloudscope-rg \
-  --template-file infra/bicep/main.bicep \
-  --parameters @infra/bicep/parameters.prod.json
+# Terminal 2 — SPA
+cd src/client
+npm ci
+npm start                              # http://localhost:4200, proxies /api and /hubs
 ```
 
-### Using GitHub Actions
+No credentials are needed. `Platform:SeedDemoData` defaults to `true` and the
+bundled estate is seeded on startup when no cloud provider is configured.
 
-Push to `main` branch to trigger the CI/CD pipeline. See `.github/workflows/` for details.
+### 3. Configuration
 
-## Environment Variables
+`appsettings.json` holds safe defaults. For local overrides:
 
-| Variable | Description | Required |
-|----------|-------------|----------|
-| `AZURE_TENANT_ID` | Azure AD tenant ID | Yes |
-| `AZURE_CLIENT_ID` | App registration client ID | Yes |
-| `AZURE_CLIENT_SECRET` | App registration secret | Yes |
-| `COSMOS_DB_ENDPOINT` | Cosmos DB connection endpoint | Yes |
-| `COSMOS_DB_KEY` | Cosmos DB access key | Yes |
-| `REDIS_CONNECTION_STRING` | Redis connection string | Yes |
-| `SQL_CONNECTION_STRING` | Azure SQL connection string | Yes |
-| `AZURE_OPENAI_ENDPOINT` | Azure OpenAI endpoint | Yes |
-| `AZURE_OPENAI_API_KEY` | Azure OpenAI API key | Yes |
-| `AWS_ACCESS_KEY_ID` | AWS access key | For AWS |
-| `AWS_SECRET_ACCESS_KEY` | AWS secret key | For AWS |
-| `AWS_REGION` | Primary AWS region | For AWS |
-| `SIGNALR_CONNECTION_STRING` | SignalR Service connection | Prod |
+```bash
+cp src/server/CloudScope.Api/appsettings.Development.template.json \
+   src/server/CloudScope.Api/appsettings.Development.json
+```
+
+`appsettings.Development.json` is git-ignored. Prefer user secrets for values
+that must never be committed:
+
+```bash
+dotnet user-secrets init --project src/server/CloudScope.Api
+dotnet user-secrets set "Azure:SubscriptionId" "<id>" --project src/server/CloudScope.Api
+dotnet user-secrets set "AzureOpenAI:ApiKey" "<key>" --project src/server/CloudScope.Api
+dotnet user-secrets set "AWS:AccessKeyId" "<key>" --project src/server/CloudScope.Api
+dotnet user-secrets set "AWS:SecretAccessKey" "<secret>" --project src/server/CloudScope.Api
+```
+
+Key settings:
+
+| Setting | Default | Purpose |
+|---------|---------|---------|
+| `Platform:StorageProvider` | `InMemory` | Set to `Cosmos` (with `CosmosDb:Endpoint`/`Key`) to persist |
+| `Platform:SeedDemoData` | `true` | Load the demo estate when no providers are configured |
+| `Discovery:IntervalMinutes` | `15` | Background discovery cadence |
+| `Swagger:Enabled` | `true` | Swagger UI at `/swagger` |
+| `Cors:AllowedOrigins` | empty | Only needed if the SPA is hosted separately |
+| `AzureOpenAI:DeploymentName` | `gpt-4` | Must match a deployment in your OpenAI resource |
+
+## Docker
+
+Dependencies only (Cosmos emulator, Redis, Azure SQL Edge):
+
+```bash
+docker compose up -d
+```
+
+Full application stack (API + nginx-served SPA + Redis):
+
+```bash
+docker compose --profile app up --build
+```
+
+| Service | URL |
+|---------|-----|
+| SPA | http://localhost:8089 |
+| API | http://localhost:8080/swagger (when `Swagger:Enabled=true`) |
+
+The compose application profile runs with `StorageProvider=InMemory` and demo
+seeding enabled, so it works without cloud credentials. Both images are built
+from `src/server/Dockerfile` and `src/client/Dockerfile`; the API runs as a
+non-root user with a `HEALTHCHECK`.
+
+## Deploying to Azure
+
+The pipeline `.github/workflows/deploy-azure.yml` runs on pushes to `main` and
+on `workflow_dispatch`.
+
+### Required GitHub secrets
+
+| Secret | Description |
+|--------|-------------|
+| `AZURE_CREDENTIALS` | Service principal JSON for `azure/login` (`Contributor` on the resource group) |
+| `AZURE_AD_TENANT_ID` | Entra ID tenant id |
+| `AZURE_AD_CLIENT_ID` | App registration client id (reserved for authentication) |
+| `APP_SERVICE_NAME` | Name of the App Service created by the Bicep template |
+
+The Static Web App token is no longer needed — the SPA is embedded in the API.
+
+### What gets deployed
+
+1. `infra/bicep/main.bicep` creates:
+   * App Service (Linux, .NET 8) with a system-assigned managed identity
+   * Cosmos DB **SQL API** database `CloudScope` with `Resources` (`/provider`)
+     and `Graph` (`/sourceResourceId`) containers
+   * Azure Cache for Redis
+   * Azure OpenAI
+   * Application Insights
+   * Key Vault
+2. The workflow builds the SPA (`ng build --configuration production`), copies
+   `dist/cloudscope/browser` into `src/server/CloudScope.Api/wwwroot`, publishes
+   the API with a build-stamped version, zips it and deploys with
+   `az webapp deployment source config-zip`.
+3. A smoke test requests `/health` and `/` and asserts the CloudScope title.
+
+### After the first deployment
+
+* Set `Azure:SubscriptionId` (+ credentials or use the App Service managed
+  identity) and/or `AWS:*` as App Service settings to enable live discovery.
+  Until then, set `Platform:SeedDemoData=true` for a populated UI.
+* Create an Azure OpenAI model deployment and set
+  `AzureOpenAI:DeploymentName` to match; otherwise the local query engine
+  answers.
+* Confirm `/api/meta` reports the expected storage provider and counts.
+
+### Verifying a deployment
+
+```bash
+curl https://<app>.azurewebsites.net/health
+curl -s https://<app>.azurewebsites.net/api/meta
+curl -sI https://<app>.azurewebsites.net/dashboard   # 200 text/html
+```
+
+## Troubleshooting
+
+| Symptom | Cause / fix |
+|---------|-------------|
+| `/dashboard` 404 after deploy | `wwwroot/index.html` was not staged before publish — check the "Stage SPA" step |
+| App starts in InMemory mode | `CosmosDb:Endpoint`/`Key` missing or `StorageProvider` not `Cosmos`; check `/api/meta` |
+| `Invalid URL` or SPA served for `/api/...` | The demo host is running, not the .NET API |
+| `Cannot connect to SignalR` in demo mode | Expected: the demo host returns 501 for `/hubs/*`; run the .NET API |
+| Redirect loop (`ERR_TOO_MANY_REDIRECTS`) | `ASPNETCORE_FORWARDEDHEADERS_ENABLED=true` is set in code via `UseForwardedHeaders`; ensure the App Service front end is in front of the app |
+| Cosmos 404 on containers | Run the Bicep deployment again; containers are created by the template |
+
+## Cost notes
+
+The template no longer provisions SQL Server, Service Bus, SignalR Service or a
+Static Web App — none were used by the application. The remaining footprint is
+the App Service plan, Cosmos DB (serverless-capable), Redis, OpenAI (only if
+used) and Application Insights.

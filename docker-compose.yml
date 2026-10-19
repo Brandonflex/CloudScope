@@ -59,6 +59,43 @@ services:
     networks:
       - cloudscope-net
 
+  # ─── Application (optional: docker compose --profile app up) ───
+  api:
+    build:
+      context: ./src/server
+    container_name: cloudscope-api
+    profiles: ["app"]
+    ports:
+      - "8080:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - Platform__StorageProvider=InMemory
+      - Platform__SeedDemoData=true
+      - ConnectionStrings__Redis=redis:6379
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+    networks:
+      - cloudscope-net
+
+  web:
+    build:
+      context: ./src/client
+    container_name: cloudscope-web
+    profiles: ["app"]
+    ports:
+      - "8089:80"
+    depends_on:
+      api:
+        condition: service_healthy
+    networks:
+      - cloudscope-net
+
 volumes:
   cosmos-data:
   redis-data:

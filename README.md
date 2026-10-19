@@ -113,10 +113,14 @@ npm start                  # proxies /api and /hubs to :5001
 
 No credentials are required: `Platform:SeedDemoData` is `true` by default and the demo estate is loaded when no provider is configured.
 
-### Option C — local dependencies with Docker
+### Option C — Docker
 
 ```bash
-docker compose up -d       # Cosmos DB emulator (:8081) + Redis (:6379)
+# Dependencies only: Cosmos DB emulator (:8081), Redis (:6379), SQL Edge (:1433)
+docker compose up -d
+
+# Whole application: API on :8080 and the SPA on :8089
+docker compose --profile app up --build
 ```
 
 Then set `Platform:StorageProvider` to `Cosmos` and fill in `CosmosDb:Endpoint` / `CosmosDb:Key` to exercise the Cosmos persistence path.
@@ -130,9 +134,24 @@ dotnet test  src/server/CloudScope.sln -c Release
 
 # Frontend
 cd src/client
+npm run lint               # ESLint (TypeScript + templates)
+npm test                   # Karma/Jasmine unit tests
 npm run build              # development build
 npm run build:prod         # optimised production build
 ```
+
+### Deploying to Azure
+
+One App Service hosts both the API and the SPA (the build is published into
+`wwwroot`), provisioned by `infra/bicep/main.bicep` (Cosmos DB SQL API, Redis,
+Azure OpenAI, Application Insights, Key Vault).
+
+```bash
+gh workflow run deploy-azure.yml     # or push to main
+```
+
+Required repository secrets and the post-deploy checklist are documented in
+[docs/deployment-guide.md](docs/deployment-guide.md).
 
 ---
 

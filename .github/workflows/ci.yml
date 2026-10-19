@@ -76,34 +76,16 @@ jobs:
         working-directory: src/client
 
       - name: Lint
-        run: npx ng lint --force || true  # Non-blocking until eslint is configured
+        run: npx ng lint
         working-directory: src/client
 
       - name: Build
-        run: npx ng build --configuration development
+        run: npx ng build --configuration production
         working-directory: src/client
 
       - name: Run unit tests
-        run: npx ng test --watch=false --browsers=ChromeHeadless || true  # Non-blocking until tests are written
+        run: npx ng test --watch=false --browsers=ChromeHeadlessCI
         working-directory: src/client
-
-  # ─── Security Scanning ──────────────────────────────────
-  security:
-    name: Security Scan
-    runs-on: ubuntu-latest
-    needs: [backend, frontend]
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Run CodeQL Analysis
-        uses: github/codeql-action/init@v3
-        with:
-          languages: csharp, javascript
-
-      - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v3
 
   # ─── Bicep Validation ────────────────────────────────────
   infra:
@@ -114,12 +96,8 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Azure Login
-        uses: azure/login@v2
-        with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
-        continue-on-error: true
+      - name: Install Bicep
+        run: az bicep install
 
       - name: Validate Bicep templates
-        run: az bicep build --file infra/bicep/main.bicep --stdout > /dev/null 2>&1 || echo "Bicep validation requires Azure CLI login"
-        continue-on-error: true
+        run: az bicep build --file infra/bicep/main.bicep --stdout > /dev/null

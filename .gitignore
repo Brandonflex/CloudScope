@@ -134,3 +134,8 @@ appsettings.Local.json
 *.bak
 *.swp
 *~
+
+# Deployment artefacts
+publish/
+publish.zip
+src/server/CloudScope.Api/wwwroot/

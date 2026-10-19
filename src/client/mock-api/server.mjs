@@ -18,7 +18,7 @@
 import { createHash } from 'node:crypto';
 import { readFile, stat } from 'node:fs/promises';
 import { createServer } from 'node:http';
-import { extname, join, normalize, resolve } from 'node:path';
+import { extname, join, normalize, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const HERE = resolve(fileURLToPath(new URL('.', import.meta.url)));
@@ -1339,32 +1339,55 @@ async function readBody(request) {
   }
 }
 
+const ASSET_PATH = /\/[^/]+\.[a-z0-9]{1,8}$/i;
+
+async function isFile(path) {
+  try {
+    return (await stat(path)).isFile();
+  } catch {
+    return false;
+  }
+}
+
 async function serveStatic(request, response, pathname) {
   if (!STATIC_DIR) return false;
+
+  // API and hub traffic is never a client-side route.
+  if (pathname === '/api' || pathname.startsWith('/api/') || pathname === '/hubs' || pathname.startsWith('/hubs/')) return false;
 
   const root = resolve(STATIC_DIR);
   const relative = normalize(decodeURIComponent(pathname)).replace(/^([/\\])+/, '');
   let filePath = resolve(join(root, relative));
 
-  if (!filePath.startsWith(root)) {
+  if (filePath !== root && !filePath.startsWith(root + sep)) {
     response.writeHead(403);
     response.end('Forbidden');
     return true;
   }
 
+  let target = filePath;
   try {
-    const info = await stat(filePath);
-    if (info.isDirectory()) filePath = join(filePath, 'index.html');
+    if ((await stat(target)).isDirectory()) target = join(target, 'index.html');
   } catch {
-    filePath = join(root, 'index.html');
+    target = null;
+  }
+
+  if (!target || !(await isFile(target))) {
+    // Only extension-less GETs fall back to the SPA shell; a missing script,
+    // image or stylesheet must 404 instead of returning HTML.
+    const isNavigation = request.method === 'GET' && !ASSET_PATH.test(pathname);
+    if (!isNavigation) return false;
+
+    target = join(root, 'index.html');
+    if (!(await isFile(target))) return false;
   }
 
   try {
-    const body = await readFile(filePath);
+    const body = await readFile(target);
     response.writeHead(200, {
-      'Content-Type': MIME[extname(filePath).toLowerCase()] ?? 'application/octet-stream',
+      'Content-Type': MIME[extname(target).toLowerCase()] ?? 'application/octet-stream',
       'Content-Length': body.length,
-      'Cache-Control': filePath.endsWith('index.html') ? 'no-cache' : 'public, max-age=3600'
+      'Cache-Control': target.endsWith('index.html') ? 'no-cache' : 'public, max-age=3600'
     });
     response.end(body);
     return true;
@@ -1395,7 +1418,14 @@ const server = createServer(async (request, response) => {
   }
 
   try {
-    if (!pathname.startsWith('/api/')) {
+    if (pathname === '/hubs' || pathname.startsWith('/hubs/')) {
+      sendJson(response, 501, {
+        message: 'SignalR is not available in the demo host. Run the .NET API for live updates.'
+      });
+      return;
+    }
+
+    if (pathname !== '/api' && !pathname.startsWith('/api/')) {
       if (await serveStatic(request, response, pathname)) return;
       response.writeHead(404, { 'Content-Type': 'text/plain' });
       response.end('Not found. Start the .NET API for non-demo usage.');

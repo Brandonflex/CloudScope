@@ -13,7 +13,8 @@
     "start:mock": "ng serve --proxy-config proxy.mock.json",
     "mock:api": "node mock-api/server.mjs --port 5055",
     "preview:demo": "ng build --configuration development && node mock-api/server.mjs --port 4300 --static dist/cloudscope/browser",
-    "preview:mock": "node mock-api/server.mjs --port 4300 --static dist/cloudscope/browser"
+    "preview:mock": "node mock-api/server.mjs --port 4300 --static dist/cloudscope/browser",
+    "test:ci": "ng test --watch=false --browsers=ChromeHeadlessCI"
   },
   "private": true,
   "dependencies": {
@@ -36,16 +37,24 @@
   },
   "devDependencies": {
     "@angular-devkit/build-angular": "^18.2.21",
+    "@angular-eslint/builder": "^18.4.3",
+    "@angular-eslint/eslint-plugin": "^18.4.3",
+    "@angular-eslint/eslint-plugin-template": "^18.4.3",
+    "@angular-eslint/template-parser": "^18.4.3",
     "@angular/cli": "^18.2.21",
     "@angular/compiler-cli": "^18.2.0",
+    "@eslint/js": "^8.57.1",
+    "@types/cytoscape": "^3.21.8",
     "@types/jasmine": "~5.1.0",
+    "angular-eslint": "^18.4.3",
+    "eslint": "^8.57.1",
     "jasmine-core": "~5.2.0",
     "karma": "~6.4.0",
     "karma-chrome-launcher": "~3.2.0",
     "karma-coverage": "~2.2.0",
     "karma-jasmine": "~5.1.0",
     "karma-jasmine-html-reporter": "~2.1.0",
-    "@types/cytoscape": "^3.21.8",
-    "typescript": "~5.5.2"
+    "typescript": "~5.5.2",
+    "typescript-eslint": "^8.71.2"
   }
 }

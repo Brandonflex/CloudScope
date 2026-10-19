@@ -1,9 +1,28 @@
 # CloudScope — Roadmap to a Shippable v1.0
 
-> Status snapshot: 2026-10-19. The product is feature-complete against the
-> proposal and demonstrable end-to-end without credentials. It is **not yet
-> deployable in production** — the gaps below are concrete and mostly small.
-> Each item names the file(s) to touch and the acceptance criteria.
+> Status snapshot: 2026-10-19, after the first P0 pass. The product is
+> feature-complete against the proposal and demonstrable end-to-end without
+> credentials. The deployment blockers below are fixed in the repository;
+> authentication and the deeper quality work remain. Each item names the
+> file(s) to touch and the acceptance criteria.
+
+## P0 progress
+
+| Item | Status | Notes |
+|------|--------|-------|
+| 1.1 Publish artefact | ✅ Done | Workflow zips `publish/`, stamps the version, deploys and smoke-tests |
+| 1.2 Cosmos API mismatch | ✅ Done | Bicep now creates SQL API database + `Resources`/`Graph` containers and wires app settings |
+| 1.3 Static Web App | ✅ Superseded | The SPA is published into the API `wwwroot`; one origin, no SWA token or fallback rules |
+| 1.4 Demo host fallback | ✅ Done | Missing assets 404; `/hubs/*` returns a clear 501; API 404s stay JSON |
+| 1.5 CI honesty | ✅ Done | ESLint added and blocking; unit tests blocking; duplicate CodeQL job removed |
+| 1.6 Secret/env wiring | ✅ Done | `appsettings.Development.template.json` + `appsettings.Production.json` |
+| 1.7 Containers | ✅ Done | Multi-stage API and SPA images, nginx proxy, `--profile app` compose stack |
+
+Not validated locally: Bicep compilation, `dotnet build`, Docker image builds
+and the GitHub deployment (no Azure credentials, .NET SDK or Docker daemon in
+this environment). CI validates Bicep, builds/tests the backend and builds the
+frontend; a `workflow_dispatch` run of the deploy workflow is the remaining
+verification step.
 
 Effort key: **S** ≤ 1 day · **M** 2–3 days · **L** 1–2 weeks.
 
@@ -16,18 +35,18 @@ Effort key: **S** ≤ 1 day · **M** 2–3 days · **L** 1–2 weeks.
 | Feature surface | ✅ Complete | 6 screens, 19 REST routes, 51 backend tests |
 | Demo experience | ✅ Complete | `npm run preview:demo`, 54 resources, all screens populated |
 | Local full stack | ✅ Works | `dotnet run` + `ng serve` + proxy configs |
-| CI (build/test) | ✅ Green | Backend, Frontend, Infra validation pass |
-| CI (security) | ❌ Red | Repeated duplicate of CodeQL; code scanning not enabled |
-| Deployment pipeline | ❌ Would fail | No artefact produced; infra/app storage mismatch |
-| Production hardening | ❌ Absent | No auth, rate limiting, health checks, secret wiring |
-| Automated test depth | ⚠️ Thin | Frontend has 1 placeholder spec; no E2E |
+| CI (build/test) | ⏳ Re-run pending | P0 changes add lint, unit tests and a production build to the gate |
+| CI (security) | ❌ Red (repo config) | Duplicate job removed; code scanning must be enabled in repository settings |
+| Deployment pipeline | ✅ Fixed, unverified | Artefact produced and deployed; Bicep matches the runtime store |
+| Production hardening | ⚠️ Partial | Forwarded headers, production config and containers added; auth/rate limiting pending |
+| Automated test depth | ⚠️ Improved | ESLint + 20 unit specs now blocking; integration and E2E still missing |
 | Documentation | ✅ Rewritten | README, architecture, API reference, implementation map |
 
 ---
 
 ## 1. P0 — Blockers (must fix before any real deployment)
 
-### 1.1 Deploy workflow publishes nothing — **S**
+### 1.1 Deploy workflow publishes nothing — **S** ✅
 
 `.github/workflows/deploy-azure.yml` runs `dotnet publish … --output ./publish`
 and then uploads `--src ./publish.zip`, a file that is never created.
@@ -45,7 +64,7 @@ explicit restore, and stamp the build number into `AssemblyVersion` so
 **Done when:** a manual `workflow_dispatch` run deploys and `/health` returns the
 commit SHA.
 
-### 1.2 Bicep provisions the wrong Cosmos API — **M**
+### 1.2 Bicep provisions the wrong Cosmos API — **M** ✅
 
 `infra/bicep/main.bicep` creates a **Gremlin** account
 (`capabilities: EnableGremlin`, `gremlinDatabases/graphs`), while the backend
@@ -65,7 +84,7 @@ managed identity with `Key Vault Secrets User`.
 a deployed instance reports `storageProvider: Cosmos` with data surviving a
 restart.
 
-### 1.3 Static Web App deploy is wrong and has no SPA fallback — **S**
+### 1.3 Static Web App deploy is wrong and has no SPA fallback — **S** ✅ *(superseded: single-origin hosting)*
 
 `deploy-frontend` points Oryx at `src/client` (re-building the app with an
 unrelated toolchain) and ships no routing rules, so `/dashboard`, `/graph`, …
@@ -83,7 +102,7 @@ Also set `environment.production.ts` `apiUrl` from a build-time replacement
 (`ng build --define`/`fileReplacements` per environment) instead of relying on
 same-origin hosting.
 
-### 1.4 Demo server masks errors and breaks SignalR — **S**
+### 1.4 Demo server masks errors and breaks SignalR — **S** ✅
 
 `src/client/mock-api/server.mjs` falls back to `index.html` for **every**
 unmatched path: `/missing.js` → 200 HTML, `/hubs/notifications/negotiate` → 200
@@ -95,7 +114,7 @@ HTML (the SPA then fails to connect with a confusing error), and unknown
 returning a stub negotiation payload (or an explicit 501 with a clear message)
 so the UI shows "live updates unavailable in demo" instead of a parse error.
 
-### 1.5 CI is partly theatre — **M**
+### 1.5 CI is partly theatre — **M** ✅
 
 * `ng lint` has no builder configured — the script always throws and `|| true`
   hides it.
@@ -110,7 +129,7 @@ Delete the `security` job from `ci.yml` and keep `codeql.yml` as the single
 owner; enable code scanning in repository settings and add a manual build step
 for C# (`dotnet build src/server/CloudScope.sln`) instead of autobuild.
 
-### 1.6 No secret or environment wiring — **M**
+### 1.6 No secret or environment wiring — **M** ✅
 
 `appsettings.json` ships empty placeholders and there is no
 `appsettings.Production.json`; the deployment guide references
@@ -121,7 +140,7 @@ share), add `appsettings.Production.json` with Key Vault/App Configuration
 references, and document `dotnet user-secrets` in the README (already referenced
 by the guide).
 
-### 1.7 No container build path — **S**
+### 1.7 No container build path — **S** ✅
 
 `docker-compose.yml` brings up dependencies only, and the deployment guide
 implies containers exist. Add a multi-stage `Dockerfile` for the API
