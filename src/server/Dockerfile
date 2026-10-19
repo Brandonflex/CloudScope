@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 # CloudScope API — multi-stage build (context: src/server)
 
-FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 
 # Restore against the project files first so the layer caches on code changes.
