@@ -1,3 +1,4 @@
+using CloudScope.Core.Common;
 using CloudScope.Core.Domain.Enums;
 using CloudScope.Core.Domain.Models;
 using FluentAssertions;
