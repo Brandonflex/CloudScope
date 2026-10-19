@@ -7,13 +7,7 @@ import {
   input,
   viewChild
 } from '@angular/core';
-import {
-  Chart,
-  ChartData,
-  ChartOptions,
-  ChartType,
-  registerables
-} from 'chart.js';
+import { Chart, ChartData, ChartOptions, ChartType, registerables } from 'chart.js';
 
 Chart.register(...registerables);
 
@@ -26,15 +20,17 @@ Chart.register(...registerables);
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `<canvas #canvas></canvas>`,
-  styles: [`
-    :host {
-      display: block;
-      position: relative;
-      width: 100%;
-      height: 100%;
-      min-height: 180px;
-    }
-  `]
+  styles: [
+    `
+      :host {
+        display: block;
+        position: relative;
+        width: 100%;
+        height: 100%;
+        min-height: 180px;
+      }
+    `
+  ]
 })
 export class ChartComponent implements OnDestroy {
   readonly type = input<ChartType>('line');

@@ -46,7 +46,9 @@ export class ResourceService {
   }
 
   getRelationships(id: string): Observable<ResourceRelationship[]> {
-    return this.http.get<ResourceRelationship[]>(`${this.baseUrl}/${encodeURIComponent(id)}/relationships`);
+    return this.http.get<ResourceRelationship[]>(
+      `${this.baseUrl}/${encodeURIComponent(id)}/relationships`
+    );
   }
 
   getBlastRadius(id: string, maxDepth = 5): Observable<BlastRadiusResult> {

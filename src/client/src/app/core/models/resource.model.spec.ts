@@ -28,7 +28,15 @@ describe('resource model maps', () => {
   });
 
   it('defines a colour for every health status', () => {
-    for (const status of ['Healthy', 'Warning', 'Critical', 'Stopped', 'Provisioning', 'Deprovisioning', 'Unknown'] as const) {
+    for (const status of [
+      'Healthy',
+      'Warning',
+      'Critical',
+      'Stopped',
+      'Provisioning',
+      'Deprovisioning',
+      'Unknown'
+    ] as const) {
       expect(STATUS_COLORS[status]).withContext(status).toBeTruthy();
     }
   });

@@ -1,0 +1,5 @@
+dist
+node_modules
+.angular
+mock-api
+src/app/core/models/resource.model.ts

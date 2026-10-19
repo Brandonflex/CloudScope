@@ -36,15 +36,22 @@ interface Example {
 const DEFAULT_EXAMPLES: Example[] = [
   { icon: 'payments', category: 'Cost', question: 'What are my top 5 most expensive resources?' },
   { icon: 'trending_up', category: 'Cost', question: 'Which resource costs are anomalous?' },
-  { icon: 'verified_user', category: 'Compliance', question: 'Show my critical compliance violations' },
+  {
+    icon: 'verified_user',
+    category: 'Compliance',
+    question: 'Show my critical compliance violations'
+  },
   { icon: 'hub', category: 'Reliability', question: 'What is the blast radius of vm-app-01?' },
   { icon: 'speed', category: 'Optimisation', question: 'Which VMs are under-utilised?' },
-  { icon: 'build_circle', category: 'Governance', question: 'Which resources are not managed by IaC?' }
+  {
+    icon: 'build_circle',
+    category: 'Governance',
+    question: 'Which resources are not managed by IaC?'
+  }
 ];
 
 @Component({
   selector: 'app-query',
-  standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     FormsModule,
@@ -62,7 +69,8 @@ const DEFAULT_EXAMPLES: Example[] = [
         <div>
           <h1>Ask CloudScope</h1>
           <p class="subtitle">
-            Natural-language questions over the live inventory. Answers cite the resources they used.
+            Natural-language questions over the live inventory. Answers cite the resources they
+            used.
           </p>
         </div>
         <div class="actions">
@@ -139,14 +147,16 @@ const DEFAULT_EXAMPLES: Example[] = [
                 [(ngModel)]="question"
                 (keydown.enter)="ask()"
                 [disabled]="thinking()"
-                placeholder="e.g. what are my most expensive resources?" />
+                placeholder="e.g. what are my most expensive resources?"
+              />
               <button
                 mat-icon-button
                 matSuffix
                 type="button"
                 class="send-button"
                 [disabled]="thinking() || !question.trim()"
-                (click)="ask()">
+                (click)="ask()"
+              >
                 <mat-icon>send</mat-icon>
               </button>
             </mat-form-field>
@@ -197,108 +207,306 @@ const DEFAULT_EXAMPLES: Example[] = [
       </div>
     </div>
   `,
-  styles: [`
-    .query-page { display: flex; flex-direction: column; }
+  styles: [
+    `
+      .query-page {
+        display: flex;
+        flex-direction: column;
+      }
 
-    .query-layout {
-      display: grid;
-      grid-template-columns: minmax(0, 1fr) 330px;
-      gap: 16px;
-      align-items: start;
-    }
+      .query-layout {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 330px;
+        gap: 16px;
+        align-items: start;
+      }
 
-    .chat-panel { display: flex; flex-direction: column; height: calc(100vh - 190px); min-height: 520px; }
+      .chat-panel {
+        display: flex;
+        flex-direction: column;
+        height: calc(100vh - 190px);
+        min-height: 520px;
+      }
 
-    .chat-scroll { flex: 1; overflow-y: auto; padding: 22px 24px; }
+      .chat-scroll {
+        flex: 1;
+        overflow-y: auto;
+        padding: 22px 24px;
+      }
 
-    .hero { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 40px 20px 24px; }
-    .hero-orb {
-      width: 62px; height: 62px; border-radius: 20px;
-      display: flex; align-items: center; justify-content: center;
-      background: linear-gradient(135deg, rgba(88, 166, 255, 0.25), rgba(188, 140, 255, 0.25));
-      border: 1px solid rgba(88, 166, 255, 0.3);
-      color: #bc8cff; margin-bottom: 16px;
-    }
-    .hero-orb mat-icon { font-size: 30px; width: 30px; height: 30px; }
-    .hero h2 { margin: 0; font-size: 1.15rem; font-weight: 650; }
-    .hero p { margin: 8px 0 0; max-width: 460px; font-size: 0.85rem; color: var(--text-muted); line-height: 1.55; }
+      .hero {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        padding: 40px 20px 24px;
+      }
+      .hero-orb {
+        width: 62px;
+        height: 62px;
+        border-radius: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(135deg, rgba(88, 166, 255, 0.25), rgba(188, 140, 255, 0.25));
+        border: 1px solid rgba(88, 166, 255, 0.3);
+        color: #bc8cff;
+        margin-bottom: 16px;
+      }
+      .hero-orb mat-icon {
+        font-size: 30px;
+        width: 30px;
+        height: 30px;
+      }
+      .hero h2 {
+        margin: 0;
+        font-size: 1.15rem;
+        font-weight: 650;
+      }
+      .hero p {
+        margin: 8px 0 0;
+        max-width: 460px;
+        font-size: 0.85rem;
+        color: var(--text-muted);
+        line-height: 1.55;
+      }
 
-    .turn { display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px; }
+      .turn {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        margin-bottom: 20px;
+      }
 
-    .bubble { border-radius: 14px; padding: 14px 16px; max-width: 100%; }
-    .bubble.user { align-self: flex-end; background: rgba(88, 166, 255, 0.12); border: 1px solid rgba(88, 166, 255, 0.22); max-width: 78%; }
-    .bubble.assistant { background: rgba(240, 246, 252, 0.035); border: 1px solid var(--border); }
-    .bubble.assistant.failed { border-color: rgba(248, 81, 73, 0.4); }
+      .bubble {
+        border-radius: 14px;
+        padding: 14px 16px;
+        max-width: 100%;
+      }
+      .bubble.user {
+        align-self: flex-end;
+        background: rgba(88, 166, 255, 0.12);
+        border: 1px solid rgba(88, 166, 255, 0.22);
+        max-width: 78%;
+      }
+      .bubble.assistant {
+        background: rgba(240, 246, 252, 0.035);
+        border: 1px solid var(--border);
+      }
+      .bubble.assistant.failed {
+        border-color: rgba(248, 81, 73, 0.4);
+      }
 
-    .bubble-label {
-      display: flex; align-items: center; gap: 6px;
-      font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.08em;
-      color: var(--text-dim); margin-bottom: 6px;
-    }
-    .bubble-label mat-icon { font-size: 14px; width: 14px; height: 14px; color: #bc8cff; }
-    .bubble-source { color: #79c0ff; text-transform: none; letter-spacing: 0; }
-    .bubble-time { margin-left: auto; letter-spacing: 0; text-transform: none; }
+      .bubble-label {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 0.68rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--text-dim);
+        margin-bottom: 6px;
+      }
+      .bubble-label mat-icon {
+        font-size: 14px;
+        width: 14px;
+        height: 14px;
+        color: #bc8cff;
+      }
+      .bubble-source {
+        color: #79c0ff;
+        text-transform: none;
+        letter-spacing: 0;
+      }
+      .bubble-time {
+        margin-left: auto;
+        letter-spacing: 0;
+        text-transform: none;
+      }
 
-    .bubble p { margin: 0; font-size: 0.87rem; line-height: 1.6; }
+      .bubble p {
+        margin: 0;
+        font-size: 0.87rem;
+        line-height: 1.6;
+      }
 
-    .answer { font-size: 0.87rem; line-height: 1.62; color: #d7e0ea; }
-    .answer ::ng-deep strong { color: #f0f6fc; }
+      .answer {
+        font-size: 0.87rem;
+        line-height: 1.62;
+        color: #d7e0ea;
+      }
+      .answer ::ng-deep strong {
+        color: #f0f6fc;
+      }
 
-    .generated-query { margin-top: 10px; font-size: 0.75rem; color: var(--text-muted); }
-    .generated-query summary { cursor: pointer; user-select: none; }
-    .generated-query pre {
-      margin: 8px 0 0; padding: 10px 12px; border-radius: 8px;
-      background: #080c12; border: 1px solid var(--border);
-      font-size: 0.72rem; overflow-x: auto; color: #79c0ff;
-    }
+      .generated-query {
+        margin-top: 10px;
+        font-size: 0.75rem;
+        color: var(--text-muted);
+      }
+      .generated-query summary {
+        cursor: pointer;
+        user-select: none;
+      }
+      .generated-query pre {
+        margin: 8px 0 0;
+        padding: 10px 12px;
+        border-radius: 8px;
+        background: #080c12;
+        border: 1px solid var(--border);
+        font-size: 0.72rem;
+        overflow-x: auto;
+        color: #79c0ff;
+      }
 
-    .error-text { color: var(--red); font-size: 0.8rem; margin-top: 8px; }
+      .error-text {
+        color: var(--red);
+        font-size: 0.8rem;
+        margin-top: 8px;
+      }
 
-    .typing { display: flex; gap: 4px; padding: 4px 0; }
-    .typing span { width: 6px; height: 6px; border-radius: 50%; background: #bc8cff; animation: blink 1.2s infinite; }
-    .typing span:nth-child(2) { animation-delay: 0.18s; }
-    .typing span:nth-child(3) { animation-delay: 0.36s; }
+      .typing {
+        display: flex;
+        gap: 4px;
+        padding: 4px 0;
+      }
+      .typing span {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: #bc8cff;
+        animation: blink 1.2s infinite;
+      }
+      .typing span:nth-child(2) {
+        animation-delay: 0.18s;
+      }
+      .typing span:nth-child(3) {
+        animation-delay: 0.36s;
+      }
 
-    @keyframes blink {
-      0%, 80%, 100% { opacity: 0.25; transform: translateY(0); }
-      40% { opacity: 1; transform: translateY(-2px); }
-    }
+      @keyframes blink {
+        0%,
+        80%,
+        100% {
+          opacity: 0.25;
+          transform: translateY(0);
+        }
+        40% {
+          opacity: 1;
+          transform: translateY(-2px);
+        }
+      }
 
-    .composer { border-top: 1px solid var(--border); padding: 14px 20px 4px; }
+      .composer {
+        border-top: 1px solid var(--border);
+        padding: 14px 20px 4px;
+      }
 
-    .composer-field { width: 100%; }
-    .send-button { color: #58a6ff; }
+      .composer-field {
+        width: 100%;
+      }
+      .send-button {
+        color: #58a6ff;
+      }
 
-    .suggestions { display: flex; flex-direction: column; gap: 16px; }
+      .suggestions {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+      }
 
-    .suggestion-card .panel-body { padding-top: 8px; }
+      .suggestion-card .panel-body {
+        padding-top: 8px;
+      }
 
-    .suggestion {
-      display: flex; align-items: center; gap: 10px;
-      width: 100%; text-align: left;
-      background: transparent; border: 1px solid transparent;
-      border-radius: 10px; padding: 9px 10px;
-      color: var(--text); cursor: pointer;
-      transition: background 0.12s ease, border-color 0.12s ease;
-    }
-    .suggestion:hover { background: rgba(88, 166, 255, 0.07); border-color: rgba(88, 166, 255, 0.2); }
-    .suggestion mat-icon { color: var(--text-dim); font-size: 17px; width: 17px; height: 17px; flex-shrink: 0; }
-    .suggestion:hover mat-icon { color: var(--accent); }
-    .suggestion div { flex: 1; min-width: 0; }
-    .suggestion span { display: block; font-size: 0.79rem; line-height: 1.4; }
-    .suggestion em { display: block; font-style: normal; font-size: 0.68rem; color: var(--text-dim); margin-top: 2px; }
-    .suggestion .chevron { opacity: 0; transition: opacity 0.12s ease; flex-shrink: 0; }
-    .suggestion:hover .chevron { opacity: 1; }
+      .suggestion {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        width: 100%;
+        text-align: left;
+        background: transparent;
+        border: 1px solid transparent;
+        border-radius: 10px;
+        padding: 9px 10px;
+        color: var(--text);
+        cursor: pointer;
+        transition:
+          background 0.12s ease,
+          border-color 0.12s ease;
+      }
+      .suggestion:hover {
+        background: rgba(88, 166, 255, 0.07);
+        border-color: rgba(88, 166, 255, 0.2);
+      }
+      .suggestion mat-icon {
+        color: var(--text-dim);
+        font-size: 17px;
+        width: 17px;
+        height: 17px;
+        flex-shrink: 0;
+      }
+      .suggestion:hover mat-icon {
+        color: var(--accent);
+      }
+      .suggestion div {
+        flex: 1;
+        min-width: 0;
+      }
+      .suggestion span {
+        display: block;
+        font-size: 0.79rem;
+        line-height: 1.4;
+      }
+      .suggestion em {
+        display: block;
+        font-style: normal;
+        font-size: 0.68rem;
+        color: var(--text-dim);
+        margin-top: 2px;
+      }
+      .suggestion .chevron {
+        opacity: 0;
+        transition: opacity 0.12s ease;
+        flex-shrink: 0;
+      }
+      .suggestion:hover .chevron {
+        opacity: 1;
+      }
 
-    .capabilities { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
-    .capabilities li { display: flex; align-items: center; gap: 9px; font-size: 0.79rem; color: var(--text-muted); }
-    .capabilities mat-icon { font-size: 16px; width: 16px; height: 16px; color: var(--text-dim); }
+      .capabilities {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+      .capabilities li {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        font-size: 0.79rem;
+        color: var(--text-muted);
+      }
+      .capabilities mat-icon {
+        font-size: 16px;
+        width: 16px;
+        height: 16px;
+        color: var(--text-dim);
+      }
 
-    @media (max-width: 1150px) {
-      .query-layout { grid-template-columns: minmax(0, 1fr); }
-      .chat-panel { height: auto; min-height: 480px; }
-    }
-  `]
+      @media (max-width: 1150px) {
+        .query-layout {
+          grid-template-columns: minmax(0, 1fr);
+        }
+        .chat-panel {
+          height: auto;
+          min-height: 480px;
+        }
+      }
+    `
+  ]
 })
 export class QueryComponent implements OnInit {
   private readonly queryService = inject(QueryService);
@@ -350,10 +558,7 @@ export class QueryComponent implements OnInit {
       next: (result) => {
         this.thinking.set(false);
         this.lastResult.set(result);
-        this.transcript.update((entries) => [
-          ...entries,
-          { id: ++this.counter, question, result }
-        ]);
+        this.transcript.update((entries) => [...entries, { id: ++this.counter, question, result }]);
         this.scrollToBottom();
       },
       error: () => {

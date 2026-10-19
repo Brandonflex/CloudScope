@@ -14,8 +14,7 @@ export const routes: Routes = [
   },
   {
     path: 'graph',
-    loadComponent: () =>
-      import('./features/graph/graph.component').then((m) => m.GraphComponent),
+    loadComponent: () => import('./features/graph/graph.component').then((m) => m.GraphComponent),
     title: 'Infrastructure graph — CloudScope'
   },
   {
@@ -26,8 +25,7 @@ export const routes: Routes = [
   },
   {
     path: 'costs',
-    loadComponent: () =>
-      import('./features/costs/costs.component').then((m) => m.CostsComponent),
+    loadComponent: () => import('./features/costs/costs.component').then((m) => m.CostsComponent),
     title: 'Cost intelligence — CloudScope'
   },
   {
@@ -38,8 +36,7 @@ export const routes: Routes = [
   },
   {
     path: 'query',
-    loadComponent: () =>
-      import('./features/query/query.component').then((m) => m.QueryComponent),
+    loadComponent: () => import('./features/query/query.component').then((m) => m.QueryComponent),
     title: 'AI query — CloudScope'
   },
   {

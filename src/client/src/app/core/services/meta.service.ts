@@ -20,7 +20,9 @@ export class MetaService {
   }
 
   getStatus(): Observable<PlatformStatus> {
-    return this.http.get<PlatformStatus>(this.baseUrl).pipe(tap((status) => this.setStatus(status)));
+    return this.http
+      .get<PlatformStatus>(this.baseUrl)
+      .pipe(tap((status) => this.setStatus(status)));
   }
 
   loadDemo(): Observable<unknown> {

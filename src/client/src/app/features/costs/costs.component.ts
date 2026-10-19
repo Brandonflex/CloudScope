@@ -39,7 +39,6 @@ type PeriodKey = '30d' | '60d' | '90d';
 
 @Component({
   selector: 'app-costs',
-  standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     FormsModule,
@@ -62,7 +61,8 @@ type PeriodKey = '30d' | '60d' | '90d';
           <p class="subtitle">
             Spend attribution, forecasting and savings opportunities
             @if (summary(); as costSummary) {
-              · {{ costSummary.periodStart.substring(0, 10) }} → {{ costSummary.periodEnd.substring(0, 10) }}
+              · {{ costSummary.periodStart.substring(0, 10) }} →
+              {{ costSummary.periodEnd.substring(0, 10) }}
             }
           </p>
         </div>
@@ -70,7 +70,8 @@ type PeriodKey = '30d' | '60d' | '90d';
           <mat-button-toggle-group
             [value]="period()"
             (change)="onPeriodChange($event.value)"
-            hideSingleSelectionIndicator>
+            hideSingleSelectionIndicator
+          >
             @for (option of periods; track option.key) {
               <mat-button-toggle [value]="option.key">{{ option.label }}</mat-button-toggle>
             }
@@ -89,7 +90,8 @@ type PeriodKey = '30d' | '60d' | '90d';
           title="Cost data unavailable"
           message="The API did not return cost telemetry. Start the backend and retry."
           actionLabel="Retry"
-          (action)="load()" />
+          (action)="load()"
+        />
       } @else {
         <div class="grid grid-4 stats">
           <app-stat-card
@@ -99,7 +101,8 @@ type PeriodKey = '30d' | '60d' | '90d';
             accentColor="#3fb950"
             [subtitle]="'Selected period · ' + currency(summary()?.totalCost ?? 0) + ' trail'"
             [badge]="monthOverMonthLabel()"
-            [badgeNegative]="(summary()?.monthOverMonthChange ?? 0) > 0" />
+            [badgeNegative]="(summary()?.monthOverMonthChange ?? 0) > 0"
+          />
 
           <app-stat-card
             label="Forecast (30d)"
@@ -108,7 +111,8 @@ type PeriodKey = '30d' | '60d' | '90d';
             accentColor="#58a6ff"
             [subtitle]="'Confidence ' + forecastConfidence() + '%'"
             [badge]="forecastDeltaLabel()"
-            [badgeNegative]="forecastDelta() > 0" />
+            [badgeNegative]="forecastDelta() > 0"
+          />
 
           <app-stat-card
             label="Potential savings"
@@ -116,7 +120,8 @@ type PeriodKey = '30d' | '60d' | '90d';
             icon="savings"
             accentColor="#bc8cff"
             [subtitle]="recommendations().length + ' recommendations'"
-            [badge]="savingsPercent() + '%'" />
+            [badge]="savingsPercent() + '%'"
+          />
 
           <app-stat-card
             label="Anomalies"
@@ -125,7 +130,8 @@ type PeriodKey = '30d' | '60d' | '90d';
             accentColor="#ef6b5d"
             [subtitle]="anomalyHeadline()"
             [badge]="anomalies().length > 0 ? 'Review' : 'Clear'"
-            [badgeNegative]="anomalies().length > 0" />
+            [badgeNegative]="anomalies().length > 0"
+          />
         </div>
 
         <div class="grid grid-2-1 section">
@@ -136,13 +142,19 @@ type PeriodKey = '30d' | '60d' | '90d';
                 <p class="panel-sub">Daily cost by provider</p>
               </div>
               <div class="trend-legend">
-                <span><i class="dot azure"></i>Azure {{ currency(summary()?.azureCost ?? 0) }}</span>
+                <span
+                  ><i class="dot azure"></i>Azure {{ currency(summary()?.azureCost ?? 0) }}</span
+                >
                 <span><i class="dot aws"></i>AWS {{ currency(summary()?.awsCost ?? 0) }}</span>
               </div>
             </div>
             <div class="panel-body">
               <div class="chart-frame tall">
-                <app-chart [type]="'line'" [data]="trendChart()" [options]="currencyChartOptions()" />
+                <app-chart
+                  [type]="'line'"
+                  [data]="trendChart()"
+                  [options]="currencyChartOptions()"
+                />
               </div>
             </div>
           </div>
@@ -156,7 +168,12 @@ type PeriodKey = '30d' | '60d' | '90d';
             </div>
             <div class="panel-body">
               <div class="chart-frame tall">
-                <app-chart [type]="'doughnut'" [data]="categoryChart()" [options]="doughnutOptions" cutout="66%" />
+                <app-chart
+                  [type]="'doughnut'"
+                  [data]="categoryChart()"
+                  [options]="doughnutOptions"
+                  cutout="66%"
+                />
               </div>
             </div>
           </div>
@@ -172,7 +189,11 @@ type PeriodKey = '30d' | '60d' | '90d';
             </div>
             <div class="panel-body">
               <div class="chart-frame">
-                <app-chart [type]="'line'" [data]="forecastChart()" [options]="currencyChartOptions()" />
+                <app-chart
+                  [type]="'line'"
+                  [data]="forecastChart()"
+                  [options]="currencyChartOptions()"
+                />
               </div>
             </div>
           </div>
@@ -208,10 +229,14 @@ type PeriodKey = '30d' | '60d' | '90d';
                     <div class="item-main">
                       <div class="item-title">
                         {{ recommendation.title }}
-                        <span class="chip chip-neutral rec-category">{{ recommendation.category }}</span>
+                        <span class="chip chip-neutral rec-category">{{
+                          recommendation.category
+                        }}</span>
                       </div>
                       <div class="item-meta">{{ recommendation.description }}</div>
-                      <div class="item-meta dim">{{ recommendation.resourceName }} · {{ recommendation.region }}</div>
+                      <div class="item-meta dim">
+                        {{ recommendation.resourceName }} · {{ recommendation.region }}
+                      </div>
                     </div>
                     <div class="rec-impact">
                       <strong>{{ currency(recommendation.estimatedMonthlySavings) }}</strong>
@@ -285,7 +310,10 @@ type PeriodKey = '30d' | '60d' | '90d';
                           <td class="cell-muted">{{ index + 1 }}</td>
                           <td class="cell-strong">{{ item.resourceName }}</td>
                           <td>
-                            <span class="chip" [class]="item.provider === 'Azure' ? 'chip-azure' : 'chip-aws'">
+                            <span
+                              class="chip"
+                              [class]="item.provider === 'Azure' ? 'chip-azure' : 'chip-aws'"
+                            >
                               {{ item.provider }}
                             </span>
                           </td>
@@ -293,7 +321,9 @@ type PeriodKey = '30d' | '60d' | '90d';
                           <td class="cell-right cell-mono">{{ currency(item.amount) }}</td>
                           <td class="cell-right">
                             <div class="share">
-                              <div class="share-bar"><span [style.width.%]="shareOf(item)"></span></div>
+                              <div class="share-bar">
+                                <span [style.width.%]="shareOf(item)"></span>
+                              </div>
                               <span class="cell-muted">{{ shareOf(item).toFixed(1) }}%</span>
                             </div>
                           </td>
@@ -323,7 +353,9 @@ type PeriodKey = '30d' | '60d' | '90d';
                           <td class="cell-right cell-mono">{{ currency(group.amount) }}</td>
                           <td>
                             <div class="share">
-                              <div class="share-bar"><span [style.width.%]="group.percentage"></span></div>
+                              <div class="share-bar">
+                                <span [style.width.%]="group.percentage"></span>
+                              </div>
                               <span class="cell-muted">{{ group.percentage.toFixed(1) }}%</span>
                             </div>
                           </td>
@@ -339,39 +371,124 @@ type PeriodKey = '30d' | '60d' | '90d';
       }
     </div>
   `,
-  styles: [`
-    .stats { margin-bottom: 18px; }
-    .section { margin-bottom: 18px; }
+  styles: [
+    `
+      .stats {
+        margin-bottom: 18px;
+      }
+      .section {
+        margin-bottom: 18px;
+      }
 
-    .trend-legend { display: flex; gap: 14px; font-size: 0.75rem; color: var(--text-muted); }
-    .trend-legend span { display: inline-flex; align-items: center; gap: 6px; }
-    .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
-    .dot.azure { background: #58a6ff; }
-    .dot.aws { background: #ffa657; }
+      .trend-legend {
+        display: flex;
+        gap: 14px;
+        font-size: 0.75rem;
+        color: var(--text-muted);
+      }
+      .trend-legend span {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        display: inline-block;
+      }
+      .dot.azure {
+        background: #58a6ff;
+      }
+      .dot.aws {
+        background: #ffa657;
+      }
 
-    .item-icon.savings { color: var(--purple); background: rgba(188, 140, 255, 0.12); }
-    .item-icon.anomaly { color: var(--yellow); background: rgba(210, 153, 34, 0.12); }
+      .item-icon.savings {
+        color: var(--purple);
+        background: rgba(188, 140, 255, 0.12);
+      }
+      .item-icon.anomaly {
+        color: var(--yellow);
+        background: rgba(210, 153, 34, 0.12);
+      }
 
-    .rec-category { margin-left: 6px; text-transform: capitalize; }
+      .rec-category {
+        margin-left: 6px;
+        text-transform: capitalize;
+      }
 
-    .rec-impact { text-align: right; flex-shrink: 0; }
-    .rec-impact strong { font-size: 0.95rem; color: var(--green); }
-    .rec-impact span { font-size: 0.7rem; color: var(--text-dim); }
-    .rec-impact em { display: block; font-style: normal; font-size: 0.66rem; color: var(--text-dim); margin-top: 2px; }
+      .rec-impact {
+        text-align: right;
+        flex-shrink: 0;
+      }
+      .rec-impact strong {
+        font-size: 0.95rem;
+        color: var(--green);
+      }
+      .rec-impact span {
+        font-size: 0.7rem;
+        color: var(--text-dim);
+      }
+      .rec-impact em {
+        display: block;
+        font-style: normal;
+        font-size: 0.66rem;
+        color: var(--text-dim);
+        margin-top: 2px;
+      }
 
-    .anomaly-impact { text-align: right; flex-shrink: 0; }
-    .anomaly-impact strong { display: block; color: var(--yellow); font-size: 0.9rem; }
-    .anomaly-impact span { font-size: 0.7rem; color: var(--text-dim); }
+      .anomaly-impact {
+        text-align: right;
+        flex-shrink: 0;
+      }
+      .anomaly-impact strong {
+        display: block;
+        color: var(--yellow);
+        font-size: 0.9rem;
+      }
+      .anomaly-impact span {
+        font-size: 0.7rem;
+        color: var(--text-dim);
+      }
 
-    .share { display: flex; align-items: center; gap: 8px; min-width: 120px; }
-    .share-bar { flex: 1; height: 5px; border-radius: 999px; background: rgba(240, 246, 252, 0.07); overflow: hidden; }
-    .share-bar span { display: block; height: 100%; border-radius: 999px; background: linear-gradient(90deg, #58a6ff, #bc8cff); }
+      .share {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        min-width: 120px;
+      }
+      .share-bar {
+        flex: 1;
+        height: 5px;
+        border-radius: 999px;
+        background: rgba(240, 246, 252, 0.07);
+        overflow: hidden;
+      }
+      .share-bar span {
+        display: block;
+        height: 100%;
+        border-radius: 999px;
+        background: linear-gradient(90deg, #58a6ff, #bc8cff);
+      }
 
-    .all-clear { display: flex; align-items: center; gap: 8px; padding: 24px 20px; color: var(--text-muted); font-size: 0.85rem; }
-    .all-clear mat-icon { color: var(--green); }
+      .all-clear {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 24px 20px;
+        color: var(--text-muted);
+        font-size: 0.85rem;
+      }
+      .all-clear mat-icon {
+        color: var(--green);
+      }
 
-    .tab-panel { border-radius: 0 0 14px 14px; }
-  `]
+      .tab-panel {
+        border-radius: 0 0 14px 14px;
+      }
+    `
+  ]
 })
 export class CostsComponent implements OnInit {
   private readonly costService = inject(CostService);
@@ -412,7 +529,9 @@ export class CostsComponent implements OnInit {
     return ((this.forecastTotal() - baseline) / baseline) * 100;
   });
 
-  readonly forecastDeltaLabel = computed(() => `${this.forecastDelta() >= 0 ? '+' : ''}${this.forecastDelta().toFixed(1)}% vs actual`);
+  readonly forecastDeltaLabel = computed(
+    () => `${this.forecastDelta() >= 0 ? '+' : ''}${this.forecastDelta().toFixed(1)}% vs actual`
+  );
 
   readonly totalSavings = computed(() =>
     this.recommendations().reduce((sum, item) => sum + item.estimatedMonthlySavings, 0)
@@ -517,7 +636,14 @@ export class CostsComponent implements OnInit {
         {
           data: categories.slice(0, 8).map((item) => item.amount),
           backgroundColor: [
-            '#58a6ff', '#bc8cff', '#3fb950', '#ffa657', '#79c0ff', '#d29922', '#f0883e', '#6e7681'
+            '#58a6ff',
+            '#bc8cff',
+            '#3fb950',
+            '#ffa657',
+            '#79c0ff',
+            '#d29922',
+            '#f0883e',
+            '#6e7681'
           ],
           borderColor: 'rgba(13, 17, 23, 0.9)',
           borderWidth: 2,
@@ -528,7 +654,9 @@ export class CostsComponent implements OnInit {
   });
 
   readonly regionChart = computed<ChartData>(() => {
-    const regions = [...(this.summary()?.byRegion ?? [])].sort((a, b) => b.amount - a.amount).slice(0, 8);
+    const regions = [...(this.summary()?.byRegion ?? [])]
+      .sort((a, b) => b.amount - a.amount)
+      .slice(0, 8);
     return {
       labels: regions.map((item) => item.category),
       datasets: [
@@ -546,7 +674,9 @@ export class CostsComponent implements OnInit {
   });
 
   readonly doughnutOptions: ChartOptions = {
-    plugins: { legend: { position: 'bottom' as const, labels: { boxWidth: 8, font: { size: 10 } } } }
+    plugins: {
+      legend: { position: 'bottom' as const, labels: { boxWidth: 8, font: { size: 10 } } }
+    }
   };
 
   ngOnInit(): void {
@@ -609,7 +739,8 @@ export class CostsComponent implements OnInit {
         legend: { display: true },
         tooltip: {
           callbacks: {
-            label: (context) => `${context.dataset.label ?? ''}: ${currency(Number(context.parsed.y))}`
+            label: (context) =>
+              `${context.dataset.label ?? ''}: ${currency(Number(context.parsed.y))}`
           }
         }
       },

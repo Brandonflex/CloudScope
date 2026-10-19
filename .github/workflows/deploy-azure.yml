@@ -74,14 +74,24 @@ jobs:
       - name: Deploy Bicep Template
         env:
           PROFILE: ${{ github.event.inputs.profile || 'prod' }}
+          TENANT_ID: ${{ secrets.AZURE_AD_TENANT_ID }}
+          CLIENT_ID: ${{ secrets.AZURE_AD_CLIENT_ID }}
         run: |
+          # Inputs reach the shell through env (never inline) and are validated
+          # against a whitelist, so a crafted dispatch payload cannot inject.
+          case "$PROFILE" in
+            dev|demo|prod) ;;
+            *) echo "::error::Unknown profile '$PROFILE'"; exit 1 ;;
+          esac
+          test -f "infra/bicep/parameters.$PROFILE.json" || { echo "::error::Missing parameter file"; exit 1; }
+
           echo "Profile: $PROFILE"
           az deployment group create \
-            --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
-            --name cloudscope-${{ github.run_number }} \
+            --resource-group "$AZURE_RESOURCE_GROUP" \
+            --name "cloudscope-${{ github.run_number }}" \
             --template-file infra/bicep/main.bicep \
-            --parameters infra/bicep/parameters.${{ github.event.inputs.profile || 'prod' }}.json \
-            --parameters aadTenantId=${{ secrets.AZURE_AD_TENANT_ID }} aadClientId=${{ secrets.AZURE_AD_CLIENT_ID }}
+            --parameters "infra/bicep/parameters.$PROFILE.json" \
+            --parameters aadTenantId="$TENANT_ID" aadClientId="$CLIENT_ID"
 
   # ─── Build & Deploy API + SPA ────────────────────────────
   deploy-app:
@@ -150,8 +160,10 @@ jobs:
       # from the resource group created by the Bicep deployment.
       - name: Resolve App Service
         id: app
+        env:
+          PREFERRED_NAME: ${{ secrets.APP_SERVICE_NAME }}
         run: |
-          name="${{ secrets.APP_SERVICE_NAME }}"
+          name="$PREFERRED_NAME"
           if [ -z "$name" ]; then
             name=$(az webapp list \
               --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \

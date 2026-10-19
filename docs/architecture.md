@@ -203,7 +203,7 @@ and derives subnet/VPC/security-group edges using ARNs.
 
 ## 6. Frontend architecture
 
-Angular 18 standalone application:
+Angular 20 standalone application:
 
 * `core/models` — one TypeScript mirror of the API contract plus label/colour
   maps.

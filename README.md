@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="docs/screenshots/banner.png" alt="CloudScope — multi-cloud infrastructure intelligence" width="100%" />
+</p>
+
 <h1 align="center">CloudScope</h1>
 
 <p align="center">
@@ -17,7 +21,7 @@
 <p align="center">
   <img src="https://img.shields.io/badge/Azure-0078D4?style=flat&logo=microsoftazure&logoColor=white" alt="Azure" />
   <img src="https://img.shields.io/badge/AWS-232F3E?style=flat&logo=amazonaws&logoColor=white" alt="AWS" />
-  <img src="https://img.shields.io/badge/Angular-18-DD0031?style=flat&logo=angular&logoColor=white" alt="Angular" />
+  <img src="https://img.shields.io/badge/Angular-20-DD0031?style=flat&logo=angular&logoColor=white" alt="Angular" />
   <img src="https://img.shields.io/badge/.NET_8-512BD4?style=flat&logo=dotnet&logoColor=white" alt=".NET 8" />
   <img src="https://img.shields.io/badge/TypeScript-3178C6?style=flat&logo=typescript&logoColor=white" alt="TypeScript" />
   <img src="https://img.shields.io/badge/Cosmos_DB-0078D4?style=flat&logo=microsoftazure&logoColor=white" alt="Cosmos DB" />
@@ -165,9 +169,9 @@ Required repository secrets and the post-deploy checklist are documented in
 
 ```text
 ┌──────────────────────────────────────────────────────────────────────┐
-│                        Angular 18 SPA (standalone)                    │
+│                        Angular 20 SPA (standalone)                    │
 │  Dashboard · Graph · Resources · Costs · Compliance · AI Query        │
-│  Signals · Material 18 · Chart.js · Cytoscape.js · SignalR client     │
+│  Signals · Material 20 · Chart.js · Cytoscape.js · SignalR client     │
 └───────────────────────────────┬──────────────────────────────────────┘
                                 │ REST + WebSocket (/api, /hubs/notifications)
 ┌───────────────────────────────┴──────────────────────────────────────┐
@@ -198,6 +202,8 @@ The backend follows Clean Architecture:
 
 See [docs/architecture.md](docs/architecture.md) for design decisions and
 [docs/IMPLEMENTATION.md](docs/IMPLEMENTATION.md) for a feature-by-feature implementation map.
+The original [project proposal](docs/PROJECT_PROPOSAL.md) is kept for context,
+and [docs/ROADMAP.md](docs/ROADMAP.md) lists what is deliberately deferred.
 
 ---
 
@@ -250,7 +256,7 @@ Full request and response examples live in [docs/api-reference.md](docs/api-refe
 
 | Layer | Technology |
 |-------|-----------|
-| **Frontend** | Angular 18 (standalone, signals, strict templates), Angular Material 18, Chart.js 4, Cytoscape.js, SignalR client, TypeScript 5.5 |
+| **Frontend** | Angular 20 (standalone, signals, strict templates), Angular Material 20, Chart.js 4, Cytoscape.js, SignalR client, TypeScript 5.8 |
 | **Backend** | .NET 8, ASP.NET Core, Serilog, Swashbuckle, SignalR |
 | **Data** | In-memory store (default) or Azure Cosmos DB (SQL API); optional Redis cache |
 | **Cloud** | Azure Resource Graph, Azure Cost Management, Azure OpenAI, AWS Config, AWS Cost Explorer |
@@ -264,7 +270,7 @@ Full request and response examples live in [docs/api-reference.md](docs/api-refe
 ```text
 CloudScope/
 ├── src/
-│   ├── client/                        # Angular 18 application
+│   ├── client/                        # Angular 20 application
 │   │   ├── src/app/
 │   │   │   ├── core/                  # models, API services, formatting helpers
 │   │   │   ├── features/              # dashboard, graph, resources, costs, compliance, query

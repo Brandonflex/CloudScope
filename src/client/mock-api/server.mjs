@@ -1328,18 +1328,48 @@ function notFound(response, message) {
   sendJson(response, 404, { message });
 }
 
-async function readBody(request) {
+// Request bodies are tiny JSON documents; anything larger is rejected so a
+// single client cannot exhaust the demo process (50 MB was previously buffered).
+const MAX_BODY_BYTES = 64 * 1024;
+
+function safeDecode(value) {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return null;
+  }
+}
+
+async function readBody(request, response) {
+  const declared = Number(request.headers['content-length'] ?? 0);
+  if (declared > MAX_BODY_BYTES) {
+    sendJson(response, 413, { message: `Request body exceeds ${MAX_BODY_BYTES} bytes` });
+    return null;
+  }
+
   const chunks = [];
-  for await (const chunk of request) chunks.push(chunk);
+  let received = 0;
+
+  for await (const chunk of request) {
+    received += chunk.length;
+    if (received > MAX_BODY_BYTES) {
+      sendJson(response, 413, { message: `Request body exceeds ${MAX_BODY_BYTES} bytes` });
+      return null;
+    }
+    chunks.push(chunk);
+  }
+
   if (chunks.length === 0) return {};
   try {
     return JSON.parse(Buffer.concat(chunks).toString('utf8'));
   } catch {
-    return {};
+    sendJson(response, 400, { message: 'Request body must be valid JSON' });
+    return null;
   }
 }
 
 const ASSET_PATH = /\/[^/]+\.[a-z0-9]{1,8}$/i;
+
 
 async function isFile(path) {
   try {
@@ -1355,8 +1385,14 @@ async function serveStatic(request, response, pathname) {
   // API and hub traffic is never a client-side route.
   if (pathname === '/api' || pathname.startsWith('/api/') || pathname === '/hubs' || pathname.startsWith('/hubs/')) return false;
 
+  const decoded = safeDecode(pathname);
+  if (decoded === null) {
+    sendJson(response, 400, { message: 'Malformed request path' });
+    return true;
+  }
+
   const root = resolve(STATIC_DIR);
-  const relative = normalize(decodeURIComponent(pathname)).replace(/^([/\\])+/, '');
+  const relative = normalize(decoded).replace(/^([/\\])+/, '');
   let filePath = resolve(join(root, relative));
 
   if (filePath !== root && !filePath.startsWith(root + sep)) {
@@ -1681,7 +1717,8 @@ const server = createServer(async (request, response) => {
     }
 
     if (route === 'query/ask' && request.method === 'POST') {
-      const body = await readBody(request);
+      const body = await readBody(request, response);
+      if (body === null) return;
       const question = String(body.question ?? '').trim();
       if (!question) {
         sendJson(response, 400, { message: 'Question is required' });

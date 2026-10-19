@@ -39,7 +39,6 @@ import { currency, resourceIcon, typeLabel } from '../../core/utils/format';
 
 @Component({
   selector: 'app-resources',
-  standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     FormsModule,
@@ -89,7 +88,8 @@ import { currency, resourceIcon, typeLabel } from '../../core/utils/format';
               type="text"
               [ngModel]="search()"
               (ngModelChange)="search.set($event); onSearchChange()"
-              placeholder="e.g. prod, vm-app-01, kubernetes" />
+              placeholder="e.g. prod, vm-app-01, kubernetes"
+            />
           </mat-form-field>
 
           <mat-form-field appearance="outline">
@@ -103,7 +103,10 @@ import { currency, resourceIcon, typeLabel } from '../../core/utils/format';
 
           <mat-form-field appearance="outline">
             <mat-label>Type</mat-label>
-            <mat-select [ngModel]="resourceType()" (ngModelChange)="resourceType.set($event); reload(1)">
+            <mat-select
+              [ngModel]="resourceType()"
+              (ngModelChange)="resourceType.set($event); reload(1)"
+            >
               <mat-option [value]="null">All types</mat-option>
               @for (type of resourceTypes; track type) {
                 <mat-option [value]="type">{{ labelFor(type) }}</mat-option>
@@ -131,14 +134,16 @@ import { currency, resourceIcon, typeLabel } from '../../core/utils/format';
           title="Inventory unavailable"
           message="The API did not return any resources. Start the API and try again."
           actionLabel="Retry"
-          (action)="reload(pageIndex())" />
+          (action)="reload(pageIndex())"
+        />
       } @else if (resources().length === 0) {
         <app-empty-state
           icon="search_off"
           title="No resources match these filters"
           message="Try clearing the search box or selecting a different provider."
           actionLabel="Clear filters"
-          (action)="resetFilters()" />
+          (action)="resetFilters()"
+        />
       } @else {
         <div class="panel">
           @if (loading()) {
@@ -169,20 +174,28 @@ import { currency, resourceIcon, typeLabel } from '../../core/utils/format';
                         </div>
                         <div>
                           <div class="cell-strong">{{ resource.name }}</div>
-                          <div class="cell-sub">{{ resource.resourceGroup }} · {{ resource.nativeResourceType }}</div>
+                          <div class="cell-sub">
+                            {{ resource.resourceGroup }} · {{ resource.nativeResourceType }}
+                          </div>
                         </div>
                       </div>
                     </td>
                     <td>{{ labelFor(resource.resourceType) }}</td>
                     <td>
-                      <span class="chip" [class]="resource.provider === 'Azure' ? 'chip-azure' : 'chip-aws'">
+                      <span
+                        class="chip"
+                        [class]="resource.provider === 'Azure' ? 'chip-azure' : 'chip-aws'"
+                      >
                         {{ resource.provider }}
                       </span>
                     </td>
                     <td class="cell-muted">{{ resource.region }}</td>
                     <td>
                       <span class="status-inline">
-                        <span class="status-dot" [style.background]="statusColor(resource.status)"></span>
+                        <span
+                          class="status-dot"
+                          [style.background]="statusColor(resource.status)"
+                        ></span>
                         {{ resource.status }}
                       </span>
                     </td>
@@ -198,9 +211,16 @@ import { currency, resourceIcon, typeLabel } from '../../core/utils/format';
                         {{ resource.complianceStatus }}
                       </span>
                     </td>
-                    <td class="cell-right cell-mono">{{ currency(resource.estimatedMonthlyCost) }}</td>
+                    <td class="cell-right cell-mono">
+                      {{ currency(resource.estimatedMonthlyCost) }}
+                    </td>
                     <td class="cell-right">
-                      <button mat-icon-button type="button" matTooltip="Details" (click)="openDetail(resource); $event.stopPropagation()">
+                      <button
+                        mat-icon-button
+                        type="button"
+                        matTooltip="Details"
+                        (click)="openDetail(resource); $event.stopPropagation()"
+                      >
                         <mat-icon>chevron_right</mat-icon>
                       </button>
                     </td>
@@ -216,43 +236,70 @@ import { currency, resourceIcon, typeLabel } from '../../core/utils/format';
             [pageIndex]="pageIndex()"
             [pageSizeOptions]="[25, 50, 100]"
             (page)="onPage($event)"
-            showFirstLastButtons />
+            showFirstLastButtons
+          />
         </div>
       }
     </div>
   `,
-  styles: [`
-    .filters { margin-bottom: 16px; padding: 14px 18px 4px; }
-    .filters-grid {
-      display: grid;
-      grid-template-columns: minmax(240px, 2fr) repeat(3, minmax(150px, 1fr));
-      gap: 14px;
-      align-items: center;
-    }
-    .search-field { width: 100%; }
-    .search-field mat-icon[matPrefix] { margin-right: 6px; color: var(--text-dim); }
+  styles: [
+    `
+      .filters {
+        margin-bottom: 16px;
+        padding: 14px 18px 4px;
+      }
+      .filters-grid {
+        display: grid;
+        grid-template-columns: minmax(240px, 2fr) repeat(3, minmax(150px, 1fr));
+        gap: 14px;
+        align-items: center;
+      }
+      .search-field {
+        width: 100%;
+      }
+      .search-field mat-icon[matPrefix] {
+        margin-right: 6px;
+        color: var(--text-dim);
+      }
 
-    .resource-cell { display: flex; align-items: center; gap: 10px; }
-    .resource-icon {
-      width: 30px;
-      height: 30px;
-      border-radius: 9px;
-      background: rgba(240, 246, 252, 0.05);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
-    }
-    .resource-icon mat-icon { font-size: 16px; width: 16px; height: 16px; }
-    .status-inline { display: inline-flex; align-items: center; font-size: 0.82rem; }
+      .resource-cell {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .resource-icon {
+        width: 30px;
+        height: 30px;
+        border-radius: 9px;
+        background: rgba(240, 246, 252, 0.05);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+      }
+      .resource-icon mat-icon {
+        font-size: 16px;
+        width: 16px;
+        height: 16px;
+      }
+      .status-inline {
+        display: inline-flex;
+        align-items: center;
+        font-size: 0.82rem;
+      }
 
-    @media (max-width: 1100px) {
-      .filters-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    }
-    @media (max-width: 640px) {
-      .filters-grid { grid-template-columns: minmax(0, 1fr); }
-    }
-  `]
+      @media (max-width: 1100px) {
+        .filters-grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+      @media (max-width: 640px) {
+        .filters-grid {
+          grid-template-columns: minmax(0, 1fr);
+        }
+      }
+    `
+  ]
 })
 export class ResourcesComponent implements OnInit {
   private readonly resourceService = inject(ResourceService);
@@ -279,8 +326,8 @@ export class ResourcesComponent implements OnInit {
 
   readonly activeFilterCount = computed(
     () =>
-      [this.provider(), this.resourceType(), this.region()].filter((value) => value !== null).length +
-      (this.search() ? 1 : 0)
+      [this.provider(), this.resourceType(), this.region()].filter((value) => value !== null)
+        .length + (this.search() ? 1 : 0)
   );
 
   constructor() {
@@ -334,7 +381,9 @@ export class ResourcesComponent implements OnInit {
   private loadRegions(): void {
     this.resourceService.getAll({ pageSize: 500 }).subscribe({
       next: (result) => {
-        const regions = [...new Set(result.items.map((item) => item.region))].filter(Boolean).sort();
+        const regions = [...new Set(result.items.map((item) => item.region))]
+          .filter(Boolean)
+          .sort();
         this.regions.set(regions);
       },
       error: () => this.regions.set([])

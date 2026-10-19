@@ -33,10 +33,7 @@ import {
   CostTrend,
   ResourceCost
 } from '../../core/models';
-import {
-  PROVIDER_COLORS,
-  STATUS_COLORS
-} from '../../core/models';
+import { PROVIDER_COLORS, STATUS_COLORS } from '../../core/models';
 import {
   compactCurrency,
   currency,
@@ -50,7 +47,6 @@ import {
 
 @Component({
   selector: 'app-dashboard',
-  standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     RouterLink,
@@ -76,9 +72,7 @@ import {
           </p>
         </div>
         <div class="actions">
-          <a mat-stroked-button routerLink="/graph">
-            <mat-icon>hub</mat-icon> Open graph
-          </a>
+          <a mat-stroked-button routerLink="/graph"> <mat-icon>hub</mat-icon> Open graph </a>
           <a mat-flat-button color="primary" routerLink="/query">
             <mat-icon>auto_awesome</mat-icon> Ask CloudScope
           </a>
@@ -92,7 +86,8 @@ import {
             <strong>You are exploring a demo estate</strong>
             <p>
               54 synthetic resources across Azure and AWS are loaded so every feature is usable.
-              Configure cloud credentials (or <code>Platform:Mode=Live</code>) to discover your own estate.
+              Configure cloud credentials (or <code>Platform:Mode=Live</code>) to discover your own
+              estate.
             </p>
           </div>
           <a mat-stroked-button routerLink="/resources">Browse resources</a>
@@ -107,7 +102,8 @@ import {
           title="Could not load the overview"
           message="The CloudScope API did not respond. Start the API on port 5001 (or run the mock API) and try again."
           actionLabel="Retry"
-          (action)="load()" />
+          (action)="load()"
+        />
       } @else {
         <div class="grid grid-4 stats">
           <app-stat-card
@@ -116,24 +112,37 @@ import {
             icon="inventory_2"
             accentColor="#58a6ff"
             [subtitle]="azureCount() + ' Azure · ' + awsCount() + ' AWS'"
-            [badge]="relationshipCount() + ' edges'" />
+            [badge]="relationshipCount() + ' edges'"
+          />
 
           <app-stat-card
             label="Monthly spend"
             [value]="currency(costs()?.totalCost ?? 0)"
             icon="payments"
             accentColor="#3fb950"
-            [subtitle]="'Azure ' + currency(costs()?.azureCost ?? 0) + ' · AWS ' + currency(costs()?.awsCost ?? 0)"
+            [subtitle]="
+              'Azure ' +
+              currency(costs()?.azureCost ?? 0) +
+              ' · AWS ' +
+              currency(costs()?.awsCost ?? 0)
+            "
             [badge]="monthOverMonth() + '% MoM'"
-            [badgeNegative]="(costs()?.monthOverMonthChange ?? 0) > 0" />
+            [badgeNegative]="(costs()?.monthOverMonthChange ?? 0) > 0"
+          />
 
           <app-stat-card
             label="Compliance findings"
             [value]="(posture()?.totalViolations ?? 0).toString()"
             icon="verified_user"
             accentColor="#f0883e"
-            [subtitle]="(posture()?.criticalViolations ?? 0) + ' critical · ' + (posture()?.highViolations ?? 0) + ' high'"
-            [badge]="averageScore() + '% avg'" />
+            [subtitle]="
+              (posture()?.criticalViolations ?? 0) +
+              ' critical · ' +
+              (posture()?.highViolations ?? 0) +
+              ' high'
+            "
+            [badge]="averageScore() + '% avg'"
+          />
 
           <app-stat-card
             label="Outside IaC"
@@ -141,7 +150,8 @@ import {
             icon="build_circle"
             accentColor="#bc8cff"
             [subtitle]="'of ' + resources().length + ' resources with drift'"
-            [badge]="driftPercent() + '%'" />
+            [badge]="driftPercent() + '%'"
+          />
         </div>
 
         <div class="grid grid-2-1 section">
@@ -169,7 +179,12 @@ import {
             </div>
             <div class="panel-body">
               <div class="chart-frame">
-                <app-chart [type]="'doughnut'" [data]="typeChart()" [options]="doughnutOptions" cutout="68%" />
+                <app-chart
+                  [type]="'doughnut'"
+                  [data]="typeChart()"
+                  [options]="doughnutOptions"
+                  cutout="68%"
+                />
               </div>
             </div>
           </div>
@@ -197,7 +212,8 @@ import {
                     <mat-progress-bar
                       mode="determinate"
                       [value]="framework.score"
-                      [color]="framework.color" />
+                      [color]="framework.color"
+                    />
                     <span class="framework-meta">{{ framework.label }}</span>
                   </div>
                 }
@@ -231,7 +247,9 @@ import {
                         </span>
                       </div>
                     </div>
-                    <span class="cell-mono muted">{{ currency(resource.estimatedMonthlyCost) }}</span>
+                    <span class="cell-mono muted">{{
+                      currency(resource.estimatedMonthlyCost)
+                    }}</span>
                   </div>
                 }
                 @if (attention().length === 0) {
@@ -270,12 +288,20 @@ import {
                         <div class="cell-strong">{{ item.resourceName }}</div>
                         <div class="cell-sub">{{ item.resourceGroup }}</div>
                       </td>
-                      <td><span class="chip" [class]="item.provider === 'Azure' ? 'chip-azure' : 'chip-aws'">{{ item.provider }}</span></td>
+                      <td>
+                        <span
+                          class="chip"
+                          [class]="item.provider === 'Azure' ? 'chip-azure' : 'chip-aws'"
+                          >{{ item.provider }}</span
+                        >
+                      </td>
                       <td class="cell-right cell-mono">{{ currency(item.amount) }}</td>
                     </tr>
                   }
                   @if (topResources().length === 0) {
-                    <tr><td colspan="3" class="muted">No cost data yet.</td></tr>
+                    <tr>
+                      <td colspan="3" class="muted">No cost data yet.</td>
+                    </tr>
                   }
                 </tbody>
               </table>
@@ -298,7 +324,9 @@ import {
                       <div class="item-title">{{ anomaly.resourceName }}</div>
                       <div class="item-meta">{{ anomaly.description }}</div>
                     </div>
-                    <span class="chip chip-warn">+{{ anomaly.deviationPercentage.toFixed(0) }}%</span>
+                    <span class="chip chip-warn"
+                      >+{{ anomaly.deviationPercentage.toFixed(0) }}%</span
+                    >
                   </div>
                 }
                 @if (anomalies().length === 0) {
@@ -314,53 +342,114 @@ import {
       }
     </div>
   `,
-  styles: [`
-    .demo-banner {
-      display: flex;
-      align-items: center;
-      gap: 14px;
-      padding: 14px 18px;
-      margin-bottom: 18px;
-      border-radius: 14px;
-      border: 1px solid rgba(188, 140, 255, 0.25);
-      background: linear-gradient(120deg, rgba(188, 140, 255, 0.12), rgba(88, 166, 255, 0.06));
-    }
-    .demo-banner mat-icon { color: var(--purple); }
-    .demo-banner strong { font-size: 0.9rem; }
-    .demo-banner p { margin: 3px 0 0; font-size: 0.8rem; color: var(--text-muted); max-width: 780px; }
-    .demo-banner code { font-size: 0.75rem; background: rgba(240, 246, 252, 0.08); padding: 1px 4px; border-radius: 4px; }
-    .demo-banner a { margin-left: auto; flex-shrink: 0; }
+  styles: [
+    `
+      .demo-banner {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        padding: 14px 18px;
+        margin-bottom: 18px;
+        border-radius: 14px;
+        border: 1px solid rgba(188, 140, 255, 0.25);
+        background: linear-gradient(120deg, rgba(188, 140, 255, 0.12), rgba(88, 166, 255, 0.06));
+      }
+      .demo-banner mat-icon {
+        color: var(--purple);
+      }
+      .demo-banner strong {
+        font-size: 0.9rem;
+      }
+      .demo-banner p {
+        margin: 3px 0 0;
+        font-size: 0.8rem;
+        color: var(--text-muted);
+        max-width: 780px;
+      }
+      .demo-banner code {
+        font-size: 0.75rem;
+        background: rgba(240, 246, 252, 0.08);
+        padding: 1px 4px;
+        border-radius: 4px;
+      }
+      .demo-banner a {
+        margin-left: auto;
+        flex-shrink: 0;
+      }
 
-    .stats { margin-bottom: 18px; }
-    .section { margin-bottom: 18px; }
+      .stats {
+        margin-bottom: 18px;
+      }
+      .section {
+        margin-bottom: 18px;
+      }
 
-    .framework-list { display: flex; flex-direction: column; gap: 18px; }
-    .framework-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; }
-    .framework-name { font-size: 0.86rem; font-weight: 600; }
-    .framework-score { font-size: 0.85rem; font-weight: 700; }
-    .framework-score.good { color: var(--green); }
-    .framework-score.warn { color: var(--yellow); }
-    .framework-score.bad { color: var(--red); }
-    .framework-meta { display: block; margin-top: 6px; font-size: 0.73rem; color: var(--text-dim); }
+      .framework-list {
+        display: flex;
+        flex-direction: column;
+        gap: 18px;
+      }
+      .framework-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        margin-bottom: 8px;
+      }
+      .framework-name {
+        font-size: 0.86rem;
+        font-weight: 600;
+      }
+      .framework-score {
+        font-size: 0.85rem;
+        font-weight: 700;
+      }
+      .framework-score.good {
+        color: var(--green);
+      }
+      .framework-score.warn {
+        color: var(--yellow);
+      }
+      .framework-score.bad {
+        color: var(--red);
+      }
+      .framework-meta {
+        display: block;
+        margin-top: 6px;
+        font-size: 0.73rem;
+        color: var(--text-dim);
+      }
 
-    .attention-status { margin-left: 6px; font-weight: 600; }
-    .item-icon.anomaly { color: var(--yellow); background: rgba(210, 153, 34, 0.12); }
+      .attention-status {
+        margin-left: 6px;
+        font-weight: 600;
+      }
+      .item-icon.anomaly {
+        color: var(--yellow);
+        background: rgba(210, 153, 34, 0.12);
+      }
 
-    .all-clear {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 24px 20px;
-      color: var(--text-muted);
-      font-size: 0.85rem;
-    }
-    .all-clear mat-icon { color: var(--green); }
+      .all-clear {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 24px 20px;
+        color: var(--text-muted);
+        font-size: 0.85rem;
+      }
+      .all-clear mat-icon {
+        color: var(--green);
+      }
 
-    @media (max-width: 760px) {
-      .demo-banner { flex-wrap: wrap; }
-      .demo-banner a { margin-left: 0; }
-    }
-  `]
+      @media (max-width: 760px) {
+        .demo-banner {
+          flex-wrap: wrap;
+        }
+        .demo-banner a {
+          margin-left: 0;
+        }
+      }
+    `
+  ]
 })
 export class DashboardComponent implements OnInit {
   readonly meta = inject(MetaService);
@@ -380,11 +469,17 @@ export class DashboardComponent implements OnInit {
   readonly topResources = signal<ResourceCost[]>([]);
   readonly anomalies = signal<CostAnomaly[]>([]);
 
-  readonly resourceCount = computed(() => this.meta.status()?.resourceCount ?? this.resources().length);
+  readonly resourceCount = computed(
+    () => this.meta.status()?.resourceCount ?? this.resources().length
+  );
   readonly relationshipCount = computed(() => this.meta.status()?.relationshipCount ?? 0);
-  readonly azureCount = computed(() => this.resources().filter((r) => r.provider === 'Azure').length);
+  readonly azureCount = computed(
+    () => this.resources().filter((r) => r.provider === 'Azure').length
+  );
   readonly awsCount = computed(() => this.resources().filter((r) => r.provider === 'AWS').length);
-  readonly unmanagedCount = computed(() => this.resources().filter((r) => !r.isManagedByIaC).length);
+  readonly unmanagedCount = computed(
+    () => this.resources().filter((r) => !r.isManagedByIaC).length
+  );
   readonly driftPercent = computed(() => {
     const total = this.resources().length;
     return total === 0 ? 0 : Math.round((this.unmanagedCount() / total) * 100);
@@ -467,7 +562,14 @@ export class DashboardComponent implements OnInit {
         {
           data: top.map(([, count]) => count),
           backgroundColor: [
-            '#58a6ff', '#bc8cff', '#3fb950', '#ffa657', '#f0883e', '#79c0ff', '#d29922', '#6e7681'
+            '#58a6ff',
+            '#bc8cff',
+            '#3fb950',
+            '#ffa657',
+            '#f0883e',
+            '#79c0ff',
+            '#d29922',
+            '#6e7681'
           ],
           borderColor: 'rgba(13, 17, 23, 0.9)',
           borderWidth: 2,
@@ -482,7 +584,8 @@ export class DashboardComponent implements OnInit {
       legend: { display: true },
       tooltip: {
         callbacks: {
-          label: (context) => `${context.dataset.label ?? ''}: ${currency(Number(context.parsed.y))}`
+          label: (context) =>
+            `${context.dataset.label ?? ''}: ${currency(Number(context.parsed.y))}`
         }
       }
     },
@@ -506,9 +609,7 @@ export class DashboardComponent implements OnInit {
   ngOnInit(): void {
     this.load();
 
-    this.refresh.refreshed$
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe(() => this.load());
+    this.refresh.refreshed$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => this.load());
   }
 
   load(): void {

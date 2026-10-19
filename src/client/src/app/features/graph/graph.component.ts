@@ -44,7 +44,6 @@ type LayoutName = (typeof LAYOUTS)[number];
 
 @Component({
   selector: 'app-graph',
-  standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     FormsModule,
@@ -66,7 +65,8 @@ type LayoutName = (typeof LAYOUTS)[number];
         <div>
           <h1>Infrastructure graph</h1>
           <p class="subtitle">
-            {{ nodeCount() }} nodes · {{ edgeCount() }} dependency edges · click a node to inspect blast radius
+            {{ nodeCount() }} nodes · {{ edgeCount() }} dependency edges · click a node to inspect
+            blast radius
           </p>
         </div>
         <div class="actions">
@@ -84,7 +84,13 @@ type LayoutName = (typeof LAYOUTS)[number];
           <button mat-stroked-button type="button" (click)="fit()">
             <mat-icon>zoom_out_map</mat-icon> Fit
           </button>
-          <button mat-flat-button color="primary" type="button" [disabled]="loading()" (click)="load()">
+          <button
+            mat-flat-button
+            color="primary"
+            type="button"
+            [disabled]="loading()"
+            (click)="load()"
+          >
             <mat-icon>refresh</mat-icon> Reload
           </button>
         </div>
@@ -99,7 +105,8 @@ type LayoutName = (typeof LAYOUTS)[number];
             type="text"
             [ngModel]="searchTerm()"
             (ngModelChange)="searchTerm.set($event); onSearch($event)"
-            placeholder="node name or type" />
+            placeholder="node name or type"
+          />
         </mat-form-field>
 
         <mat-form-field appearance="outline">
@@ -123,7 +130,8 @@ type LayoutName = (typeof LAYOUTS)[number];
 
         <mat-slide-toggle
           [ngModel]="showLabels()"
-          (ngModelChange)="showLabels.set($event); applyLabelVisibility($event)">
+          (ngModelChange)="showLabels.set($event); applyLabelVisibility($event)"
+        >
           Labels
         </mat-slide-toggle>
 
@@ -149,14 +157,16 @@ type LayoutName = (typeof LAYOUTS)[number];
           title="Graph unavailable"
           message="The API could not return graph data. Check that the backend is running on port 5001."
           actionLabel="Retry"
-          (action)="load()" />
+          (action)="load()"
+        />
       } @else if (nodeCount() === 0) {
         <app-empty-state
           icon="hub"
           title="No nodes to display"
           message="Run discovery or seed the demo inventory to populate the graph."
           actionLabel="Reload"
-          (action)="load()" />
+          (action)="load()"
+        />
       } @else {
         <div class="graph-shell panel">
           <div class="canvas-wrap">
@@ -196,35 +206,46 @@ type LayoutName = (typeof LAYOUTS)[number];
                   <mat-progress-bar mode="indeterminate" />
                 } @else {
                   @if (blast(); as result) {
-                  <div class="blast-card" [class]="'risk-' + result.riskLevel.toLowerCase()">
-                    <div class="blast-title">
-                      <span>{{ result.riskLevel }} risk</span>
-                      <strong>{{ result.affectedResourceCount }} impacted</strong>
+                    <div class="blast-card" [class]="'risk-' + result.riskLevel.toLowerCase()">
+                      <div class="blast-title">
+                        <span>{{ result.riskLevel }} risk</span>
+                        <strong>{{ result.affectedResourceCount }} impacted</strong>
+                      </div>
+                      <p>{{ result.summary }}</p>
+                      <div class="blast-meta">
+                        <span>Affected spend</span>
+                        <strong>{{ currency(result.affectedMonthlyCost) }}</strong>
+                      </div>
                     </div>
-                    <p>{{ result.summary }}</p>
-                    <div class="blast-meta">
-                      <span>Affected spend</span>
-                      <strong>{{ currency(result.affectedMonthlyCost) }}</strong>
-                    </div>
-                  </div>
 
-                  @if (result.directDependents.length > 0) {
-                    <div class="inspector-list">
-                      <span class="inspector-list-title">Direct dependents</span>
-                      @for (dependent of result.directDependents; track dependent.resourceId) {
-                        <button type="button" class="dependent" (click)="focusNode(dependent.resourceId)">
-                          <mat-icon>arrow_forward</mat-icon>
-                          <span>{{ dependent.resourceName }}</span>
-                          <em [class]="'risk-' + dependent.impactRisk.toLowerCase()">{{ dependent.impactRisk }}</em>
-                        </button>
-                      }
-                    </div>
-                  }
+                    @if (result.directDependents.length > 0) {
+                      <div class="inspector-list">
+                        <span class="inspector-list-title">Direct dependents</span>
+                        @for (dependent of result.directDependents; track dependent.resourceId) {
+                          <button
+                            type="button"
+                            class="dependent"
+                            (click)="focusNode(dependent.resourceId)"
+                          >
+                            <mat-icon>arrow_forward</mat-icon>
+                            <span>{{ dependent.resourceName }}</span>
+                            <em [class]="'risk-' + dependent.impactRisk.toLowerCase()">{{
+                              dependent.impactRisk
+                            }}</em>
+                          </button>
+                        }
+                      </div>
+                    }
                   }
                 }
 
                 <div class="inspector-actions">
-                  <button mat-stroked-button type="button" [disabled]="!blast()" (click)="highlightBlastRadius()">
+                  <button
+                    mat-stroked-button
+                    type="button"
+                    [disabled]="!blast()"
+                    (click)="highlightBlastRadius()"
+                  >
                     <mat-icon>highlight_alt</mat-icon> Highlight blast radius
                   </button>
                   <button mat-button type="button" (click)="focusNode(node.id)">
@@ -237,125 +258,279 @@ type LayoutName = (typeof LAYOUTS)[number];
         </div>
 
         <div class="graph-footer">
-          <span><strong>{{ nodeCount() }}</strong> nodes</span>
-          <span><strong>{{ edgeCount() }}</strong> edges</span>
-          <span>Layout: <strong>{{ layout() }}</strong></span>
+          <span
+            ><strong>{{ nodeCount() }}</strong> nodes</span
+          >
+          <span
+            ><strong>{{ edgeCount() }}</strong> edges</span
+          >
+          <span
+            >Layout: <strong>{{ layout() }}</strong></span
+          >
           <span class="dim">Drag to pan · scroll to zoom · double-click a node to focus</span>
         </div>
       }
     </div>
   `,
-  styles: [`
-    .graph-page { display: flex; flex-direction: column; }
+  styles: [
+    `
+      .graph-page {
+        display: flex;
+        flex-direction: column;
+      }
 
-    .graph-toolbar {
-      display: flex;
-      align-items: center;
-      gap: 14px;
-      padding: 12px 18px 4px;
-      margin-bottom: 14px;
-      flex-wrap: wrap;
-    }
-    .graph-toolbar mat-form-field { width: 180px; }
-    .graph-toolbar .search-field { width: 260px; }
+      .graph-toolbar {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        padding: 12px 18px 4px;
+        margin-bottom: 14px;
+        flex-wrap: wrap;
+      }
+      .graph-toolbar mat-form-field {
+        width: 180px;
+      }
+      .graph-toolbar .search-field {
+        width: 260px;
+      }
 
-    .legend { display: flex; gap: 12px; flex-wrap: wrap; padding-bottom: 6px; }
-    .legend-item { display: inline-flex; align-items: center; gap: 5px; font-size: 0.72rem; color: var(--text-muted); }
-    .legend-item i { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+      .legend {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+        padding-bottom: 6px;
+      }
+      .legend-item {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        font-size: 0.72rem;
+        color: var(--text-muted);
+      }
+      .legend-item i {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        display: inline-block;
+      }
 
-    .graph-shell { padding: 0; overflow: hidden; }
-    .canvas-wrap { position: relative; display: flex; min-height: 620px; }
-    .cy-canvas { flex: 1; min-height: 620px; background: radial-gradient(900px 500px at 30% 0%, rgba(88, 166, 255, 0.05), transparent 65%); }
+      .graph-shell {
+        padding: 0;
+        overflow: hidden;
+      }
+      .canvas-wrap {
+        position: relative;
+        display: flex;
+        min-height: 620px;
+      }
+      .cy-canvas {
+        flex: 1;
+        min-height: 620px;
+        background: radial-gradient(
+          900px 500px at 30% 0%,
+          rgba(88, 166, 255, 0.05),
+          transparent 65%
+        );
+      }
 
-    .loading-panel { padding-bottom: 8px; }
+      .loading-panel {
+        padding-bottom: 8px;
+      }
 
-    .inspector {
-      width: 330px;
-      border-left: 1px solid var(--border);
-      background: rgba(10, 16, 23, 0.92);
-      padding: 16px;
-      display: flex;
-      flex-direction: column;
-      gap: 14px;
-      max-height: 720px;
-      overflow-y: auto;
-    }
+      .inspector {
+        width: 330px;
+        border-left: 1px solid var(--border);
+        background: rgba(10, 16, 23, 0.92);
+        padding: 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+        max-height: 720px;
+        overflow-y: auto;
+      }
 
-    .inspector-head { display: flex; gap: 10px; align-items: flex-start; }
-    .inspector-icon {
-      width: 34px; height: 34px; border-radius: 10px; flex-shrink: 0;
-      background: rgba(240, 246, 252, 0.06); display: flex; align-items: center; justify-content: center;
-    }
-    .inspector-icon mat-icon { font-size: 18px; width: 18px; height: 18px; }
-    .inspector-head > div:nth-child(2) { flex: 1; min-width: 0; }
-    .inspector-head h3 { margin: 0; font-size: 0.95rem; font-weight: 650; word-break: break-word; }
-    .inspector-head p { margin: 3px 0 0; font-size: 0.74rem; color: var(--text-muted); }
+      .inspector-head {
+        display: flex;
+        gap: 10px;
+        align-items: flex-start;
+      }
+      .inspector-icon {
+        width: 34px;
+        height: 34px;
+        border-radius: 10px;
+        flex-shrink: 0;
+        background: rgba(240, 246, 252, 0.06);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .inspector-icon mat-icon {
+        font-size: 18px;
+        width: 18px;
+        height: 18px;
+      }
+      .inspector-head > div:nth-child(2) {
+        flex: 1;
+        min-width: 0;
+      }
+      .inspector-head h3 {
+        margin: 0;
+        font-size: 0.95rem;
+        font-weight: 650;
+        word-break: break-word;
+      }
+      .inspector-head p {
+        margin: 3px 0 0;
+        font-size: 0.74rem;
+        color: var(--text-muted);
+      }
 
-    .inspector-stats {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 8px;
-    }
-    .inspector-stats div {
-      background: rgba(240, 246, 252, 0.04);
-      border-radius: 9px;
-      padding: 8px 10px;
-    }
-    .inspector-stats span { display: block; font-size: 0.63rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-dim); }
-    .inspector-stats strong { display: block; margin-top: 3px; font-size: 0.82rem; }
+      .inspector-stats {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 8px;
+      }
+      .inspector-stats div {
+        background: rgba(240, 246, 252, 0.04);
+        border-radius: 9px;
+        padding: 8px 10px;
+      }
+      .inspector-stats span {
+        display: block;
+        font-size: 0.63rem;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--text-dim);
+      }
+      .inspector-stats strong {
+        display: block;
+        margin-top: 3px;
+        font-size: 0.82rem;
+      }
 
-    .blast-card {
-      border: 1px solid var(--border);
-      border-left: 3px solid currentColor;
-      border-radius: 10px;
-      padding: 12px 14px;
-      background: rgba(240, 246, 252, 0.03);
-    }
-    .blast-title { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
-    .blast-title span { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 700; }
-    .blast-title strong { color: var(--text); font-size: 0.85rem; }
-    .blast-card p { margin: 8px 0; font-size: 0.76rem; color: var(--text-muted); line-height: 1.5; }
-    .blast-meta { display: flex; justify-content: space-between; font-size: 0.72rem; color: var(--text-dim); border-top: 1px solid var(--border); padding-top: 8px; }
-    .blast-meta strong { color: var(--text); }
+      .blast-card {
+        border: 1px solid var(--border);
+        border-left: 3px solid currentColor;
+        border-radius: 10px;
+        padding: 12px 14px;
+        background: rgba(240, 246, 252, 0.03);
+      }
+      .blast-title {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        gap: 8px;
+      }
+      .blast-title span {
+        font-size: 0.68rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        font-weight: 700;
+      }
+      .blast-title strong {
+        color: var(--text);
+        font-size: 0.85rem;
+      }
+      .blast-card p {
+        margin: 8px 0;
+        font-size: 0.76rem;
+        color: var(--text-muted);
+        line-height: 1.5;
+      }
+      .blast-meta {
+        display: flex;
+        justify-content: space-between;
+        font-size: 0.72rem;
+        color: var(--text-dim);
+        border-top: 1px solid var(--border);
+        padding-top: 8px;
+      }
+      .blast-meta strong {
+        color: var(--text);
+      }
 
-    .inspector-list { display: flex; flex-direction: column; gap: 2px; }
-    .inspector-list-title { font-size: 0.64rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-dim); margin-bottom: 4px; }
-    .dependent {
-      display: flex;
-      align-items: center;
-      gap: 7px;
-      background: transparent;
-      border: none;
-      border-radius: 7px;
-      padding: 6px 8px;
-      color: var(--text-muted);
-      font-size: 0.78rem;
-      text-align: left;
-      cursor: pointer;
-    }
-    .dependent:hover { background: rgba(88, 166, 255, 0.08); color: var(--text); }
-    .dependent mat-icon { font-size: 15px; width: 15px; height: 15px; }
-    .dependent span { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .dependent em { font-style: normal; font-size: 0.68rem; font-weight: 600; }
+      .inspector-list {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+      }
+      .inspector-list-title {
+        font-size: 0.64rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--text-dim);
+        margin-bottom: 4px;
+      }
+      .dependent {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        background: transparent;
+        border: none;
+        border-radius: 7px;
+        padding: 6px 8px;
+        color: var(--text-muted);
+        font-size: 0.78rem;
+        text-align: left;
+        cursor: pointer;
+      }
+      .dependent:hover {
+        background: rgba(88, 166, 255, 0.08);
+        color: var(--text);
+      }
+      .dependent mat-icon {
+        font-size: 15px;
+        width: 15px;
+        height: 15px;
+      }
+      .dependent span {
+        flex: 1;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .dependent em {
+        font-style: normal;
+        font-size: 0.68rem;
+        font-weight: 600;
+      }
 
-    .inspector-actions { display: flex; gap: 8px; margin-top: auto; flex-wrap: wrap; }
+      .inspector-actions {
+        display: flex;
+        gap: 8px;
+        margin-top: auto;
+        flex-wrap: wrap;
+      }
 
-    .graph-footer {
-      display: flex;
-      gap: 20px;
-      padding: 12px 4px 0;
-      font-size: 0.75rem;
-      color: var(--text-muted);
-      flex-wrap: wrap;
-    }
-    .graph-footer strong { color: var(--text); }
+      .graph-footer {
+        display: flex;
+        gap: 20px;
+        padding: 12px 4px 0;
+        font-size: 0.75rem;
+        color: var(--text-muted);
+        flex-wrap: wrap;
+      }
+      .graph-footer strong {
+        color: var(--text);
+      }
 
-    @media (max-width: 1000px) {
-      .canvas-wrap { flex-direction: column; min-height: 480px; }
-      .cy-canvas { min-height: 420px; }
-      .inspector { width: 100%; max-height: none; border-left: none; border-top: 1px solid var(--border); }
-    }
-  `]
+      @media (max-width: 1000px) {
+        .canvas-wrap {
+          flex-direction: column;
+          min-height: 480px;
+        }
+        .cy-canvas {
+          min-height: 420px;
+        }
+        .inspector {
+          width: 100%;
+          max-height: none;
+          border-left: none;
+          border-top: 1px solid var(--border);
+        }
+      }
+    `
+  ]
 })
 export class GraphComponent implements OnInit {
   private readonly graphService = inject(GraphService);
@@ -597,8 +772,7 @@ export class GraphComponent implements OnInit {
       padding: 40,
       ...(name === 'concentric'
         ? {
-            concentric: (node: cytoscape.NodeSingular) =>
-              node.degree(false),
+            concentric: (node: cytoscape.NodeSingular) => node.degree(false),
             levelWidth: () => 2
           }
         : {}),
@@ -634,10 +808,7 @@ export class GraphComponent implements OnInit {
 
     if (!node) return;
 
-    this.cy
-      ?.elements()
-      .removeClass('dimmed highlighted search-hit')
-      .addClass('dimmed');
+    this.cy?.elements().removeClass('dimmed highlighted search-hit').addClass('dimmed');
 
     const element = this.cy?.getElementById(id);
     element?.removeClass('dimmed').addClass('highlighted');
@@ -688,7 +859,9 @@ export class GraphComponent implements OnInit {
       ...result.transitiveDependents.map((node) => node.resourceId)
     ];
 
-    const elements = ids.map((id) => core.getElementById(id)).filter((element) => element.length > 0);
+    const elements = ids
+      .map((id) => core.getElementById(id))
+      .filter((element) => element.length > 0);
     if (elements.length === 0) return;
 
     core.elements().addClass('dimmed').removeClass('highlighted');
