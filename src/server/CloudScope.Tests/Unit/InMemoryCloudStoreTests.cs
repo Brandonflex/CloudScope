@@ -91,11 +91,11 @@ public class InMemoryCloudStoreTests
     public async Task GetTransitiveDependenciesAsync_RespectsMaxDepth()
     {
         var store = CreateSeededStore();
-        var vnet = (await store.GetAllAsync(searchTerm: "vnet-prod-eastus"))
-            .Items.First(r => r.Name == "vnet-prod-eastus");
+        var subnet = (await store.GetAllAsync(searchTerm: "snet-app"))
+            .Items.First(r => r.Name == "snet-app" && r.ResourceType == ResourceType.Subnet);
 
-        var oneHop = (await store.GetTransitiveDependenciesAsync(vnet.Id, 1)).ToList();
-        var threeHops = (await store.GetTransitiveDependenciesAsync(vnet.Id, 3)).ToList();
+        var oneHop = (await store.GetTransitiveDependenciesAsync(subnet.Id, 1)).ToList();
+        var threeHops = (await store.GetTransitiveDependenciesAsync(subnet.Id, 3)).ToList();
 
         oneHop.Should().OnlyContain(d => d.HopCount == 1);
         threeHops.Count.Should().BeGreaterThan(oneHop.Count);
