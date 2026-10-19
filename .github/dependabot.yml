@@ -9,12 +9,14 @@ updates:
     open-pull-requests-limit: 3
     groups:
       angular:
+        update-types: ['minor', 'patch']
         patterns:
           - '@angular/*'
           - '@angular-devkit/*'
           - 'angular-eslint'
           - '@angular-eslint/*'
       linting:
+        update-types: ['minor', 'patch']
         patterns:
           - 'eslint*'
           - 'typescript-eslint'
@@ -32,6 +34,7 @@ updates:
     open-pull-requests-limit: 3
     groups:
       aspnetcore:
+        update-types: ['minor', 'patch']
         patterns:
           - 'Microsoft.*'
           - 'Serilog*'
