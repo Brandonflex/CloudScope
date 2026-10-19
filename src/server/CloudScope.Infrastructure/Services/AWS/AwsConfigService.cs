@@ -8,6 +8,7 @@ using CloudScope.Core.Domain.Models;
 using CloudScope.Core.Exceptions;
 using CloudScope.Core.Interfaces;
 using CloudScope.Infrastructure.Configuration;
+using ResourceType = CloudScope.Core.Domain.Enums.ResourceType;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
