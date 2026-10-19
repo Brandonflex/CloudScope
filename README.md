@@ -151,7 +151,8 @@ One App Service hosts both the API and the SPA (the build is published into
 Azure OpenAI, Application Insights, Key Vault).
 
 ```bash
-gh workflow run deploy-azure.yml     # or push to main
+# demo profile: B1 App Service + Cosmos free tier (~$30/mo)
+gh workflow run deploy-azure.yml -f profile=demo
 ```
 
 Required repository secrets and the post-deploy checklist are documented in

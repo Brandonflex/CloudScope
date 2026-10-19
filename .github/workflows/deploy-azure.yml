@@ -8,6 +8,12 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      profile:
+        description: 'Deployment profile (demo = smallest SKUs + Cosmos free tier)'
+        type: choice
+        options: [prod, demo, dev]
+        default: prod
 
 permissions:
   contents: read
@@ -66,12 +72,15 @@ jobs:
         run: az group create --name ${{ env.AZURE_RESOURCE_GROUP }} --location ${{ env.AZURE_LOCATION }}
 
       - name: Deploy Bicep Template
+        env:
+          PROFILE: ${{ github.event.inputs.profile || 'prod' }}
         run: |
+          echo "Profile: $PROFILE"
           az deployment group create \
             --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
             --name cloudscope-${{ github.run_number }} \
             --template-file infra/bicep/main.bicep \
-            --parameters infra/bicep/parameters.prod.json \
+            --parameters infra/bicep/parameters.${{ github.event.inputs.profile || 'prod' }}.json \
             --parameters aadTenantId=${{ secrets.AZURE_AD_TENANT_ID }} aadClientId=${{ secrets.AZURE_AD_CLIENT_ID }}
 
   # ─── Build & Deploy API + SPA ────────────────────────────

@@ -9,7 +9,29 @@ There are three tracks. You can stop after any of them.
 |-------|------|------|-------|
 | **A** | See the app running | 2 minutes | Node 20+ |
 | **B** | Green checkmarks on the pull request | 2 minutes | GitHub repo admin |
-| **C** | A real URL on Azure | ~20 minutes | Azure subscription |
+| **C** | A real URL on Azure | ~20 minutes | Azure subscription (~$30/mo) |
+
+---
+
+## What does it cost?
+
+**Nothing, unless you choose to host it on Azure.**
+
+| Thing | Cost |
+|-------|------|
+| Running it locally (Track A) | **$0, forever.** Demo data, all six screens, AI query, compliance, costs — no account, no key, no database |
+| Running the real .NET backend locally | **$0.** In-memory storage and the offline query engine are the default |
+| GitHub Actions + Pages | **$0** on a public repository (unlimited minutes) |
+| CodeQL | **$0** on a public repository; **~$30/committer/month** on a private one (needs a Team plan) |
+| Hosting it publicly on Azure | **~$30/month** with the `demo` profile, ~$140+/month with `prod`. A card is required to open an Azure account even for free tiers |
+| AWS | **$0, ever** — it is only read from if you supply keys |
+
+So: **you can use the whole product without paying anything.** You only pay for
+a public URL, and only if you want one.
+
+If you'd rather not pay at all but still want a shareable link, put the SPA on a
+free static host (GitHub Pages, Cloudflare Pages, Netlify) and keep the demo API
+local — see [Cheap and free hosting](#cheap-and-free-hosting) below.
 
 ---
 
@@ -79,8 +101,20 @@ If C# still fails after B1/B2, add a manual build between `init` and `analyze`:
 
 This creates App Service, Cosmos DB (SQL API), Redis, Azure OpenAI, Application
 Insights and Key Vault, then publishes the API **and** the SPA into one App
-Service. Budget: roughly **$60–90/month** at the `dev`/`B1` tier the template
-defaults to — delete the resource group afterwards to stop billing.
+Service.
+
+**Pick the `demo` profile when you start the workflow.** It uses the small SKUs
+and the Cosmos lifetime free tier:
+
+| Profile | What it provisions | Rough monthly cost |
+|---------|--------------------|--------------------|
+| `demo` / `dev` | App Service **B1**, Cosmos with **free tier** (1,000 RU/s + 25 GB), Basic Redis | **~$30** |
+| `prod` (default) | App Service **S1**, Cosmos provisioned throughput, Standard Redis, always-on | **~$140–160** |
+
+Both include Azure OpenAI and Application Insights, which are pay-per-use — a
+handful of queries and a demo-sized telemetry volume cost a few dollars at most.
+Prices are East US list prices; check the [Azure pricing
+calculator](https://azure.microsoft.com/pricing/calculator/) for your region.
 
 ### 1. Install and sign in to the Azure CLI
 
@@ -147,7 +181,8 @@ from the resource group.
 ### 4. Run the deployment
 
 <https://github.com/Brandonflex/Azure/actions/workflows/deploy-azure.yml> →
-**Run workflow** → `arena/d2622d45-azure` (or `main` after merging).
+**Run workflow** → branch `arena/d2622d45-azure` (or `main` after merging) and
+choose the **`demo`** profile.
 
 It takes ~6–10 minutes: Bicep → build SPA → publish API → zip → deploy →
 smoke-test `/health` and `/`.
@@ -199,6 +234,22 @@ gh pr merge 6 --merge    # merge into main
 
 Merging to `main` triggers CI; the deployment runs only if the secrets from
 Track C exist.
+
+---
+
+## Cheap and free hosting
+
+| Option | Cost | Trade-off |
+|--------|------|-----------|
+| Local (`npm run preview:demo`) | $0 | Not shareable |
+| Static host + bundled demo data | $0 | Needs a small code change so the SPA reads `public/demo/inventory.json` instead of `/api/*` |
+| Azure `demo` profile | ~$30/mo | Real API, Cosmos persistence, one URL |
+| Azure free account | $0 for 12 months | App Service **F1** (60 CPU-min/day, sleeps after 20 min, no custom-domain SSL) + Cosmos free tier. Costs nothing but is slow to wake |
+| Render / Railway / Fly.io + Docker | $0–5/mo | The Dockerfiles are in the repo; free tiers sleep when idle |
+
+The Azure free account gives you **$200 credit for 30 days** plus 12 months of
+select services and 65+ always-free services (including 1,000 RU/s of Cosmos DB).
+The F1 App Service tier is free permanently but is explicitly not for production.
 
 ---
 
