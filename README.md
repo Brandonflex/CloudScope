@@ -77,6 +77,10 @@ A SignalR hub pushes `resourceDiscovered`, `discoveryProgress`, `discoveryComple
 
 ## Quickstart
 
+> Setting up for the first time? **[docs/SETUP.md](docs/SETUP.md)** is a
+> three-track checklist (run it locally → green checks → deploy to Azure).
+
+
 ### Option A — explore the demo UI (no .NET, no cloud account)
 
 ```bash
@@ -151,7 +155,8 @@ gh workflow run deploy-azure.yml     # or push to main
 ```
 
 Required repository secrets and the post-deploy checklist are documented in
-[docs/deployment-guide.md](docs/deployment-guide.md).
+[docs/deployment-guide.md](docs/deployment-guide.md); the short version is
+[docs/SETUP.md](docs/SETUP.md).
 
 ---
 

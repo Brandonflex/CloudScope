@@ -139,3 +139,6 @@ appsettings.Local.json
 publish/
 publish.zip
 src/server/CloudScope.Api/wwwroot/
+
+# Azure service principal output from scripts/create-azure-credentials.sh
+azure-credentials.json

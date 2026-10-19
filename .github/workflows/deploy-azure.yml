@@ -23,10 +23,34 @@ env:
   NODE_VERSION: '20'
 
 jobs:
+  # ─── Configuration guard ─────────────────────────────────
+  # Nothing is deployed until the Azure credentials secret exists, so merging
+  # this workflow before the subscription is wired up does not fail the build.
+  guard:
+    name: Check deployment configuration
+    runs-on: ubuntu-latest
+    outputs:
+      configured: ${{ steps.check.outputs.configured }}
+    steps:
+      - name: Check for AZURE_CREDENTIALS
+        id: check
+        env:
+          AZURE_CREDENTIALS: ${{ secrets.AZURE_CREDENTIALS }}
+        run: |
+          if [ -n "$AZURE_CREDENTIALS" ]; then
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+            echo "Azure credentials found — deploying."
+          else
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::AZURE_CREDENTIALS is not set. Add it in Settings → Secrets and variables → Actions, then re-run this workflow."
+          fi
+
   # ─── Deploy Infrastructure ───────────────────────────────
   deploy-infra:
     name: Deploy Azure Infrastructure
     runs-on: ubuntu-latest
+    needs: guard
+    if: needs.guard.outputs.configured == 'true'
     environment: production
 
     steps:
@@ -54,7 +78,8 @@ jobs:
   deploy-app:
     name: Build & Deploy API + SPA
     runs-on: ubuntu-latest
-    needs: deploy-infra
+    needs: [guard, deploy-infra]
+    if: needs.guard.outputs.configured == 'true'
     environment: production
 
     steps:
@@ -112,11 +137,29 @@ jobs:
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
+      # Optional APP_SERVICE_NAME secret wins; otherwise the name is discovered
+      # from the resource group created by the Bicep deployment.
+      - name: Resolve App Service
+        id: app
+        run: |
+          name="${{ secrets.APP_SERVICE_NAME }}"
+          if [ -z "$name" ]; then
+            name=$(az webapp list \
+              --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+              --query "[?starts_with(name, 'cloudscope')].name | [0]" -o tsv)
+          fi
+          if [ -z "$name" ]; then
+            echo "::error::No App Service found in ${{ env.AZURE_RESOURCE_GROUP }}."
+            exit 1
+          fi
+          echo "name=$name" >> "$GITHUB_OUTPUT"
+          echo "Deploying to $name"
+
       - name: Deploy to App Service
         run: |
           az webapp deployment source config-zip \
             --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
-            --name ${{ secrets.APP_SERVICE_NAME }} \
+            --name ${{ steps.app.outputs.name }} \
             --src ./publish.zip \
             --timeout 600
 
@@ -124,7 +167,7 @@ jobs:
         run: |
           host=$(az webapp show \
             --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
-            --name ${{ secrets.APP_SERVICE_NAME }} \
+            --name ${{ steps.app.outputs.name }} \
             --query defaultHostName -o tsv)
           echo "Deployed to https://$host"
           curl -fsS --retry 12 --retry-delay 5 --retry-connrefused "https://$host/health"

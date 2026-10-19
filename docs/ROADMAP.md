@@ -18,6 +18,10 @@
 | 1.6 Secret/env wiring | ✅ Done | `appsettings.Development.template.json` + `appsettings.Production.json` |
 | 1.7 Containers | ✅ Done | Multi-stage API and SPA images, nginx proxy, `--profile app` compose stack |
 
+Manual steps that cannot be done from a code change are collected in
+[SETUP.md](SETUP.md): enabling code scanning, creating the Azure service
+principal and storing the three repository secrets.
+
 Not validated locally: Bicep compilation, `dotnet build`, Docker image builds
 and the GitHub deployment (no Azure credentials, .NET SDK or Docker daemon in
 this environment). CI validates Bicep, builds/tests the backend and builds the
