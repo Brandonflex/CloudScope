@@ -381,10 +381,22 @@ The hub also exposes `Ping()` (server replies `pong`).
 
 ## Errors
 
-Errors are JSON with a `message` and, for unhandled exceptions, a trace id:
+Errors use a problem-details shape (`application/problem+json`) carrying a trace
+id. Client errors keep their specific message; server and upstream failures are
+deliberately generic so internal URLs and response bodies never reach the caller.
 
 ```json
-{ "message": "Resource 'az:…' not found", "statusCode": 404 }
+{
+  "type": "https://httpstatuses.io/404",
+  "title": "Not Found",
+  "status": 404,
+  "detail": "Resource 'az:…' not found",
+  "traceId": "0HN7…:00000002",
+  "timestamp": "2026-10-19T08:00:00Z"
+}
 ```
+
+Every response also carries `X-Content-Type-Options`, `X-Frame-Options`,
+`Referrer-Policy`, `Permissions-Policy` and `Cross-Origin-Opener-Policy`.
 
 `GET /health` returns `{ "status": "Healthy", "timestamp": "…", "version": "…" }`.

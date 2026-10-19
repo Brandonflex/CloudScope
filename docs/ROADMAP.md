@@ -42,7 +42,7 @@ Effort key: **S** ≤ 1 day · **M** 2–3 days · **L** 1–2 weeks.
 | CI (build/test) | ⏳ Re-run pending | P0 changes add lint, unit tests and a production build to the gate |
 | CI (security) | ❌ Red (repo config) | Duplicate job removed; code scanning must be enabled in repository settings |
 | Deployment pipeline | ✅ Fixed, unverified | Artefact produced and deployed; Bicep matches the runtime store |
-| Production hardening | ⚠️ Partial | Forwarded headers, production config and containers added; auth/rate limiting pending |
+| Production hardening | ⚠️ Partial | Forwarded headers, security headers, problem-details errors, body limits and containers added; auth and rate limiting pending |
 | Automated test depth | ⚠️ Improved | ESLint + 20 unit specs now blocking; integration and E2E still missing |
 | Documentation | ✅ Rewritten | README, architecture, API reference, implementation map |
 

@@ -193,6 +193,7 @@ var app = builder.Build();
 
 // ─── Middleware pipeline ──────────────────────────────────
 app.UseForwardedHeaders();
+app.UseMiddleware<SecurityHeadersMiddleware>();
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 
 if (app.Environment.IsDevelopment() || builder.Configuration.GetValue("Swagger:Enabled", true))
