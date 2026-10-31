@@ -186,6 +186,21 @@ builder.Services.AddCors(options =>
 // ─── Application Insights ─────────────────────────────────
 builder.Services.AddApplicationInsightsTelemetry();
 
+// Production is fail-closed by default. The gateway must authenticate users,
+// remove client-supplied gateway headers and inject the private shared secret.
+var gatewayOptions = builder.Configuration.GetSection("GatewayAuthentication").Get<GatewayAuthenticationOptions>()
+                     ?? new GatewayAuthenticationOptions();
+if (builder.Configuration["GatewayAuthentication:Enabled"] is null)
+    gatewayOptions.Enabled = !builder.Environment.IsDevelopment();
+if (gatewayOptions.Enabled &&
+    (string.IsNullOrWhiteSpace(gatewayOptions.SharedSecret) || System.Text.Encoding.UTF8.GetByteCount(gatewayOptions.SharedSecret) < 32))
+    throw new InvalidOperationException("Gateway authentication is enabled but GatewayAuthentication:SharedSecret is not set to at least 32 UTF-8 bytes.");
+builder.Services.Configure<GatewayAuthenticationOptions>(options =>
+{
+    options.Enabled = gatewayOptions.Enabled;
+    options.SharedSecret = gatewayOptions.SharedSecret;
+});
+
 // ─── Authentication/authorization plumbing ────────────────
 // Phase 1 runs without an identity provider; the middleware is wired so Entra ID
 // (OIDC) can be enabled later without changing the pipeline.
@@ -201,6 +216,7 @@ var app = builder.Build();
 app.UseForwardedHeaders();
 app.UseMiddleware<SecurityHeadersMiddleware>();
 app.UseMiddleware<ExceptionHandlingMiddleware>();
+app.UseMiddleware<GatewayAuthenticationMiddleware>();
 
 if (app.Environment.IsDevelopment() || builder.Configuration.GetValue("Swagger:Enabled", true))
 {

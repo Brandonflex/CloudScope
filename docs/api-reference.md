@@ -5,8 +5,9 @@ documented interactively by Swagger at **`/swagger`** while the service runs.
 
 * **Base URL (development):** `http://localhost:5001`
 * **Content type:** `application/json`; enums serialize as strings.
-* **Authentication:** none in phase 1. The pipeline is wired for Entra ID, so a
-  bearer token can be enforced later without changing routes.
+* **Authentication:** in production, requests must pass through an identity-aware
+  gateway that injects a private gateway secret. The gateway authenticates and
+  authorizes users; see [deployment safeguards](../SECURITY.md#gateway-and-deployment-safeguards).
 
 The **demo API** (`src/client/mock-api/server.mjs`) implements the same surface
 on top of the bundled demo estate, which is handy for UI work and for exploring

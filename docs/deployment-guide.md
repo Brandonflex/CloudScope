@@ -5,6 +5,18 @@ SPA from the same origin. The SPA is published into the API's `wwwroot`, so
 there is no separate Static Web App, no CORS configuration and no absolute API
 URL to maintain.
 
+## Required production gateway
+
+Production now fails closed unless `GatewayAuthentication__SharedSecret` is
+configured. The existing Azure deployment does not provision an identity-aware
+gateway. Before deployment, provide a gateway that authenticates and authorizes
+users, strips client-supplied `X-CloudScope-Gateway-Key` headers and injects the
+private shared secret for every request, including SignalR WebSockets. Restrict
+direct access to the backend and use TLS on both hops. `GET /health` is exempt
+for health probes. See [SECURITY.md](../SECURITY.md#gateway-and-deployment-safeguards)
+for setup requirements and limitations. The local Docker Compose demo opts out;
+that opt-out must not be used with real cloud credentials.
+
 ## Prerequisites
 
 | Purpose | Requirement |

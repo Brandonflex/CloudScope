@@ -79,6 +79,15 @@ A SignalR hub pushes `resourceDiscovered`, `discoveryProgress`, `discoveryComple
 
 ---
 
+## Security before deployment
+
+Production requires an operator-provided identity-aware gateway and a private
+shared secret; existing Azure infrastructure does not provision them. The API
+authenticates the gateway, not individual users. Follow the
+[deployment safeguards](SECURITY.md#gateway-and-deployment-safeguards) before
+connecting real cloud credentials. Local development and the Compose demo are
+not protected by this gateway.
+
 ## Quickstart
 
 > Setting up for the first time? **[docs/SETUP.md](docs/SETUP.md)** is a
@@ -232,7 +241,7 @@ Everything is configurable through `appsettings.json` or environment variables (
 * **Azure** — Resource Graph `read`, Cost Management `read`, plus `Microsoft.Resources/subscriptions/read`. Any of client-secret credentials, managed identity or `az login` (via `DefaultAzureCredential`) works.
 * **AWS** — `config:SelectResourceConfig`, `config:ListDiscoveredResources`, `ce:GetCostAndUsage`.
 
-> Authentication between the SPA and the API is intentionally open in this phase; the pipeline already wires `UseAuthentication`/`UseAuthorization` so Entra ID can be enabled without restructuring.
+> Production access requires an identity-aware gateway. The API authenticates the gateway, while end-user authentication and authorization are enforced at the gateway. See [SECURITY.md](SECURITY.md#gateway-and-deployment-safeguards).
 
 ---
 

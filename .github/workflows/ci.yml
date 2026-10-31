@@ -35,6 +35,9 @@ jobs:
       - name: Build
         run: dotnet build src/server/CloudScope.sln --no-restore --configuration Release
 
+      - name: Smoke test gateway and API integration
+        run: bash .github/scripts/smoke-gateway.sh
+
       - name: Run tests
         run: |
           set +e

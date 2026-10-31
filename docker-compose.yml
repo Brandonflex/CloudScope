@@ -69,6 +69,8 @@ services:
       - "8080:8080"
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
+      # Demo only: never disable gateway authentication for real cloud data.
+      - GatewayAuthentication__Enabled=false
       - Platform__StorageProvider=InMemory
       - Platform__SeedDemoData=true
       - ConnectionStrings__Redis=redis:6379
