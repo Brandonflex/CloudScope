@@ -23,6 +23,8 @@ test('demo API accepts slash-containing IDs through the same query routes as the
     new Promise((_, reject) => setTimeout(() => reject(new Error('Server startup timed out')), 10000).unref())
   ]);
   const base = `http://127.0.0.1:${port}`;
+  const meta = await (await fetch(`${base}/api/meta`)).json();
+  assert.equal(meta.realtimeAvailable, false, 'the mock API must not advertise a SignalR hub');
   const list = await (await fetch(`${base}/api/resources?pageSize=500`)).json();
   const resource = list.items.find((item) => item.id.includes('/'));
   assert.ok(resource, 'demo inventory should contain slash-containing IDs');

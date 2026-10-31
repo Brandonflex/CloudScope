@@ -1476,6 +1476,7 @@ const server = createServer(async (request, response) => {
       sendJson(response, 200, {
         version: '1.0.0-demo',
         demoMode: true,
+        realtimeAvailable: false,
         storageProvider: 'InMemory',
         aiMode: 'Local',
         configuredProviders: ['Azure', 'AWS'],

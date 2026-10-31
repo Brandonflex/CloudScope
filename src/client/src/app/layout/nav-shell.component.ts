@@ -2,6 +2,7 @@ import {
   ChangeDetectionStrategy,
   Component,
   DestroyRef,
+  effect,
   HostListener,
   OnDestroy,
   OnInit,
@@ -129,7 +130,13 @@ interface NavItem {
               class="realtime"
               [class.on]="realtime.connected()"
               [matTooltip]="
-                realtime.connected() ? 'Realtime updates connected' : 'Realtime updates offline'
+                !meta.status()
+                  ? 'Realtime unavailable: API status could not be loaded'
+                  : meta.status()?.realtimeAvailable === false
+                    ? 'Realtime is not supported by this backend'
+                    : realtime.connected()
+                      ? 'Realtime updates connected'
+                      : 'Realtime updates offline'
               "
             >
               <span class="pulse"></span>
@@ -560,6 +567,15 @@ export class NavShellComponent implements OnInit, OnDestroy {
   };
 
   constructor() {
+    // A static deployment is not a SignalR server. Wait for valid metadata,
+    // and only connect when the backend actually exposes the hub. Older .NET
+    // servers omit the capability field and are assumed to support SignalR.
+    effect(() => {
+      const status = this.meta.status();
+      if (status && status.realtimeAvailable !== false) this.realtime.startConnection();
+      else this.realtime.stopConnection();
+    });
+
     this.router.events
       .pipe(
         filter((event): event is NavigationEnd => event instanceof NavigationEnd),
@@ -578,8 +594,6 @@ export class NavShellComponent implements OnInit, OnDestroy {
     interval(30000)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(() => this.meta.loadStatus());
-    this.realtime.startConnection();
-
     this.realtime.events.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((event) => {
       if (event.type === 'discoveryCompleted' && !this.discovering()) {
         this.refresh.bump();

@@ -318,6 +318,8 @@ export interface DiscoveryResult {
 export interface PlatformStatus {
   version: string;
   demoMode: boolean;
+  /** Older .NET backends omit this field but do provide SignalR. */
+  realtimeAvailable?: boolean;
   storageProvider: string;
   aiMode: string;
   configuredProviders: string[];

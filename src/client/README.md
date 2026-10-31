@@ -35,6 +35,8 @@ new Angular route, update the rewrites too; CI checks that they match.
 
 Vercel serves only the frontend in this configuration. It does not run the .NET
 API or SignalR hub, and `/api` requests are deliberately not rewritten to the SPA.
+The UI waits for backend metadata before connecting to SignalR; the local mock
+API reports that realtime is unavailable, so it does not attempt a connection.
 For live data, deploy the backend behind the identity-aware gateway described in
 [SECURITY.md](../../SECURITY.md#gateway-and-deployment-safeguards) and configure
 same-origin routing at the gateway. The local demo API can be explored with
