@@ -331,6 +331,7 @@ export interface PlatformStatus {
   resourceCount: number;
   relationshipCount: number;
   lastDiscoveryAt?: string | null;
+  discoveryStatus?: 'NotStarted' | 'InProgress' | 'Succeeded' | 'Failed' | 'PartialFailure' | 'Demo';
   serverTimeUtc: string;
 }
 

@@ -42,8 +42,12 @@ credentials to the Vercel demo function.
 4. **Separate storage:** disable demo seeding and use a new, empty storage
    namespace for real data. Existing discovery upserts resources and does not
    automatically remove a previously seeded demo estate; never reuse a demo store
-   for live data. Do not delete existing data automatically. A migration and
-   provenance strategy must be designed before reusing a persistent store.
+   for live data. The backend now refuses to start with both a configured live
+   provider and Cosmos storage, because stored data has no provenance marker. A
+   process that has loaded the demo cannot switch to live discovery. Use a new
+   in-memory store for initial testing; it is lost on restart. Do not delete
+   existing data automatically. A migration and provenance strategy must be
+   designed before enabling persistent live storage.
 5. **Integration and proof:** route browser API calls through the protected
    gateway, not directly to a private backend or a browser-visible secret. Verify
    provider identity and authorization, actual discovery and provenance, error
@@ -60,7 +64,21 @@ credentials to the Vercel demo function.
    authoritative for billing.
 7. **AI consent:** independently approve whether any real inventory can be sent
    to an AI provider, review that provider's data use and billing terms, and
-   enforce per-user access and data minimization. Keep the preview demo isolated.
+   enforce per-user access and data minimization. Backend startup now rejects
+   configured Azure OpenAI alongside live providers until this is implemented.
+   Keep the preview demo isolated.
 
 None of these gates creates a cloud account, authorizes spending or proves a
 live deployment. The Vercel production demo function remains disabled by design.
+
+## Hosting constraint
+
+The Vercel demo is not a .NET backend or identity-aware gateway. A separately
+protected, reachable backend is still required to connect its UI to real data;
+no such deployment has been provisioned or validated. Any self-hosted option
+requires a running device and network connection. Do not use a public quick
+tunnel as an authentication gateway. Cloudflare's documentation states that
+[Zero Trust onboarding requires payment details even on its Free plan](https://developers.cloudflare.com/cloudflare-one/setup/),
+so that option does not satisfy a strict no-card requirement as documented.
+A different no-card identity-aware solution and end-to-end Vercel routing remain
+unverified; free quotas or trials are not a guarantee of permanent no-cost service.

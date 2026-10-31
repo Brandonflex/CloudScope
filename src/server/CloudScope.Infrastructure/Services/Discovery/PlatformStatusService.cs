@@ -50,7 +50,8 @@ public class PlatformStatusService : IPlatformStatusService
                 .ToList(),
             ResourceCount = await _resourceRepository.GetCountAsync(ct: ct),
             RelationshipCount = await _graphRepository.GetEdgeCountAsync(ct),
-            LastDiscoveryAt = _runtime.LastDiscoveryAt
+            LastDiscoveryAt = _runtime.LastDiscoveryAt,
+            DiscoveryStatus = _runtime.DiscoveryStatus
         };
     }
 }
