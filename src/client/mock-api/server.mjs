@@ -110,7 +110,12 @@ function periodCost(resource, start, end) {
   return total;
 }
 
-const sum = (values) => values.reduce((total, value) => total + value, 0);
+// Maps expose iterators rather than arrays; Node 20 does not have iterator.reduce.
+const sum = (values) => {
+  let total = 0;
+  for (const value of values) total += value;
+  return total;
+};
 
 function categoriesOf(entries) {
   const totals = new Map();
