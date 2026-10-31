@@ -7,11 +7,12 @@ credentials to the Vercel demo function.
 
 ## Current constraints
 
-- The project owner has not selected or provisioned an Azure subscription or AWS
-  account. No payment method or paid service should be added without a new,
-  explicit decision. Free offers, quotas and card-verification requirements vary
-  by provider, region and account; do not promise that a real-cloud deployment
-  will be free.
+- An active provider subscription and appropriate authorization are required for
+  real cloud inventory. An empty subscription is valid: successful discovery may
+  return zero resources. No payment method or paid service should be added
+  without a new, explicit decision. Trial credits can expire; free offers, quotas
+  and card-verification requirements vary by provider, region and account. Do not
+  promise that a real-cloud deployment will be free.
 - The existing Azure/Bicep infrastructure and deployment guide describe services
   that can incur costs. **Do not run those deployments** under a strict-zero-cost
   requirement without independently checking every resource and getting approval.
@@ -46,9 +47,18 @@ credentials to the Vercel demo function.
 5. **Integration and proof:** route browser API calls through the protected
    gateway, not directly to a private backend or a browser-visible secret. Verify
    provider identity and authorization, actual discovery and provenance, error
-   handling, data isolation, rate limits and observability. Test with a small
-   read-only scope before expanding access.
-6. **AI consent:** independently approve whether any real inventory can be sent
+   handling, data isolation, rate limits and observability. Distinguish a
+   successful empty result from authentication, permission or provider failure;
+   test both cases. Discovery currently upserts rather than reconciling deleted
+   resources, so inventory may become stale. Test with a small read-only scope
+   before expanding access.
+6. **Cost data integrity:** the cost service can fall back to computed estimates
+   when live cost data is unavailable; per-resource values and trends are not
+   necessarily actual billing data. Before showing live costs, separately
+   identify verified billing data, estimates and unavailable values; never present
+   missing billing access as proof of zero charges. The provider portal remains
+   authoritative for billing.
+7. **AI consent:** independently approve whether any real inventory can be sent
    to an AI provider, review that provider's data use and billing terms, and
    enforce per-user access and data minimization. Keep the preview demo isolated.
 
