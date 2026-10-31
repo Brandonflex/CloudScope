@@ -20,6 +20,7 @@ import { readFile, stat } from 'node:fs/promises';
 import { createServer } from 'node:http';
 import { extname, join, normalize, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { findHelp } from './help.mjs';
 
 const HERE = resolve(fileURLToPath(new URL('.', import.meta.url)));
 const INVENTORY_PATH = join(HERE, '..', 'public', 'demo', 'inventory.json');
@@ -1038,19 +1039,19 @@ function answerQuestion(question) {
     success: true,
     error: null,
     processingTime: `${Date.now() - started} ms`,
-    source: 'Local demo engine'
+    source: 'Local demo engine',
+    suggestedQuestions: partial.suggestedQuestions ?? (
+      partial.generatedQuery?.startsWith('compliance') ? ['What is compliance?', 'Show my critical compliance violations', 'Is this real data?'] :
+      partial.generatedQuery?.startsWith('costs') || partial.generatedQuery?.includes('estimatedMonthlyCost') ? ['What is cost intelligence?', 'Which resource costs are anomalous?', 'Where can I save money?'] :
+      partial.generatedQuery?.startsWith('graph') ? ['What is a blast radius?', 'How many resources are there?', 'Is this real data?'] :
+      partial.generatedQuery?.startsWith('resources') ? ['What is a resource?', 'How many resources are there?', 'What does discovery do?'] : []),
+    relatedPage: partial.relatedPage ?? null
   });
 
-  // This preview is a deterministic demo, not a general-purpose chatbot.
-  // Answer basic product questions explicitly instead of searching inventory
-  // for incidental words such as "platform" or "cloud".
-  if (/^(?:what is|tell me about|explain|describe) (?:cloud ?scope|cloud ?sope|the platform|this platform)(?: about)?$/.test(normalized) ||
-      /^what does (?:cloud ?scope|the platform|this platform) do$/.test(normalized)) {
-    return reply({
-      answer: 'CloudScope is a multi-cloud infrastructure intelligence platform for exploring resources, dependencies, costs and compliance across Azure and AWS. ' +
-        'This preview uses fictional demo data and a rule-based query engine; it is not connected to your cloud accounts or a general-purpose AI assistant.'
-    });
-  }
+  // Curated product explanations take precedence over inventory keywords,
+  // but concrete data questions continue to use the inventory handlers.
+  const help = findHelp(normalized);
+  if (help) return reply(help);
 
   // Blast radius
   if (/(blast radius|what breaks|what happens if|affected if|impact if|goes down|fails)/.test(q)) {
@@ -1072,7 +1073,9 @@ function answerQuestion(question) {
     return reply({
       answer:
         'Tell me which resource to simulate a failure for, for example “what is the blast radius of vm-app-01?”. ' +
-        'I can analyse any of the 54 resources in the inventory.',
+        `I can analyse any of the ${resources.length} resources in the demo inventory.`,
+      suggestedQuestions: ['What is a blast radius?', 'What is the blast radius of vm-app-01?', 'How many resources are there?'],
+      relatedPage: { label: 'Open infrastructure graph', path: '/graph' },
       data: resources
         .filter((resource) => ['VirtualMachine', 'KubernetesCluster', 'SqlDatabase', 'CosmosDbAccount', 'Subnet'].includes(resource.resourceType))
         .slice(0, 8)
@@ -1271,7 +1274,9 @@ function answerQuestion(question) {
       answer: `**${target.name}** is a ${target.resourceType} in ${target.region} (${target.provider}), ` +
         `with an estimated monthly cost of **${money(target.estimatedMonthlyCost)}**.`,
       generatedQuery: `resources | where name == '${target.name}'`,
-      data: project(target)
+      data: project(target),
+      suggestedQuestions: [`What is the blast radius of ${target.name}?`, 'What is a blast radius?', 'How many resources are there?'],
+      relatedPage: { label: 'Explore resources', path: '/resources' }
     });
   }
 
@@ -1319,8 +1324,9 @@ function answerQuestion(question) {
 
 
   return reply({
-    answer: 'I could not understand that question. The local demo engine handles a limited set of inventory questions, not general conversation. ' +
-      'Try a suggested question about costs, compliance, dependencies, utilisation, or a specific resource name.'
+    answer: 'I could not understand that question. The local demo engine handles a limited set of product and inventory questions, not general conversation. ' +
+      'Try a complete question using the examples below.',
+    suggestedQuestions: ['What can CloudScope do?', 'How do I get started?', 'How many resources are there?']
   });
 }
 

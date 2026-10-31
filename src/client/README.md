@@ -51,3 +51,14 @@ If an old deployment URL returns `NOT_FOUND`, check that the deployment still
 exists and that your Vercel account can access protected deployments. A new
 build creates a new immutable deployment URL; use the project alias for the
 current deployment.
+
+### Preview assistant
+
+The preview's assistant is a deterministic, rule-based guide, not a connected
+LLM. It can explain CloudScope features, demo data, deployment responsibilities
+and common concepts, and answer a selection of questions about the fictional
+inventory. Suggested follow-ups are standalone questions: the demo does not
+remember conversation context. It cannot connect accounts, make infrastructure
+changes or answer arbitrary questions. Do not enter secrets or sensitive data.
+The .NET backend has a separate query engine; these preview-specific explanations
+and suggestions do not change its behaviour.

@@ -9,6 +9,7 @@ import {
   viewChild
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -56,6 +57,7 @@ const DEFAULT_EXAMPLES: Example[] = [
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     FormsModule,
+    RouterLink,
     MatIconModule,
     MatButtonModule,
     MatFormFieldModule,
@@ -72,7 +74,8 @@ const DEFAULT_EXAMPLES: Example[] = [
           <p class="subtitle">
             @if (meta.demoMode()) {
               Explore fictional demo data with a limited, rule-based query engine. This is not a
-              general-purpose AI assistant.
+              general-purpose AI assistant. Ask complete questions; the demo does not remember
+              conversation context.
             } @else {
               Natural-language questions over the inventory. Answers cite the resources they used.
             }
@@ -81,8 +84,15 @@ const DEFAULT_EXAMPLES: Example[] = [
         <div class="actions">
           <span class="chip chip-purple">
             <mat-icon>auto_awesome</mat-icon>
-            {{ lastResult()?.source ?? 'AI + local engine' }}
+            {{
+              lastResult()?.source ?? (meta.demoMode() ? 'Local demo engine' : 'AI + local engine')
+            }}
           </span>
+          @if (transcript().length) {
+            <button mat-button type="button" (click)="clearChat()" [disabled]="thinking()">
+              Clear chat
+            </button>
+          }
         </div>
       </div>
 
@@ -99,6 +109,15 @@ const DEFAULT_EXAMPLES: Example[] = [
                   CloudScope understands cost, compliance, dependencies and utilisation questions.
                   Try one of the prompts below or ask your own.
                 </p>
+                @if (meta.demoMode()) {
+                  <div class="starter-prompts" aria-label="Getting started questions">
+                    @for (prompt of starterPrompts; track prompt) {
+                      <button type="button" (click)="useExample(prompt)" [disabled]="thinking()">
+                        {{ prompt }}
+                      </button>
+                    }
+                  </div>
+                }
               </div>
             }
 
@@ -117,6 +136,26 @@ const DEFAULT_EXAMPLES: Example[] = [
                     <span class="bubble-time">{{ entry.result.processingTime }}</span>
                   </div>
                   <div class="answer" [innerHTML]="formatAnswer(entry.result.answer)"></div>
+
+                  @if (
+                    entry.result.suggestedQuestions?.length ||
+                    safeRelatedPage(entry.result.relatedPage)
+                  ) {
+                    <div class="next-steps" aria-label="Suggested next steps">
+                      @if (safeRelatedPage(entry.result.relatedPage); as page) {
+                        <a class="next-link" [routerLink]="page.path">{{ page.label }} →</a>
+                      }
+                      @for (suggestion of entry.result.suggestedQuestions ?? []; track suggestion) {
+                        <button
+                          type="button"
+                          (click)="useExample(suggestion)"
+                          [disabled]="thinking()"
+                        >
+                          {{ suggestion }}
+                        </button>
+                      }
+                    </div>
+                  }
 
                   @if (entry.result.generatedQuery) {
                     <details class="generated-query">
@@ -149,6 +188,7 @@ const DEFAULT_EXAMPLES: Example[] = [
               <input
                 matInput
                 type="text"
+                maxlength="1000"
                 [(ngModel)]="question"
                 (keydown.enter)="ask()"
                 [disabled]="thinking()"
@@ -178,7 +218,12 @@ const DEFAULT_EXAMPLES: Example[] = [
             </div>
             <div class="panel-body">
               @for (example of examples(); track example.question) {
-                <button type="button" class="suggestion" (click)="useExample(example.question)">
+                <button
+                  type="button"
+                  class="suggestion"
+                  (click)="useExample(example.question)"
+                  [disabled]="thinking()"
+                >
                   <mat-icon>{{ example.icon }}</mat-icon>
                   <div>
                     <span>{{ example.question }}</span>
@@ -199,12 +244,15 @@ const DEFAULT_EXAMPLES: Example[] = [
             </div>
             <div class="panel-body">
               <ul class="capabilities">
-                <li><mat-icon>payments</mat-icon> Cost hotspots, trends and anomalies</li>
+                @if (meta.demoMode()) {
+                  <li><mat-icon>help_outline</mat-icon> Platform concepts and getting started</li>
+                }
+                <li><mat-icon>payments</mat-icon> Cost hotspots, forecasts and anomalies</li>
                 <li><mat-icon>verified_user</mat-icon> Compliance failures by framework</li>
-                <li><mat-icon>hub</mat-icon> Blast radius and dependency paths</li>
+                <li><mat-icon>hub</mat-icon> Blast radius for a named resource</li>
                 <li><mat-icon>speed</mat-icon> Under-utilised VMs and orphaned resources</li>
                 <li><mat-icon>build_circle</mat-icon> Resources outside infrastructure-as-code</li>
-                <li><mat-icon>cloud</mat-icon> Inventory by provider, type or region</li>
+                <li><mat-icon>cloud</mat-icon> Inventory by provider or type</li>
               </ul>
             </div>
           </div>
@@ -274,6 +322,40 @@ const DEFAULT_EXAMPLES: Example[] = [
         font-size: 0.85rem;
         color: var(--text-muted);
         line-height: 1.55;
+      }
+
+      .starter-prompts,
+      .next-steps {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 14px;
+      }
+      .starter-prompts {
+        justify-content: center;
+      }
+      .starter-prompts button,
+      .next-steps button,
+      .next-link {
+        border: 1px solid rgba(88, 166, 255, 0.3);
+        border-radius: 8px;
+        padding: 7px 10px;
+        color: #9bcaff;
+        background: rgba(88, 166, 255, 0.08);
+        font: inherit;
+        font-size: 0.76rem;
+        text-decoration: none;
+        cursor: pointer;
+        text-align: left;
+      }
+      .starter-prompts button:hover,
+      .next-steps button:hover,
+      .next-link:hover {
+        background: rgba(88, 166, 255, 0.18);
+      }
+      button:disabled {
+        cursor: not-allowed;
+        opacity: 0.6;
       }
 
       .turn {
@@ -519,6 +601,11 @@ export class QueryComponent implements OnInit {
   private readonly toast = inject(ToastService);
   private readonly destroyRef = inject(DestroyRef);
 
+  readonly starterPrompts = [
+    'What can CloudScope do?',
+    'How do I get started?',
+    'Is this real data?'
+  ];
   readonly transcript = signal<TranscriptEntry[]>([]);
   readonly thinking = signal(false);
   readonly examples = signal<Example[]>(DEFAULT_EXAMPLES);
@@ -548,6 +635,18 @@ export class QueryComponent implements OnInit {
       });
   }
 
+  safeRelatedPage(page: AIQueryResult['relatedPage']): { label: string; path: string } | null {
+    const allowed = ['/dashboard', '/resources', '/graph', '/costs', '/compliance', '/query'];
+    return page && typeof page.label === 'string' && allowed.includes(page.path) ? page : null;
+  }
+
+  clearChat(): void {
+    if (this.thinking()) return;
+    this.transcript.set([]);
+    this.lastResult.set(null);
+    this.question = '';
+  }
+
   useExample(question: string): void {
     this.question = question;
     this.ask();
@@ -560,18 +659,25 @@ export class QueryComponent implements OnInit {
     this.question = '';
     this.thinking.set(true);
 
-    this.queryService.ask(question).subscribe({
-      next: (result) => {
-        this.thinking.set(false);
-        this.lastResult.set(result);
-        this.transcript.update((entries) => [...entries, { id: ++this.counter, question, result }]);
-        this.scrollToBottom();
-      },
-      error: () => {
-        this.thinking.set(false);
-        this.toast.error('The query engine did not respond.');
-      }
-    });
+    this.queryService
+      .ask(question)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (result) => {
+          this.thinking.set(false);
+          this.lastResult.set(result);
+          this.transcript.update((entries) => [
+            ...entries,
+            { id: ++this.counter, question, result }
+          ]);
+          this.scrollToBottom();
+        },
+        error: () => {
+          this.thinking.set(false);
+          if (!this.question.trim()) this.question = question;
+          this.toast.error('The query engine did not respond. Your question is ready to retry.');
+        }
+      });
   }
 
   private scrollToBottom(): void {

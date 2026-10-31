@@ -113,3 +113,68 @@ test('demo query answers supported intents without inventing an answer to unrela
     assert.doesNotMatch(result.answer, /could not understand/i, question);
   }
 });
+
+test('preview guide explains concepts and offers safe, useful next steps', async (t) => {
+  const previous = process.env.VERCEL_ENV;
+  process.env.VERCEL_ENV = 'preview';
+  const server = createServer(previewApi);
+  server.listen(0, '127.0.0.1');
+  await once(server, 'listening');
+  t.after(() => {
+    if (previous === undefined) delete process.env.VERCEL_ENV;
+    else process.env.VERCEL_ENV = previous;
+    server.close();
+  });
+  const base = `http://127.0.0.1:${server.address().port}`;
+  const ask = async (question) => {
+    const response = await fetch(`${base}/api?__cloudscope_path=query%2Fask`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ question })
+    });
+    assert.equal(response.status, 200);
+    return response.json();
+  };
+  const cases = [
+    ['What are your responsibilities?', /people remain responsible/i],
+    ['What can CloudScope do?', /infrastructure intelligence/i],
+    ['How can CloudScope help me?', /infrastructure intelligence/i],
+    ['How does CloudScope work?', /infrastructure intelligence/i],
+    ['How do I get started?', /dashboard/i],
+    ['What are the limitations?', /cannot connect/i],
+    ['Can CloudScope delete resources?', /does not make infrastructure changes/i],
+    ['What can I ask you?', /complete question/i],
+    ['Is this real data?', /fictional demo data/i],
+    ['How do I connect real cloud accounts?', /identity-aware gateway/i],
+    ['How is access protected?', /operator responsibility/i],
+    ['What does discovery do?', /does not scan your accounts/i],
+    ['Why is realtime off?', /does not necessarily mean/i],
+    ['What is a resource?', /cloud assets/i],
+    ['What is a blast radius?', /affected/i],
+    ['What is compliance?', /policy checks/i],
+    ['What is a cost anomaly?', /unusual deviation/i],
+    ['What is infrastructure as code?', /versioned definitions/i]
+  ];
+  const paths = ['/dashboard', '/resources', '/graph', '/costs', '/compliance', '/query'];
+  for (const [question, expected] of cases) {
+    const result = await ask(question);
+    assert.match(result.answer, expected, question);
+    assert.equal(result.source, 'Local demo engine');
+    assert.equal(result.generatedQuery, null, question);
+    assert.ok(result.suggestedQuestions.length > 0, question);
+    if (result.relatedPage) assert.ok(paths.includes(result.relatedPage.path), question);
+    for (const suggestion of result.suggestedQuestions) {
+      const followUp = await ask(suggestion);
+      assert.doesNotMatch(followUp.answer, /could not understand/i, `${question}: ${suggestion}`);
+    }
+  }
+  const radius = await ask('What is the blast radius of vm-app-01?');
+  assert.match(radius.generatedQuery, /^graph/);
+  assert.ok(radius.data);
+  const overview = await ask('How many resources are there?');
+  assert.match(overview.answer, /estate contains/i);
+  const demoResources = await ask('What are my demo resources?');
+  assert.match(demoResources.answer, /estate contains/i);
+  const unknown = await ask('Tell me more about elephants');
+  assert.match(unknown.answer, /could not understand/i);
+  assert.ok(unknown.suggestedQuestions.length > 0);
+});

@@ -297,6 +297,8 @@ export interface AIQueryResult {
   error?: string | null;
   processingTime: string;
   source: string;
+  suggestedQuestions?: string[];
+  relatedPage?: { label: string; path: string } | null;
 }
 
 export interface DiscoveryProviderResult {
