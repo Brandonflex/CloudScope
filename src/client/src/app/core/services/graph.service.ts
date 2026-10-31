@@ -25,8 +25,8 @@ export class GraphService {
   }
 
   getSubgraph(resourceId: string, depth = 2): Observable<GraphData> {
-    return this.http.get<GraphData>(`${this.baseUrl}/subgraph/${encodeURIComponent(resourceId)}`, {
-      params: { depth: String(depth) }
+    return this.http.get<GraphData>(`${this.baseUrl}/subgraph`, {
+      params: { resourceId, depth: String(depth) }
     });
   }
 

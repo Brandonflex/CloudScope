@@ -21,11 +21,12 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatMenuModule } from '@angular/material/menu';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { fromEvent } from 'rxjs';
+import { fromEvent, Subscription } from 'rxjs';
 import cytoscape, { Core, ElementDefinition } from 'cytoscape';
 import { GraphService } from '../../core/services/graph.service';
 import { ResourceService } from '../../core/services/resource.service';
 import { ToastService } from '../../core/services/toast.service';
+import { RefreshService } from '../../core/services/refresh.service';
 import { EmptyStateComponent } from '../../shared/components/empty-state/empty-state.component';
 import { LoadingSpinnerComponent } from '../../shared/components/loading-spinner/loading-spinner.component';
 import {
@@ -536,6 +537,7 @@ export class GraphComponent implements OnInit {
   private readonly graphService = inject(GraphService);
   private readonly resourceService = inject(ResourceService);
   private readonly toast = inject(ToastService);
+  private readonly refresh = inject(RefreshService);
   private readonly destroyRef = inject(DestroyRef);
 
   private readonly canvas = viewChild<ElementRef<HTMLDivElement>>('canvas');
@@ -561,10 +563,12 @@ export class GraphComponent implements OnInit {
   });
 
   private cy?: Core;
+  private loadSubscription?: Subscription;
   private selectedId: string | null = null;
   private labelVisible = true;
 
   constructor() {
+    this.destroyRef.onDestroy(() => this.cy?.destroy());
     effect(() => {
       const layout = this.layout();
       if (this.cy) this.runLayout(layout);
@@ -579,6 +583,7 @@ export class GraphComponent implements OnInit {
 
   ngOnInit(): void {
     this.load();
+    this.refresh.refreshed$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => this.load());
 
     fromEvent(window, 'resize')
       .pipe(takeUntilDestroyed(this.destroyRef))
@@ -586,11 +591,13 @@ export class GraphComponent implements OnInit {
   }
 
   load(): void {
+    this.loadSubscription?.unsubscribe();
     this.loading.set(true);
     this.error.set(false);
 
-    this.graphService
+    this.loadSubscription = this.graphService
       .getFullGraph({ provider: this.provider(), resourceType: this.resourceType() })
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (data) => {
           this.graph.set(data);
@@ -599,7 +606,9 @@ export class GraphComponent implements OnInit {
           this.loading.set(false);
 
           // Wait for the canvas to exist before handing data to Cytoscape.
-          setTimeout(() => this.initialize(data));
+          setTimeout(() => {
+            if (!this.destroyRef.destroyed && this.graph() === data) this.initialize(data);
+          });
         },
         error: () => {
           this.loading.set(false);

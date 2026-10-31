@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+using System.Net;
 using CloudScope.Api.HostedServices;
 using CloudScope.Api.Hubs;
 using CloudScope.Api.Middleware;
@@ -127,9 +128,14 @@ builder.Services.AddHttpClient();
 builder.Services.Configure<ForwardedHeadersOptions>(options =>
 {
     options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
-    // App Service forwards traffic from platform-internal addresses.
-    options.KnownNetworks.Clear();
-    options.KnownProxies.Clear();
+    // Never trust forwarded headers from arbitrary clients. Configure the IPs
+    // of the immediately adjacent reverse proxies when TLS is terminated there.
+    foreach (var proxy in builder.Configuration.GetSection("ForwardedHeaders:KnownProxies").Get<string[]>() ?? Array.Empty<string>())
+    {
+        if (!IPAddress.TryParse(proxy, out var address))
+            throw new InvalidOperationException($"Invalid trusted proxy IP: {proxy}");
+        options.KnownProxies.Add(address);
+    }
 });
 
 builder.Services.AddControllers()
@@ -158,11 +164,11 @@ builder.Services.AddSwaggerGen(options =>
 
 // ─── CORS ─────────────────────────────────────────────────
 var allowedOrigins = (builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? Array.Empty<string>())
-    .Concat(new[]
+    .Concat(builder.Environment.IsDevelopment() ? new[]
     {
         "http://localhost:4200", "https://localhost:4200",
         "http://127.0.0.1:4200", "http://localhost:4300"
-    })
+    } : Array.Empty<string>())
     .Distinct(StringComparer.OrdinalIgnoreCase)
     .ToArray();
 

@@ -1566,6 +1566,21 @@ const server = createServer(async (request, response) => {
       return;
     }
 
+    if (route === 'resources/by-id' || route === 'resources/relationships' || route === 'resources/blast-radius') {
+      const id = query.get('id');
+      if (!id) { sendJson(response, 400, { message: 'id is required' }); return; }
+      if (route === 'resources/blast-radius') {
+        const result = blastRadius(id, Number(query.get('maxDepth') ?? 5));
+        if (!result) notFound(response, 'Resource not found');
+        else sendJson(response, 200, result);
+      } else {
+        const resource = byId.get(id);
+        if (!resource) notFound(response, 'Resource not found');
+        else sendJson(response, 200, route === 'resources/relationships' ? resource.relationships : resource);
+      }
+      return;
+    }
+
     if (segments[0] === 'resources' && segments[1] === 'blast-radius' && segments[2]) {
       const result = blastRadius(decodeURIComponent(segments.slice(2).join('/')), Number(query.get('maxDepth') ?? 5));
       if (!result) notFound(response, 'Resource not found');
@@ -1596,6 +1611,14 @@ const server = createServer(async (request, response) => {
         resourceType: query.get('resourceType'),
         region: query.get('region')
       }));
+      return;
+    }
+
+    if (route === 'graph/subgraph') {
+      const id = query.get('resourceId');
+      if (!id) { sendJson(response, 400, { message: 'resourceId is required' }); return; }
+      if (!byId.has(id)) notFound(response, 'Resource not found');
+      else sendJson(response, 200, buildSubgraph(id, Number(query.get('depth') ?? 2)));
       return;
     }
 

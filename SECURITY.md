@@ -44,3 +44,18 @@ No credentials are committed. `appsettings.json` contains empty placeholders;
 local overrides use `dotnet user-secrets`; deployment supplies values through
 App Service settings. If you believe a secret has been committed, report it
 privately and rotate the credential immediately.
+
+## Deployment safeguards
+
+The API and SignalR hub still have **no authentication or authorization**. Do
+not expose them or attach real credentials without a trusted identity-aware
+proxy, network isolation, TLS, and access controls for both HTTP and WebSockets.
+The sample Docker Compose stack is for local development only. Set a strong
+`MSSQL_SA_PASSWORD` before starting it; infrastructure service ports bind to
+localhost. The app ports are not authentication boundaries.
+
+Forwarded headers are accepted only from framework-default loopback proxies and
+IPs configured in `ForwardedHeaders:KnownProxies` (for example via
+`ForwardedHeaders__KnownProxies__0`). Configure the actual immediate proxy IPs
+when deploying behind a reverse proxy; do not trust arbitrary client addresses.
+Production CORS origins must be explicitly configured in `Cors:AllowedOrigins`.

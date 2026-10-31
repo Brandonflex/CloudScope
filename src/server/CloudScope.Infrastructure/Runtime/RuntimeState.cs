@@ -7,6 +7,9 @@ public sealed class RuntimeState
 {
     private readonly object _sync = new();
 
+    // Discovery services are scoped; the gate must be shared across all scopes.
+    public SemaphoreSlim DiscoveryGate { get; } = new(1, 1);
+
     private bool _demoMode;
     private string _storageProvider = "InMemory";
     private DateTime? _lastDiscoveryAt;

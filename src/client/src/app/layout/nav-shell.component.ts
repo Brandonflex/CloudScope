@@ -12,7 +12,7 @@ import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } fro
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { filter } from 'rxjs';
+import { filter, interval } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MetaService } from '../core/services/meta.service';
 import { NotificationService } from '../core/services/notification.service';
@@ -72,11 +72,19 @@ interface NavItem {
           <div class="runtime">
             <span
               class="runtime-dot"
-              [class.live]="!meta.demoMode()"
+              [class.live]="!!meta.status()?.configuredProviders?.length && !meta.demoMode()"
               [class.demo]="meta.demoMode()"
             ></span>
             <div class="runtime-text">
-              <strong>{{ meta.demoMode() ? 'Demo estate' : 'Connected estate' }}</strong>
+              <strong>{{
+                !meta.status()
+                  ? 'Status unavailable'
+                  : meta.demoMode()
+                    ? 'Demo estate'
+                    : meta.status()?.configuredProviders?.length
+                      ? 'Connected estate'
+                      : 'No providers configured'
+              }}</strong>
               <span>
                 {{ meta.status()?.resourceCount ?? 0 }} resources ·
                 {{ meta.status()?.relationshipCount ?? 0 }} edges
@@ -85,7 +93,7 @@ interface NavItem {
           </div>
           <div class="runtime-meta">
             <span>v{{ meta.status()?.version ?? '1.0.0' }}</span>
-            <span>{{ meta.status()?.storageProvider ?? 'InMemory' }} storage</span>
+            <span>{{ meta.status()?.storageProvider ?? 'Unknown' }} storage</span>
           </div>
         </div>
       </aside>
@@ -130,8 +138,12 @@ interface NavItem {
 
             @if (meta.demoMode()) {
               <span class="chip chip-purple">Demo data</span>
-            } @else {
+            } @else if (meta.status()?.configuredProviders?.length) {
               <span class="chip chip-good">Live</span>
+            } @else if (meta.status()) {
+              <span class="chip chip-warn">No providers</span>
+            } @else {
+              <span class="chip chip-warn">Status unavailable</span>
             }
 
             <button
@@ -563,10 +575,13 @@ export class NavShellComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.meta.loadStatus();
+    interval(30000)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => this.meta.loadStatus());
     this.realtime.startConnection();
 
     this.realtime.events.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((event) => {
-      if (event.type === 'discoveryCompleted') {
+      if (event.type === 'discoveryCompleted' && !this.discovering()) {
         this.refresh.bump();
         this.meta.loadStatus();
       }
@@ -593,9 +608,16 @@ export class NavShellComponent implements OnInit, OnDestroy {
     this.resourceService.triggerDiscovery().subscribe({
       next: (result) => {
         this.discovering.set(false);
-        this.toast.success(
-          `${result.resourcesDiscovered} resources and ${result.relationshipsDiscovered} relationships synced in ${result.durationSeconds}s.`
-        );
+        const failures = result.providers.filter((provider) => provider.error);
+        if (failures.length) {
+          this.toast.error(
+            `Discovery incomplete: ${failures.map((provider) => provider.provider).join(', ')} failed. Check server logs.`
+          );
+        } else {
+          this.toast.success(
+            `${result.resourcesDiscovered} resources and ${result.relationshipsDiscovered} relationships synced in ${result.durationSeconds}s.`
+          );
+        }
         this.meta.loadStatus();
         this.refresh.bump();
       },

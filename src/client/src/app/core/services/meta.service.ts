@@ -15,7 +15,10 @@ export class MetaService {
   loadStatus(): void {
     this.http.get<PlatformStatus>(this.baseUrl).subscribe({
       next: (status) => this.setStatus(status),
-      error: () => this.status.set(null)
+      error: () => {
+        this.status.set(null);
+        this.demoMode.set(false);
+      }
     });
   }
 

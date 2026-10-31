@@ -42,20 +42,19 @@ export class ResourceService {
   }
 
   getById(id: string): Observable<CloudResource> {
-    return this.http.get<CloudResource>(`${this.baseUrl}/${encodeURIComponent(id)}`);
+    return this.http.get<CloudResource>(`${this.baseUrl}/by-id`, { params: { id } });
   }
 
   getRelationships(id: string): Observable<ResourceRelationship[]> {
-    return this.http.get<ResourceRelationship[]>(
-      `${this.baseUrl}/${encodeURIComponent(id)}/relationships`
-    );
+    return this.http.get<ResourceRelationship[]>(`${this.baseUrl}/relationships`, {
+      params: { id }
+    });
   }
 
   getBlastRadius(id: string, maxDepth = 5): Observable<BlastRadiusResult> {
-    return this.http.get<BlastRadiusResult>(
-      `${this.baseUrl}/blast-radius/${encodeURIComponent(id)}`,
-      { params: { maxDepth: String(maxDepth) } }
-    );
+    return this.http.get<BlastRadiusResult>(`${this.baseUrl}/blast-radius`, {
+      params: { id, maxDepth: String(maxDepth) }
+    });
   }
 
   triggerDiscovery(): Observable<DiscoveryResult> {

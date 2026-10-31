@@ -124,6 +124,9 @@ No credentials are required: `Platform:SeedDemoData` is `true` by default and th
 ### Option C — Docker
 
 ```bash
+# Required by the local SQL service; use a strong password and keep it private.
+export MSSQL_SA_PASSWORD='<your-strong-local-password>'
+
 # Dependencies only: Cosmos DB emulator (:8081), Redis (:6379), SQL Edge (:1433)
 docker compose up -d
 

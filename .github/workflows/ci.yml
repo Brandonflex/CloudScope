@@ -87,6 +87,10 @@ jobs:
         run: npx ng build --configuration production
         working-directory: src/client
 
+      - name: Test demo API integration
+        run: node --test mock-api/tests/*.test.mjs
+        working-directory: src/client
+
       - name: Run unit tests
         run: npx ng test --watch=false --browsers=ChromeHeadlessCI
         working-directory: src/client

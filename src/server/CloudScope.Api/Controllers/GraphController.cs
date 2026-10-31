@@ -44,9 +44,16 @@ public class GraphController : ControllerBase
         [FromQuery] int depth = 2,
         CancellationToken ct = default)
     {
+        if (depth < 1 || depth > 20)
+            return BadRequest(new { message = "depth must be between 1 and 20." });
+
         var subgraph = await _graphRepository.GetSubgraphAsync(resourceId, depth, ct);
         return Ok(subgraph);
     }
+
+    [HttpGet("subgraph")]
+    public Task<IActionResult> GetSubgraphByQueryId([FromQuery] string resourceId, [FromQuery] int depth = 2, CancellationToken ct = default)
+        => GetSubgraph(resourceId, depth, ct);
 
     /// <summary>
     /// Find the shortest path between two resources.

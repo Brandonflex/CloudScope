@@ -88,6 +88,8 @@ Reloads the bundled demo estate (idempotent upsert) and returns the counts.
 }
 ```
 
+For IDs containing `/` (including Azure ARM IDs), use query parameters: `GET /api/resources/by-id?id=...`, `GET /api/resources/relationships?id=...`, and `GET /api/resources/blast-radius?id=...&maxDepth=5`. Encode the ID as a query parameter. The legacy path routes remain available for simple IDs.
+
 ### `GET /api/resources/{id}`
 
 Returns a single resource or `404 { "message": "Resource '…' not found" }`.
@@ -153,7 +155,8 @@ none are configured) and returns:
 | Endpoint | Description |
 |----------|-------------|
 | `GET /api/graph?provider=&resourceType=&region=` | Nodes + edges (edges only between included nodes) |
-| `GET /api/graph/subgraph/{resourceId}?depth=2` | Neighbourhood in both directions |
+| `GET /api/graph/subgraph?resourceId=...&depth=2` | Neighbourhood in both directions; supports IDs containing `/` |
+| `GET /api/graph/subgraph/{resourceId}?depth=2` | Legacy path route for simple IDs |
 | `GET /api/graph/paths?sourceId=&targetId=` | Shortest edge chain |
 
 ```json

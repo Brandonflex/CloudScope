@@ -19,7 +19,7 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatSnackBarModule } from '@angular/material/snack-bar';
-import { debounceTime, distinctUntilChanged, Subject } from 'rxjs';
+import { debounceTime, distinctUntilChanged, Subject, Subscription } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { EmptyStateComponent } from '../../shared/components/empty-state/empty-state.component';
 import { LoadingSpinnerComponent } from '../../shared/components/loading-spinner/loading-spinner.component';
@@ -323,6 +323,7 @@ export class ResourcesComponent implements OnInit {
   readonly regions = signal<string[]>([]);
 
   private readonly searchInput$ = new Subject<string>();
+  private loadSubscription?: Subscription;
 
   readonly activeFilterCount = computed(
     () =>
@@ -351,10 +352,11 @@ export class ResourcesComponent implements OnInit {
   }
 
   reload(page: number): void {
+    this.loadSubscription?.unsubscribe();
     this.loading.set(true);
     this.error.set(false);
 
-    this.resourceService
+    this.loadSubscription = this.resourceService
       .getAll({
         pageNumber: page,
         pageSize: this.pageSize(),
@@ -363,6 +365,7 @@ export class ResourcesComponent implements OnInit {
         region: this.region(),
         search: this.search() || null
       })
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (result) => {
           this.resources.set(result.items);

@@ -35,10 +35,8 @@ public class QueryController : ControllerBase
         if (request.Question.Length > MaxQuestionLength)
             return BadRequest(new { message = $"Question must be {MaxQuestionLength} characters or fewer" });
 
-        // Truncated so an oversized-but-allowed question cannot bloat the logs.
-        _logger.LogInformation("AI query received: {Question}", request.Question.Length > 200
-            ? request.Question[..200] + "…"
-            : request.Question);
+        // Queries may contain sensitive infrastructure details; do not log their contents.
+        _logger.LogInformation("AI query received ({Length} characters)", request.Question.Length);
 
         var result = await _aiQueryService.QueryAsync(request.Question, ct);
 
