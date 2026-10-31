@@ -3,7 +3,7 @@ import { fakeAsync, TestBed, tick } from '@angular/core/testing';
 import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { provideRouter } from '@angular/router';
 import { of, throwError } from 'rxjs';
-import { AIQueryResult } from '../../core/models';
+import { AIQueryResult, PlatformStatus } from '../../core/models';
 import { MetaService } from '../../core/services/meta.service';
 import { QueryService } from '../../core/services/query.service';
 import { ToastService } from '../../core/services/toast.service';
@@ -11,6 +11,7 @@ import { QueryComponent } from './query.component';
 
 describe('QueryComponent preview guide', () => {
   const ask = jasmine.createSpy('ask');
+  const status = signal<PlatformStatus | null>(null);
   const error = jasmine.createSpy('error');
   const response: AIQueryResult = {
     question: 'What can CloudScope do?',
@@ -23,6 +24,7 @@ describe('QueryComponent preview guide', () => {
   };
 
   beforeEach(async () => {
+    status.set(null);
     ask.calls.reset();
     error.calls.reset();
     ask.and.returnValue(of(response));
@@ -31,7 +33,7 @@ describe('QueryComponent preview guide', () => {
       providers: [
         provideRouter([]),
         provideNoopAnimations(),
-        { provide: MetaService, useValue: { demoMode: signal(true) } },
+        { provide: MetaService, useValue: { demoMode: signal(true), status } },
         { provide: QueryService, useValue: { ask, getSuggestions: () => of([]) } },
         { provide: ToastService, useValue: { error } }
       ]
@@ -48,7 +50,7 @@ describe('QueryComponent preview guide', () => {
     starter?.click();
     fixture.detectChanges();
     tick();
-    expect(ask).toHaveBeenCalledWith('What can CloudScope do?');
+    expect(ask).toHaveBeenCalledWith('What can CloudScope do?', undefined);
     expect(element.querySelector('.answer strong')?.textContent).toBe('fictional');
     expect(element.querySelector('.next-link')?.textContent).toContain('Open dashboard');
     const suggestion = element.querySelector<HTMLButtonElement>('.next-steps button');
@@ -56,7 +58,7 @@ describe('QueryComponent preview guide', () => {
     suggestion?.click();
     fixture.detectChanges();
     tick();
-    expect(ask).toHaveBeenCalledWith('Is this real data?');
+    expect(ask).toHaveBeenCalledWith('Is this real data?', undefined);
     expect(fixture.componentInstance.transcript().length).toBe(2);
     fixture.componentInstance.clearChat();
     fixture.detectChanges();
@@ -65,6 +67,51 @@ describe('QueryComponent preview guide', () => {
     expect(
       fixture.componentInstance.safeRelatedPage({ label: 'Bad', path: '//evil.example' })
     ).toBeNull();
+  }));
+
+  it('discloses Azure and sends only three recent exchanges when preview AI is configured', fakeAsync(() => {
+    status.set({
+      version: 'demo',
+      demoMode: true,
+      aiMode: 'AzureOpenAIDemo',
+      storageProvider: 'InMemory',
+      configuredProviders: [],
+      resourceCount: 0,
+      relationshipCount: 0,
+      serverTimeUtc: ''
+    });
+    const fixture = TestBed.createComponent(QueryComponent);
+    fixture.detectChanges();
+    const element: HTMLElement = fixture.nativeElement;
+    expect(element.textContent).toContain('sent to Azure OpenAI');
+    for (let i = 1; i <= 4; i++) {
+      fixture.componentInstance.question = `Question ${i}`;
+      fixture.componentInstance.ask();
+    }
+    fixture.detectChanges();
+    tick();
+    expect(ask.calls.mostRecent().args).toEqual([
+      'Question 4',
+      [
+        { role: 'user', content: 'Question 1' },
+        { role: 'assistant', content: response.answer },
+        { role: 'user', content: 'Question 2' },
+        { role: 'assistant', content: response.answer },
+        { role: 'user', content: 'Question 3' },
+        { role: 'assistant', content: response.answer }
+      ]
+    ]);
+    fixture.componentInstance.question = 'Question 5';
+    fixture.componentInstance.ask();
+    fixture.detectChanges();
+    tick();
+    expect(ask.calls.mostRecent().args[1].length).toBe(6);
+    expect(ask.calls.mostRecent().args[1][0].content).toBe('Question 2');
+    fixture.componentInstance.clearChat();
+    fixture.componentInstance.question = 'New topic';
+    fixture.componentInstance.ask();
+    tick();
+    expect(ask.calls.mostRecent().args).toEqual(['New topic', []]);
   }));
 
   it('keeps a failed question available for retry', () => {

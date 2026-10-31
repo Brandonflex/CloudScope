@@ -98,5 +98,5 @@ export default async function previewApi(request, response) {
 
   // The shared handler reads the raw Node stream, not Vercel's body helper.
   // Do not access request.body here: it would consume the stream.
-  await handleRequest(request, response);
+  await handleRequest(request, response, { allowPreviewAi: true });
 }

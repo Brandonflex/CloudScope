@@ -18,7 +18,7 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatChipsModule } from '@angular/material/chips';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { QueryService } from '../../core/services/query.service';
+import { ChatTurn, QueryService } from '../../core/services/query.service';
 import { MetaService } from '../../core/services/meta.service';
 import { ToastService } from '../../core/services/toast.service';
 import { AIQueryResult } from '../../core/models';
@@ -72,10 +72,12 @@ const DEFAULT_EXAMPLES: Example[] = [
         <div>
           <h1>Ask CloudScope</h1>
           <p class="subtitle">
-            @if (meta.demoMode()) {
-              Explore fictional demo data with a limited, rule-based query engine. This is not a
-              general-purpose AI assistant. Ask complete questions; the demo does not remember
-              conversation context.
+            @if (previewAiEnabled()) {
+              AI answers use fictional demo data and may be wrong. Your question and up to three
+              previous exchanges are sent to Azure OpenAI. Do not enter secrets or sensitive data.
+            } @else if (meta.demoMode()) {
+              Explore fictional demo data with a limited, rule-based query engine. Ask complete
+              questions; the local engine does not remember conversation context.
             } @else {
               Natural-language questions over the inventory. Answers cite the resources they used.
             }
@@ -85,7 +87,12 @@ const DEFAULT_EXAMPLES: Example[] = [
           <span class="chip chip-purple">
             <mat-icon>auto_awesome</mat-icon>
             {{
-              lastResult()?.source ?? (meta.demoMode() ? 'Local demo engine' : 'AI + local engine')
+              lastResult()?.source ??
+                (previewAiEnabled()
+                  ? 'Azure AI configured'
+                  : meta.demoMode()
+                    ? 'Local demo engine'
+                    : 'AI + local engine')
             }}
           </span>
           @if (transcript().length) {
@@ -136,6 +143,29 @@ const DEFAULT_EXAMPLES: Example[] = [
                     <span class="bubble-time">{{ entry.result.processingTime }}</span>
                   </div>
                   <div class="answer" [innerHTML]="formatAnswer(entry.result.answer)"></div>
+
+                  @if (entry.result.contextSources?.length) {
+                    <p class="context-notice">
+                      Context supplied to AI (not verified citations):
+                      <a
+                        href="https://github.com/Brandonflex/CloudScope/blob/main/README.md"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        >CloudScope guide</a
+                      >
+                      ,
+                      <a
+                        href="https://github.com/Brandonflex/CloudScope/blob/main/SECURITY.md"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        >security guide</a
+                      >
+                      and
+                      <a href="/demo/inventory.json" target="_blank" rel="noopener noreferrer"
+                        >fictional inventory</a
+                      >. Verify important answers.
+                    </p>
+                  }
 
                   @if (
                     entry.result.suggestedQuestions?.length ||
@@ -426,6 +456,15 @@ const DEFAULT_EXAMPLES: Example[] = [
         color: #f0f6fc;
       }
 
+      .context-notice {
+        margin-top: 10px !important;
+        color: var(--text-muted);
+        font-size: 0.75rem !important;
+      }
+      .context-notice a {
+        color: #9bcaff;
+      }
+
       .generated-query {
         margin-top: 10px;
         font-size: 0.75rem;
@@ -635,6 +674,10 @@ export class QueryComponent implements OnInit {
       });
   }
 
+  previewAiEnabled(): boolean {
+    return this.meta.demoMode() && this.meta.status()?.aiMode === 'AzureOpenAIDemo';
+  }
+
   safeRelatedPage(page: AIQueryResult['relatedPage']): { label: string; path: string } | null {
     const allowed = ['/dashboard', '/resources', '/graph', '/costs', '/compliance', '/query'];
     return page && typeof page.label === 'string' && allowed.includes(page.path) ? page : null;
@@ -656,11 +699,19 @@ export class QueryComponent implements OnInit {
     const question = this.question.trim();
     if (!question || this.thinking()) return;
 
+    const history: ChatTurn[] | undefined = this.previewAiEnabled()
+      ? this.transcript()
+          .slice(-3)
+          .flatMap((entry): ChatTurn[] => [
+            { role: 'user', content: entry.question.slice(0, 1200) },
+            { role: 'assistant', content: entry.result.answer.slice(0, 1200) }
+          ])
+      : undefined;
     this.question = '';
     this.thinking.set(true);
 
     this.queryService
-      .ask(question)
+      .ask(question, history)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (result) => {

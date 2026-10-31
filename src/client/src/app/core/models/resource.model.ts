@@ -297,6 +297,7 @@ export interface AIQueryResult {
   error?: string | null;
   processingTime: string;
   source: string;
+  contextSources?: string[];
   suggestedQuestions?: string[];
   relatedPage?: { label: string; path: string } | null;
 }

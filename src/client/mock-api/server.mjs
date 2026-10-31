@@ -21,6 +21,7 @@ import { createServer } from 'node:http';
 import { extname, join, normalize, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { findHelp } from './help.mjs';
+import { askPreviewAi, previewAiConfig, validateHistory } from './preview-ai.mjs';
 
 const HERE = resolve(fileURLToPath(new URL('.', import.meta.url)));
 const INVENTORY_PATH = join(HERE, '..', 'public', 'demo', 'inventory.json');
@@ -1399,7 +1400,12 @@ async function readBody(request, response) {
 
   if (chunks.length === 0) return {};
   try {
-    return JSON.parse(Buffer.concat(chunks).toString('utf8'));
+    const value = JSON.parse(Buffer.concat(chunks).toString('utf8'));
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+      sendJson(response, 400, { message: 'Request body must be a JSON object' });
+      return null;
+    }
+    return value;
   } catch {
     sendJson(response, 400, { message: 'Request body must be valid JSON' });
     return null;
@@ -1470,7 +1476,7 @@ async function serveStatic(request, response, pathname) {
   }
 }
 
-export async function handleRequest(request, response) {
+export async function handleRequest(request, response, options = {}) {
   let url;
   try {
     url = new URL(request.url || '/', `http://${request.headers.host ?? 'localhost'}`);
@@ -1516,7 +1522,7 @@ export async function handleRequest(request, response) {
         demoMode: true,
         realtimeAvailable: false,
         storageProvider: 'InMemory',
-        aiMode: 'Local',
+        aiMode: options.allowPreviewAi && previewAiConfig(process.env) ? 'AzureOpenAIDemo' : 'Local',
         configuredProviders: ['Azure', 'AWS'],
         resourceCount: resources.length,
         relationshipCount: edges.length,
@@ -1781,7 +1787,7 @@ export async function handleRequest(request, response) {
     if (route === 'query/ask' && request.method === 'POST') {
       const body = await readBody(request, response);
       if (body === null) return;
-      const question = String(body.question ?? '').trim();
+      const question = typeof body.question === 'string' ? body.question.trim() : '';
       if (!question) {
         sendJson(response, 400, { message: 'Question is required' });
         return;
@@ -1789,6 +1795,40 @@ export async function handleRequest(request, response) {
       if (question.length > 1000) {
         sendJson(response, 400, { message: 'Question must be 1000 characters or fewer' });
         return;
+      }
+      if (!validateHistory(body.history)) {
+        sendJson(response, 400, { message: 'Invalid conversation history' });
+        return;
+      }
+      const config = options.allowPreviewAi ? previewAiConfig(process.env) : null;
+      if (config) {
+        const started = Date.now();
+        try {
+          // Only fixed synthetic fields are sent; no credentials or live cloud data.
+          const context = {
+            resourceCount: resources.length,
+            relationshipCount: edges.length,
+            resources: resources.map((r) => ({ name: r.name, type: r.resourceType, provider: r.provider, region: r.region, monthlyCost: r.estimatedMonthlyCost, cpu: r.cpuUtilization, managedByIaC: r.isManagedByIaC })),
+            relationships: edges.map((e) => ({ source: byId.get(e.sourceResourceId)?.name, target: byId.get(e.targetResourceId)?.name, type: e.relationshipType })),
+            compliance: posture(),
+            anomalies: buildAnomalies().slice(0, 10).map((a) => ({ resourceName: a.resourceName, deviationPercentage: a.deviationPercentage })),
+            recommendations: buildRecommendations().slice(0, 10).map((r) => ({ resourceName: r.resourceName, title: r.title, estimatedMonthlySavings: r.estimatedMonthlySavings }))
+          };
+          const answer = await askPreviewAi({ config, question, history: body.history, context, fetchImpl: options.aiFetch });
+          sendJson(response, 200, {
+            question, answer, generatedQuery: null, data: null, success: true, error: null,
+            processingTime: `${Date.now() - started} ms`, source: 'Azure OpenAI · demo data',
+            contextSources: ['CloudScope product guide', 'Fictional demo inventory']
+          });
+          return;
+        } catch {
+          // Do not log provider errors, request bodies or API keys.
+          const fallback = answerQuestion(question);
+          fallback.source = 'Local demo engine (AI unavailable)';
+          fallback.answer = 'AI is temporarily unavailable. This limited local response does not use conversation history.\n\n' + fallback.answer;
+          sendJson(response, 200, fallback);
+          return;
+        }
       }
       sendJson(response, 200, answerQuestion(question));
       return;

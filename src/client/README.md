@@ -52,13 +52,39 @@ exists and that your Vercel account can access protected deployments. A new
 build creates a new immutable deployment URL; use the project alias for the
 current deployment.
 
-### Preview assistant
+### Optional Azure OpenAI preview assistant
 
-The preview's assistant is a deterministic, rule-based guide, not a connected
-LLM. It can explain CloudScope features, demo data, deployment responsibilities
-and common concepts, and answer a selection of questions about the fictional
-inventory. Suggested follow-ups are standalone questions: the demo does not
-remember conversation context. It cannot connect accounts, make infrastructure
-changes or answer arbitrary questions. Do not enter secrets or sensitive data.
-The .NET backend has a separate query engine; these preview-specific explanations
-and suggestions do not change its behaviour.
+By default the preview uses a deterministic local guide. To enable the optional
+AI assistant, create an Azure OpenAI resource and a compatible chat-completions
+model deployment (for example, a compatible GPT-4o deployment). In Vercel
+Project Settings → Environment Variables, add these **server-side, Preview-only**
+variables and redeploy the preview:
+
+- `CLOUDSCOPE_PREVIEW_AZURE_OPENAI_ENDPOINT`: the resource endpoint, in the form
+  `https://YOUR-RESOURCE.openai.azure.com` (no path or trailing query string).
+- `CLOUDSCOPE_PREVIEW_AZURE_OPENAI_DEPLOYMENT`: your model deployment name.
+- `CLOUDSCOPE_PREVIEW_AZURE_OPENAI_API_KEY`: the Azure OpenAI API key, entered
+  directly in Vercel's secret settings. Do not put it in Git, browser code, or chat.
+
+Also enable Vercel's system environment variables so `VERCEL_ENV=preview` is
+available. AI is enabled only when all settings are valid in a Preview deployment;
+production and the local mock do not invoke this preview integration. The endpoint
+must be an Azure OpenAI `*.openai.azure.com` hostname. The integration uses the
+Azure `2024-08-01-preview` chat-completions API; model deployments must support
+that API and `max_tokens`. Azure configuration and quota are operator-managed.
+If the call fails or times out, the UI labels a limited local fallback; the
+configuration badge alone does not prove the model is reachable.
+
+**Privacy and cost:** your question, up to three previous exchanges, a curated
+CloudScope guide and fictional inventory are sent to Azure OpenAI. Users must not
+enter credentials, secrets or sensitive information. Provider data handling and
+retention are governed by your Azure configuration and agreements. Configure
+Azure quotas and budget alerts, keep Vercel Deployment Protection enabled and
+configure platform rate limits; the application has no built-in user rate limit.
+Conversation context is held in the current browser session, not persisted by the
+preview. Refreshing or clearing chat loses it.
+
+This first version supplies a fixed guide and demo snapshot, not a search index,
+verified citations, live web browsing or real cloud data. AI can make mistakes;
+verify important answers. It has no infrastructure-changing tools and must not
+be used as a production backend. The .NET backend has a separate query engine.
