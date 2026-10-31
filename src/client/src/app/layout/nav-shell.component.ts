@@ -15,11 +15,25 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { filter, interval } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { PlatformStatus } from '../core/models';
 import { MetaService } from '../core/services/meta.service';
 import { NotificationService } from '../core/services/notification.service';
 import { RefreshService } from '../core/services/refresh.service';
 import { ResourceService } from '../core/services/resource.service';
 import { ToastService } from '../core/services/toast.service';
+
+// A configured provider is not proof of a successful discovery.
+export function runtimeLabel(status: PlatformStatus | null): string {
+  if (!status) return 'Status unavailable';
+  if (status.demoMode) return 'Demo estate';
+  if (!status.configuredProviders.length) return 'No providers configured';
+  if (status.discoveryStatus === 'Succeeded') return 'Connected estate';
+  if (status.discoveryStatus === 'InProgress') return 'Discovering resources';
+  if (status.discoveryStatus === 'Failed' || status.discoveryStatus === 'PartialFailure') {
+    return 'Discovery needs attention';
+  }
+  return 'Connection unverified';
+}
 
 interface NavItem {
   label: string;
@@ -73,19 +87,11 @@ interface NavItem {
           <div class="runtime">
             <span
               class="runtime-dot"
-              [class.live]="!!meta.status()?.configuredProviders?.length && !meta.demoMode()"
+              [class.live]="meta.status()?.discoveryStatus === 'Succeeded' && !meta.demoMode()"
               [class.demo]="meta.demoMode()"
             ></span>
             <div class="runtime-text">
-              <strong>{{
-                !meta.status()
-                  ? 'Status unavailable'
-                  : meta.demoMode()
-                    ? 'Demo estate'
-                    : meta.status()?.configuredProviders?.length
-                      ? 'Connected estate'
-                      : 'No providers configured'
-              }}</strong>
+              <strong>{{ runtimeLabel(meta.status()) }}</strong>
               <span>
                 {{ meta.status()?.resourceCount ?? 0 }} resources ·
                 {{ meta.status()?.relationshipCount ?? 0 }} edges
@@ -515,6 +521,7 @@ interface NavItem {
   ]
 })
 export class NavShellComponent implements OnInit, OnDestroy {
+  readonly runtimeLabel = runtimeLabel;
   readonly meta = inject(MetaService);
   readonly realtime = inject(NotificationService);
 

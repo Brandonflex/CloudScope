@@ -85,12 +85,29 @@ import {
           <div>
             <strong>You are exploring a demo estate</strong>
             <p>
-              54 synthetic resources across Azure and AWS are loaded so every feature is usable.
-              Configure cloud credentials (or <code>Platform:Mode=Live</code>) to discover your own
-              estate.
+              54 synthetic resources across Azure and AWS are loaded so every feature is usable. A
+              separately protected backend and read-only access are required to discover a real
+              estate. Never add cloud credentials to this demo preview.
             </p>
           </div>
           <a mat-stroked-button routerLink="/resources">Browse resources</a>
+        </div>
+      }
+
+      @if (
+        !meta.demoMode() &&
+        meta.status()?.configuredProviders?.length &&
+        meta.status()?.discoveryStatus !== 'Succeeded'
+      ) {
+        <div class="demo-banner" role="status">
+          <mat-icon>cloud_off</mat-icon>
+          <div>
+            <strong>Live inventory is not confirmed</strong>
+            <p>
+              Discovery is pending or has failed. Counts may be empty or stale; they do not confirm
+              that the cloud subscription contains no resources.
+            </p>
+          </div>
         </div>
       }
 

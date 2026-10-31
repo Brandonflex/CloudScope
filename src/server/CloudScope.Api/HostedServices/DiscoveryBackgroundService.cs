@@ -116,6 +116,7 @@ public class DiscoveryBackgroundService : BackgroundService
         {
             _logger.LogError(ex, "Startup seeding/discovery failed.");
             _runtime.LastDiscoveryError = ex.Message;
+            _runtime.DiscoveryStatus = "Failed";
         }
     }
 }

@@ -50,6 +50,7 @@ public class CloudDiscoveryService : IDiscoveryService
         try
         {
             _runtime.DiscoveryInProgress = true;
+            _runtime.DiscoveryStatus = "InProgress";
             _runtime.LastDiscoveryError = null;
 
             var configured = _providers.Where(p => p.IsConfigured).ToList();
@@ -61,6 +62,11 @@ public class CloudDiscoveryService : IDiscoveryService
                 _logger.LogInformation("No cloud providers are configured; loading the demo estate.");
                 return await SeedDemoCoreAsync(ct);
             }
+
+            // A process that seeded demo data must never reinterpret the same
+            // store as live. Do not delete data; require a fresh process/store.
+            if (_runtime.DemoMode)
+                throw new InvalidOperationException("Live discovery requires a fresh store that has never contained demo data.");
 
             var result = new DiscoveryResult { StartedAt = DateTime.UtcNow, DemoMode = false };
 
@@ -135,23 +141,33 @@ public class CloudDiscoveryService : IDiscoveryService
             result.ResourcesDiscovered = result.Providers.Sum(p => p.ResourcesDiscovered);
             result.CompletedAt = DateTime.UtcNow;
 
-            _runtime.LastDiscoveryAt = result.CompletedAt;
+            var failures = result.Providers.Count(p => p.Error is not null);
+            _runtime.DiscoveryStatus = failures == 0 ? "Succeeded"
+                : failures == result.Providers.Count ? "Failed" : "PartialFailure";
+            if (failures == 0)
+            {
+                _runtime.LastDiscoveryAt = result.CompletedAt;
+                try
+                {
+                    await _notifications.NotifyDiscoveryCompleted(result.ResourcesDiscovered, result.Duration);
+                }
+                catch (Exception ex) when (ex is not OperationCanceledException)
+                {
+                    _logger.LogWarning(ex, "Could not send discovery completion notification.");
+                }
+            }
             _runtime.DemoMode = false;
-
-            try
-            {
-                await _notifications.NotifyDiscoveryCompleted(result.ResourcesDiscovered, result.Duration);
-            }
-            catch (Exception ex) when (ex is not OperationCanceledException)
-            {
-                _logger.LogWarning(ex, "Could not send discovery completion notification.");
-            }
 
             _logger.LogInformation(
                 "Discovery finished: {Resources} resources, {Edges} relationships, {Duration:0.0}s.",
                 result.ResourcesDiscovered, result.RelationshipsDiscovered, result.Duration.TotalSeconds);
 
             return result;
+        }
+        catch
+        {
+            _runtime.DiscoveryStatus = "Failed";
+            throw;
         }
         finally
         {
@@ -206,6 +222,7 @@ public class CloudDiscoveryService : IDiscoveryService
         };
 
         _runtime.DemoMode = true;
+        _runtime.DiscoveryStatus = "Demo";
         _runtime.LastDiscoveryAt = result.CompletedAt;
 
         _logger.LogInformation(
