@@ -1,10 +1,12 @@
 using CloudScope.Core.Domain.Enums;
 using CloudScope.Core.Domain.Models;
 using CloudScope.Core.Interfaces;
+using CloudScope.Infrastructure.Configuration;
 using CloudScope.Infrastructure.Demo;
 using CloudScope.Infrastructure.Helpers;
 using CloudScope.Infrastructure.Runtime;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace CloudScope.Infrastructure.Services.Discovery;
 
@@ -21,7 +23,7 @@ public class CloudDiscoveryService : IDiscoveryService
     private readonly INotificationService _notifications;
     private readonly RuntimeState _runtime;
     private readonly ILogger<CloudDiscoveryService> _logger;
-    private readonly SemaphoreSlim _gate = new(1, 1);
+    private readonly PlatformOptions _platform;
 
     public CloudDiscoveryService(
         IEnumerable<ICloudProviderService> providers,
@@ -29,6 +31,7 @@ public class CloudDiscoveryService : IDiscoveryService
         IGraphRepository graphRepository,
         INotificationService notifications,
         RuntimeState runtime,
+        IOptions<PlatformOptions> platform,
         ILogger<CloudDiscoveryService> logger)
     {
         _providers = providers;
@@ -36,13 +39,14 @@ public class CloudDiscoveryService : IDiscoveryService
         _graphRepository = graphRepository;
         _notifications = notifications;
         _runtime = runtime;
+        _platform = platform.Value;
         _logger = logger;
     }
 
     /// <inheritdoc/>
     public async Task<DiscoveryResult> DiscoverAsync(CancellationToken ct = default)
     {
-        await _gate.WaitAsync(ct);
+        await _runtime.DiscoveryGate.WaitAsync(ct);
         try
         {
             _runtime.DiscoveryInProgress = true;
@@ -51,6 +55,9 @@ public class CloudDiscoveryService : IDiscoveryService
             var configured = _providers.Where(p => p.IsConfigured).ToList();
             if (configured.Count == 0)
             {
+                if (!_platform.SeedDemoData)
+                    throw new InvalidOperationException("No cloud providers are configured and demo seeding is disabled.");
+
                 _logger.LogInformation("No cloud providers are configured; loading the demo estate.");
                 return await SeedDemoCoreAsync(ct);
             }
@@ -71,22 +78,26 @@ public class CloudDiscoveryService : IDiscoveryService
                     await _resourceRepository.UpsertBatchAsync(discovered, ct);
 
                     providerResult.ResourcesDiscovered = discovered.Count;
-                    result.Providers.Add(providerResult);
-
                     _logger.LogInformation("{Provider} discovery stored {Count} resources.",
                         provider.Provider, discovered.Count);
-
-                    await _notifications.NotifyDiscoveryProgress(
-                        provider.Provider, result.ResourcesDiscovered,
-                        result.ResourcesDiscovered + discovered.Count);
                 }
                 catch (Exception ex) when (ex is not OperationCanceledException)
                 {
-                    providerResult.Error = ex.Message;
-                    result.Providers.Add(providerResult);
+                    providerResult.Error = "Discovery failed. See server logs for details.";
                     _runtime.LastDiscoveryError = ex.Message;
 
                     _logger.LogError(ex, "{Provider} discovery failed.", provider.Provider);
+                }
+
+                result.Providers.Add(providerResult);
+                try
+                {
+                    var completed = result.Providers.Sum(p => p.ResourcesDiscovered);
+                    await _notifications.NotifyDiscoveryProgress(provider.Provider, completed, completed);
+                }
+                catch (Exception ex) when (ex is not OperationCanceledException)
+                {
+                    _logger.LogWarning(ex, "Could not send discovery progress notification.");
                 }
             }
 
@@ -127,7 +138,14 @@ public class CloudDiscoveryService : IDiscoveryService
             _runtime.LastDiscoveryAt = result.CompletedAt;
             _runtime.DemoMode = false;
 
-            await _notifications.NotifyDiscoveryCompleted(result.ResourcesDiscovered, result.Duration);
+            try
+            {
+                await _notifications.NotifyDiscoveryCompleted(result.ResourcesDiscovered, result.Duration);
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                _logger.LogWarning(ex, "Could not send discovery completion notification.");
+            }
 
             _logger.LogInformation(
                 "Discovery finished: {Resources} resources, {Edges} relationships, {Duration:0.0}s.",
@@ -138,21 +156,26 @@ public class CloudDiscoveryService : IDiscoveryService
         finally
         {
             _runtime.DiscoveryInProgress = false;
-            _gate.Release();
+            _runtime.DiscoveryGate.Release();
         }
     }
 
     /// <inheritdoc/>
     public async Task<DiscoveryResult> SeedDemoAsync(CancellationToken ct = default)
     {
-        await _gate.WaitAsync(ct);
+        if (!_platform.SeedDemoData || _providers.Any(p => p.IsConfigured))
+            throw new InvalidOperationException("Demo seeding is disabled or cloud providers are configured.");
+
+        await _runtime.DiscoveryGate.WaitAsync(ct);
         try
         {
+            _runtime.DiscoveryInProgress = true;
             return await SeedDemoCoreAsync(ct);
         }
         finally
         {
-            _gate.Release();
+            _runtime.DiscoveryInProgress = false;
+            _runtime.DiscoveryGate.Release();
         }
     }
 

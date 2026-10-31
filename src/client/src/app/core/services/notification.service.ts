@@ -25,6 +25,7 @@ export interface RealtimeEvent {
 export class NotificationService {
   private hubConnection: signalR.HubConnection | null = null;
   private readonly events$ = new Subject<RealtimeEvent>();
+  private retryTimer: ReturnType<typeof setTimeout> | null = null;
 
   readonly connected = signal(false);
   readonly lastEvent = signal<RealtimeEvent | null>(null);
@@ -44,7 +45,11 @@ export class NotificationService {
 
     this.hubConnection.onreconnected(() => this.connected.set(true));
     this.hubConnection.onreconnecting(() => this.connected.set(false));
-    this.hubConnection.onclose(() => this.connected.set(false));
+    const connection = this.hubConnection;
+    connection.onclose(() => {
+      this.connected.set(false);
+      this.scheduleRetry(connection);
+    });
 
     const handlers: RealtimeEventType[] = [
       'resourceDiscovered',
@@ -59,16 +64,38 @@ export class NotificationService {
       this.hubConnection.on(handler, (data: unknown) => this.publish(handler, data));
     }
 
-    void this.hubConnection
-      .start()
-      .then(() => this.connected.set(true))
-      .catch(() => this.connected.set(false));
+    this.connect(connection);
   }
 
   stopConnection(): void {
-    void this.hubConnection?.stop();
+    const connection = this.hubConnection;
     this.hubConnection = null;
+    if (this.retryTimer) clearTimeout(this.retryTimer);
+    this.retryTimer = null;
+    void connection?.stop();
     this.connected.set(false);
+  }
+
+  private connect(connection: signalR.HubConnection): void {
+    void connection
+      .start()
+      .then(() => {
+        if (this.hubConnection === connection) this.connected.set(true);
+      })
+      .catch(() => {
+        if (this.hubConnection === connection) {
+          this.connected.set(false);
+          this.scheduleRetry(connection);
+        }
+      });
+  }
+
+  private scheduleRetry(connection: signalR.HubConnection): void {
+    if (this.hubConnection !== connection || this.retryTimer) return;
+    this.retryTimer = setTimeout(() => {
+      this.retryTimer = null;
+      if (this.hubConnection === connection) this.connect(connection);
+    }, 15000);
   }
 
   private publish(type: RealtimeEventType, data: unknown): void {

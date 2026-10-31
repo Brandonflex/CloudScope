@@ -32,6 +32,9 @@ public class CostsController : ControllerBase
         var start = startDate ?? DateTime.UtcNow.AddDays(-30);
         var end = endDate ?? DateTime.UtcNow;
 
+        if (start > end || (end - start).TotalDays > 366)
+            return BadRequest(new { message = "Date range must be ordered and no longer than 366 days." });
+
         var summary = await _costService.GetCostSummaryAsync(start, end, ct);
         return Ok(summary);
     }
@@ -48,6 +51,9 @@ public class CostsController : ControllerBase
         var start = startDate ?? DateTime.UtcNow.AddDays(-90);
         var end = endDate ?? DateTime.UtcNow;
 
+        if (start > end || (end - start).TotalDays > 366)
+            return BadRequest(new { message = "Date range must be ordered and no longer than 366 days." });
+
         var trends = await _costService.GetCostTrendsAsync(start, end, ct);
         return Ok(trends);
     }
@@ -60,6 +66,9 @@ public class CostsController : ControllerBase
         [FromQuery] int daysAhead = 30,
         CancellationToken ct = default)
     {
+        if (daysAhead < 1 || daysAhead > 365)
+            return BadRequest(new { message = "daysAhead must be between 1 and 365." });
+
         var forecast = await _costService.GetForecastAsync(daysAhead, ct);
         return Ok(forecast);
     }
@@ -92,6 +101,9 @@ public class CostsController : ControllerBase
         [FromQuery] int count = 10,
         CancellationToken ct = default)
     {
+        if (count < 1 || count > 500)
+            return BadRequest(new { message = "count must be between 1 and 500." });
+
         var resources = await _costService.GetTopResourcesAsync(count, ct);
         return Ok(resources);
     }

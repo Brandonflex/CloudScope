@@ -1,4 +1,6 @@
 using CloudScope.Core.Interfaces;
+using CloudScope.Infrastructure.Configuration;
+using Microsoft.Extensions.Options;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CloudScope.Api.Controllers;
@@ -14,15 +16,18 @@ public class MetaController : ControllerBase
     private readonly IPlatformStatusService _statusService;
     private readonly IDiscoveryService _discoveryService;
     private readonly ILogger<MetaController> _logger;
+    private readonly PlatformOptions _platform;
 
     public MetaController(
         IPlatformStatusService statusService,
         IDiscoveryService discoveryService,
+        IOptions<PlatformOptions> platform,
         ILogger<MetaController> logger)
     {
         _statusService = statusService;
         _discoveryService = discoveryService;
         _logger = logger;
+        _platform = platform.Value;
     }
 
     /// <summary>
@@ -41,6 +46,13 @@ public class MetaController : ControllerBase
     [HttpPost("demo")]
     public async Task<IActionResult> LoadDemo(CancellationToken ct)
     {
+        if (!_platform.SeedDemoData)
+            return NotFound();
+
+        var status = await _statusService.GetStatusAsync(ct);
+        if (status.ConfiguredProviders.Count > 0)
+            return Conflict(new { message = "Demo seeding is unavailable while cloud providers are configured." });
+
         _logger.LogInformation("Demo estate reload requested via API.");
 
         var result = await _discoveryService.SeedDemoAsync(ct);

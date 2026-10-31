@@ -6,11 +6,11 @@ services:
     image: mcr.microsoft.com/cosmosdb/linux/azure-cosmos-emulator:latest
     container_name: cloudscope-cosmos
     ports:
-      - "8081:8081"  # Data Explorer
-      - "10251:10251" # Gremlin API
-      - "10252:10252"
-      - "10253:10253"
-      - "10254:10254"
+      - "127.0.0.1:8081:8081"  # Data Explorer
+      - "127.0.0.1:10251:10251" # Gremlin API
+      - "127.0.0.1:10252:10252"
+      - "127.0.0.1:10253:10253"
+      - "127.0.0.1:10254:10254"
     environment:
       - AZURE_COSMOS_EMULATOR_PARTITION_COUNT=3
       - AZURE_COSMOS_EMULATOR_ENABLE_DATA_PERSISTENCE=true
@@ -29,7 +29,7 @@ services:
     image: redis:7-alpine
     container_name: cloudscope-redis
     ports:
-      - "6379:6379"
+      - "127.0.0.1:6379:6379"
     volumes:
       - redis-data:/data
     healthcheck:
@@ -45,14 +45,14 @@ services:
     image: mcr.microsoft.com/azure-sql-edge:latest
     container_name: cloudscope-sql
     ports:
-      - "1433:1433"
+      - "127.0.0.1:1433:1433"
     environment:
       - ACCEPT_EULA=Y
-      - MSSQL_SA_PASSWORD=CloudScope!Dev2026
+      - MSSQL_SA_PASSWORD=${MSSQL_SA_PASSWORD:?Set MSSQL_SA_PASSWORD to a strong local development password}
     volumes:
       - sql-data:/var/opt/mssql
     healthcheck:
-      test: /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "CloudScope!Dev2026" -Q "SELECT 1" -C -No
+      test: /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "$$MSSQL_SA_PASSWORD" -Q "SELECT 1" -C -No
       interval: 10s
       timeout: 5s
       retries: 10
@@ -69,6 +69,8 @@ services:
       - "8080:8080"
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
+      # Demo only: never disable gateway authentication for real cloud data.
+      - GatewayAuthentication__Enabled=false
       - Platform__StorageProvider=InMemory
       - Platform__SeedDemoData=true
       - ConnectionStrings__Redis=redis:6379

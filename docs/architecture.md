@@ -228,7 +228,7 @@ TypeScript settings are enabled.
 | **Bundled demo estate** | The same JSON powers backend seeding, the Angular demo host and tests, so numbers agree across all three. |
 | **Local NL engine alongside OpenAI** | The AI feature must not be a paywalled demo; deterministic intent matching covers the common questions and acts as the OpenAI fallback. |
 | **No MediatR** | Controllers call services directly; with one deployable and a small surface, indirection added cost without benefit. Interfaces still isolate the domain. |
-| **No authentication yet** | Phase-1 scope; middleware and CORS (with credentials) are wired so Entra ID can be added without re-architecting. |
+| **Gateway-based security** | Production verifies a shared gateway secret; an operator-provided identity-aware gateway must authenticate and authorize users. |
 
 ## 8. Observability and failure handling
 

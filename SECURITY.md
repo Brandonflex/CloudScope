@@ -1,9 +1,9 @@
 # Security Policy
 
-CloudScope is a demonstration/reference platform. It ships with **no
-authentication enabled** by default (see the roadmap) and should not be exposed
-to the public internet with real cloud credentials attached until that work is
-complete.
+CloudScope is a demonstration/reference platform. Production requires an
+identity-aware gateway; CloudScope verifies a gateway secret but does **not**
+authenticate or authorize individual users itself. Do not attach real cloud
+credentials until the gateway, network isolation and access policies are in place.
 
 ## Reporting a vulnerability
 
@@ -35,8 +35,8 @@ Only the latest commit on `main` receives fixes.
 * The demo host (`src/client/mock-api/server.mjs`) has no authentication, no
   rate limiting and is explicitly a local development tool. Do not run it on a
   public interface.
-* Missing authentication on the API — it is a documented, deliberate phase-1
-  limitation, not a vulnerability report.
+* Missing built-in user authentication — user identity and authorization are
+  delegated to the operator-provided identity-aware gateway.
 
 ## Secrets
 
@@ -44,3 +44,36 @@ No credentials are committed. `appsettings.json` contains empty placeholders;
 local overrides use `dotnet user-secrets`; deployment supplies values through
 App Service settings. If you believe a secret has been committed, report it
 privately and rotate the credential immediately.
+
+## Gateway and deployment safeguards
+
+In Production the API fails to start unless `GatewayAuthentication:SharedSecret`
+is configured. Set `GatewayAuthentication__SharedSecret` to a cryptographically
+random secret of at least 32 bytes (for example, the output of
+`openssl rand -hex 32`), using the deployment platform's secret store. Do not
+put this secret in browser code, Git, or client-facing responses.
+
+An operator must deploy and configure an **identity-aware gateway** in front of
+the app. It must authenticate and authorize users for every SPA, API and SignalR
+request, including WebSocket upgrades, remove any incoming
+`X-CloudScope-Gateway-Key` header, and inject its own shared secret in that
+header on every request it forwards. The API verifies this secret on all paths
+(including static files and the SignalR hub) except `GET /health`. A valid secret
+only identifies the gateway: it does not identify a user or provide per-user
+roles. Never rely on the secret as a substitute for user authentication.
+
+Restrict direct network access to the backend to the gateway and health probe;
+use TLS on both network hops and rotate the secret when it may be compromised.
+A malicious or misconfigured gateway can bypass this protection. Existing Azure
+infrastructure does **not** provision the identity-aware gateway or its secret;
+configure both before deploying this version or production will not start.
+Development and the Docker Compose demo disable gateway authentication; never
+use that opt-out with real cloud data. Compose also requires a strong
+`MSSQL_SA_PASSWORD`; infrastructure service ports bind to localhost. The app
+ports are not authentication boundaries.
+
+Forwarded headers are accepted only from framework-default loopback proxies and
+IPs configured in `ForwardedHeaders:KnownProxies` (for example via
+`ForwardedHeaders__KnownProxies__0`). Configure the actual immediate proxy IPs
+when deploying behind a reverse proxy; do not trust arbitrary client addresses.
+Production CORS origins must be explicitly configured in `Cors:AllowedOrigins`.

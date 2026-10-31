@@ -46,6 +46,9 @@ public class ResourcesController : ControllerBase
         [FromQuery] string? search = null,
         CancellationToken ct = default)
     {
+        if (pageNumber < 1 || pageSize < 1 || pageSize > 500 || (long)(pageNumber - 1) * pageSize > int.MaxValue)
+            return BadRequest(new { message = "Invalid pagination parameters (pageSize must be 1–500)." });
+
         var result = await _resourceRepository.GetAllAsync(
             pageNumber, pageSize, provider, resourceType, region, resourceGroup, search, ct);
         return Ok(result);
@@ -87,9 +90,24 @@ public class ResourcesController : ControllerBase
     [ProducesResponseType(typeof(BlastRadiusResult), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetBlastRadius(string id, [FromQuery] int maxDepth = 5, CancellationToken ct = default)
     {
+        if (maxDepth < 1 || maxDepth > 20)
+            return BadRequest(new { message = "maxDepth must be between 1 and 20." });
+
         var result = await _blastRadiusService.AnalyzeAsync(id, maxDepth, ct);
         return Ok(result);
     }
+
+    // IDs may contain slashes (for example Azure ARM IDs). Query parameters
+    // avoid the encoded-slash ambiguity of route segments and reverse proxies.
+    [HttpGet("by-id")]
+    public Task<IActionResult> GetByQueryId([FromQuery] string id, CancellationToken ct) => GetById(id, ct);
+
+    [HttpGet("relationships")]
+    public Task<IActionResult> GetRelationshipsByQueryId([FromQuery] string id, CancellationToken ct) => GetRelationships(id, ct);
+
+    [HttpGet("blast-radius")]
+    public Task<IActionResult> GetBlastRadiusByQueryId([FromQuery] string id, [FromQuery] int maxDepth = 5, CancellationToken ct = default)
+        => GetBlastRadius(id, maxDepth, ct);
 
     /// <summary>
     /// Trigger resource discovery across all connected cloud providers.

@@ -1,5 +1,5 @@
 // @ts-check
-// Flat ESLint configuration (ESLint 8 + typescript-eslint + angular-eslint).
+// Flat ESLint configuration (ESLint 9 + typescript-eslint + angular-eslint).
 const eslint = require('@eslint/js');
 const tseslint = require('typescript-eslint');
 const angular = require('angular-eslint');
