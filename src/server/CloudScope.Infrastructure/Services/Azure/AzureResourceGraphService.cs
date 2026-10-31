@@ -60,7 +60,7 @@ public class AzureResourceGraphService : ICloudProviderService
             return Array.Empty<CloudResource>();
         }
 
-        var query = $"Resources | project {string.Join(", ", DefaultQueryFields)} | order by name asc";
+        var query = $"Resources | project {string.Join(", ", DefaultQueryFields)} | order by id asc";
         return await QueryResourceGraphAsync(query, ct);
     }
 
@@ -181,6 +181,7 @@ public class AzureResourceGraphService : ICloudProviderService
         var client = _httpClientFactory.CreateClient("AzureManagement");
         var resources = new List<CloudResource>();
         string? skipToken = null;
+        var seenTokens = new HashSet<string>(StringComparer.Ordinal);
 
         do
         {
@@ -221,18 +222,16 @@ public class AzureResourceGraphService : ICloudProviderService
                 using var document = JsonDocument.Parse(body);
                 var root = document.RootElement;
 
-                if (root.TryGetProperty("data", out var data) && data.ValueKind == JsonValueKind.Array)
+                var page = ValidatePage(root);
+                foreach (var row in page.Data.EnumerateArray())
                 {
-                    foreach (var row in data.EnumerateArray())
-                    {
-                        var resource = MapResource(row);
-                        if (resource is not null) resources.Add(resource);
-                    }
+                    var resource = MapResource(row) ?? throw new CloudProviderException(
+                        "Azure", "Resource Graph returned a resource without an ID.");
+                    resources.Add(resource);
                 }
-
-                skipToken = root.TryGetProperty("$skipToken", out var next) && next.ValueKind == JsonValueKind.String
-                    ? next.GetString()
-                    : null;
+                skipToken = page.SkipToken;
+                if (skipToken is not null && !seenTokens.Add(skipToken))
+                    throw new CloudProviderException("Azure", "Resource Graph repeated a continuation token.");
             }
             catch (CloudProviderException)
             {
@@ -251,6 +250,40 @@ public class AzureResourceGraphService : ICloudProviderService
 
         _logger.LogInformation("Azure Resource Graph returned {Count} resources.", resources.Count);
         return resources;
+    }
+
+    /// <summary>
+    /// Validate that an HTTP 200 is a complete page, not an unusable or
+    /// truncated response that could be mistaken for an empty inventory.
+    /// </summary>
+    public static (JsonElement Data, string? SkipToken) ValidatePage(JsonElement root)
+    {
+        if (root.ValueKind != JsonValueKind.Object ||
+            !root.TryGetProperty("data", out var data) || data.ValueKind != JsonValueKind.Array)
+            throw new CloudProviderException("Azure", "Resource Graph returned an invalid data page.");
+
+        string? skipToken = null;
+        if (root.TryGetProperty("$skipToken", out var next) && next.ValueKind != JsonValueKind.Null)
+        {
+            if (next.ValueKind != JsonValueKind.String || string.IsNullOrWhiteSpace(next.GetString()))
+                throw new CloudProviderException("Azure", "Resource Graph returned an invalid continuation token.");
+            skipToken = next.GetString();
+        }
+
+        if (root.TryGetProperty("resultTruncated", out var truncated))
+        {
+            bool isTruncated;
+            if (truncated.ValueKind == JsonValueKind.True || truncated.ValueKind == JsonValueKind.False)
+                isTruncated = truncated.GetBoolean();
+            else if (truncated.ValueKind == JsonValueKind.String && bool.TryParse(truncated.GetString(), out var parsed))
+                isTruncated = parsed;
+            else
+                throw new CloudProviderException("Azure", "Resource Graph returned an invalid truncation indicator.");
+            if (isTruncated && skipToken is null)
+                throw new CloudProviderException("Azure", "Resource Graph returned a truncated page without a continuation token.");
+        }
+
+        return (data, skipToken);
     }
 
     private CloudResource? MapResource(JsonElement row)
