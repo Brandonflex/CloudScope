@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createServer } from 'node:http';
 import { once } from 'node:events';
-import previewApi from '../../api/[...path].mjs';
+import previewApi from '../../api/index.mjs';
 
 test('preview API powers the dashboard with bounded demo-only requests', async (t) => {
   const previous = process.env.VERCEL_ENV;
@@ -30,6 +30,21 @@ test('preview API powers the dashboard with bounded demo-only requests', async (
     assert.equal(response.status, 200, path);
     await response.json();
   }
+  // Vercel may deliver the rewrite destination rather than the original URL.
+  // Verify nested paths, original query strings, and POST bodies in that form.
+  const rewrittenMeta = await (await get('/api?__cloudscope_path=meta')).json();
+  assert.equal(rewrittenMeta.demoMode, true);
+  const rewrittenCosts = await get('/api?__cloudscope_path=costs%2Ftop-resources&count=6');
+  assert.equal(rewrittenCosts.status, 200);
+  assert.equal((await rewrittenCosts.json()).length, 6);
+  const rewrittenQuery = await fetch(`${base}/api?__cloudscope_path=query%2Fask`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ question: 'How many resources are there?' })
+  });
+  assert.equal(rewrittenQuery.status, 200);
+  assert.ok((await rewrittenQuery.json()).answer);
+  assert.equal((await get('/api?__cloudscope_path=..%2Fmeta')).status, 400);
+  assert.equal((await get('/api?__cloudscope_path=meta&__cloudscope_path=resources')).status, 400);
   const ask = await fetch(`${base}/api/query/ask`, {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ question: 'How many resources are there?' })

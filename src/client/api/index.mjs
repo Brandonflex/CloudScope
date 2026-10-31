@@ -27,6 +27,23 @@ export default async function previewApi(request, response) {
   }
 
   const url = new URL(request.url, 'http://localhost');
+  // Vercel may pass either the original URL or the rewrite destination. Restore
+  // the original route when it passes /api?__cloudscope_path=costs/summary.
+  const rewritePaths = url.searchParams.getAll('__cloudscope_path');
+  if (rewritePaths.length > 1) {
+    fail(response, 400, 'Invalid demo route.');
+    return;
+  }
+  if ((url.pathname === '/api' || url.pathname === '/api/index') && rewritePaths.length) {
+    const route = rewritePaths[0];
+    if (!/^[A-Za-z0-9-]+(?:\/[A-Za-z0-9-]+)*$/.test(route)) {
+      fail(response, 400, 'Invalid demo route.');
+      return;
+    }
+    url.pathname = `/api/${route}`;
+  }
+  url.searchParams.delete('__cloudscope_path');
+  request.url = `${url.pathname}${url.search}`;
   const path = url.pathname.replace(/\/+$/, '');
   const isReport = /^\/api\/compliance\/reports\/(CIS|SOC2|HIPAA|GDPR)$/i.test(path);
   const allowed = request.method === 'GET'

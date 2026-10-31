@@ -4,9 +4,10 @@
   "buildCommand": "npm run build:prod",
   "outputDirectory": "dist/cloudscope/browser",
   "functions": {
-    "api/*.mjs": { "includeFiles": "public/demo/inventory.json", "maxDuration": 10 }
+    "api/index.mjs": { "includeFiles": "public/demo/inventory.json", "maxDuration": 10 }
   },
   "rewrites": [
+    { "source": "/api/:__cloudscope_path+", "destination": "/api?__cloudscope_path=:__cloudscope_path*" },
     { "source": "/dashboard", "destination": "/index.html" },
     { "source": "/graph", "destination": "/index.html" },
     { "source": "/resources", "destination": "/index.html" },

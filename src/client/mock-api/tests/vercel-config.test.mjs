@@ -1,14 +1,15 @@
-import { readFile, stat } from 'node:fs/promises';
+import { readFile, readdir, stat } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { convertRewrites } from '@vercel/routing-utils';
 
 // Run after the production build, from src/client (as in CI and Vercel).
 test('Vercel serves the Angular browser output and rewrites only SPA routes', async () => {
   const config = JSON.parse(await readFile('vercel.json', 'utf8'));
   assert.equal(config.outputDirectory, 'dist/cloudscope/browser');
   assert.equal(config.buildCommand, 'npm run build:prod');
-  assert.equal(config.functions['api/*.mjs'].includeFiles, 'public/demo/inventory.json');
+  assert.equal(config.functions['api/index.mjs'].includeFiles, 'public/demo/inventory.json');
 
   const indexPath = resolve(config.outputDirectory, 'index.html');
   assert.ok((await stat(indexPath)).isFile(), 'the Vercel output must contain index.html');
@@ -21,10 +22,23 @@ test('Vercel serves the Angular browser output and rewrites only SPA routes', as
   const clientRoutes = [...routesSource.matchAll(/path: '([^']+)'/g)]
     .map((match) => match[1])
     .filter((route) => route !== '**');
+  const [apiRewrite, ...spaRewrites] = config.rewrites;
+  assert.deepEqual(apiRewrite, { source: '/api/:__cloudscope_path+', destination: '/api?__cloudscope_path=:__cloudscope_path*' });
+  assert.deepEqual(await readdir('api'), ['index.mjs'], 'all API routes must use the shared entry point');
+  // Exercise Vercel's actual rewrite compiler, including multi-segment captures.
+  const compiled = convertRewrites(config.rewrites)[0];
+  assert.equal(compiled.dest, '/api?__cloudscope_path=$1');
+  const pattern = new RegExp(compiled.src);
+  for (const route of ['/api/meta', '/api/costs/summary', '/api/query/ask']) {
+    const match = route.match(pattern);
+    assert.ok(match, `${route} must match Vercel's rewrite`);
+    assert.equal(match[1], route.slice('/api/'.length));
+  }
+  assert.ok(!pattern.test('/api'), 'the function destination must not match its own rewrite');
   assert.deepEqual(
-    config.rewrites.map((rule) => rule.source).sort(),
+    spaRewrites.map((rule) => rule.source).sort(),
     clientRoutes.map((route) => `/${route}`).sort()
   );
-  assert.ok(config.rewrites.every((rule) => rule.destination === '/index.html'));
-  assert.ok(!config.rewrites.some((rule) => /^\/(api|hubs)(\/|$)/.test(rule.source)));
+  assert.ok(spaRewrites.every((rule) => rule.destination === '/index.html'));
+  assert.ok(!spaRewrites.some((rule) => /^\/(api|hubs)(\/|$)/.test(rule.source)));
 });
