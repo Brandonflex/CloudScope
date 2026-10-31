@@ -325,6 +325,7 @@ export interface PlatformStatus {
   realtimeAvailable?: boolean;
   storageProvider: string;
   aiMode: string;
+  aiProviders?: string[];
   configuredProviders: string[];
   resourceCount: number;
   relationshipCount: number;

@@ -10,7 +10,7 @@ test('Vercel serves the Angular browser output and rewrites only SPA routes', as
   assert.equal(config.outputDirectory, 'dist/cloudscope/browser');
   assert.equal(config.buildCommand, 'npm run build:prod');
   assert.equal(config.functions['api/index.mjs'].includeFiles, 'public/demo/inventory.json');
-  assert.ok(config.functions['api/index.mjs'].maxDuration > 22, 'AI timeout must fit within the function duration');
+  assert.ok(config.functions['api/index.mjs'].maxDuration > 20, 'AI timeouts must fit within the function duration');
 
   const indexPath = resolve(config.outputDirectory, 'index.html');
   assert.ok((await stat(indexPath)).isFile(), 'the Vercel output must contain index.html');

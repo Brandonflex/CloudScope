@@ -21,7 +21,7 @@ import { createServer } from 'node:http';
 import { extname, join, normalize, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { findHelp } from './help.mjs';
-import { askPreviewAi, previewAiConfig, validateHistory } from './preview-ai.mjs';
+import { askPreviewAi, previewAiConfigs, validateHistory } from './preview-ai.mjs';
 
 const HERE = resolve(fileURLToPath(new URL('.', import.meta.url)));
 const INVENTORY_PATH = join(HERE, '..', 'public', 'demo', 'inventory.json');
@@ -1522,7 +1522,8 @@ export async function handleRequest(request, response, options = {}) {
         demoMode: true,
         realtimeAvailable: false,
         storageProvider: 'InMemory',
-        aiMode: options.allowPreviewAi && previewAiConfig(process.env) ? 'AzureOpenAIDemo' : 'Local',
+        aiMode: options.allowPreviewAi && previewAiConfigs(process.env).length ? 'FreeAIDemo' : 'Local',
+        aiProviders: options.allowPreviewAi ? previewAiConfigs(process.env).map((provider) => provider.name) : [],
         configuredProviders: ['Azure', 'AWS'],
         resourceCount: resources.length,
         relationshipCount: edges.length,
@@ -1800,8 +1801,8 @@ export async function handleRequest(request, response, options = {}) {
         sendJson(response, 400, { message: 'Invalid conversation history' });
         return;
       }
-      const config = options.allowPreviewAi ? previewAiConfig(process.env) : null;
-      if (config) {
+      const configs = options.allowPreviewAi ? previewAiConfigs(process.env) : [];
+      if (configs.length) {
         const started = Date.now();
         try {
           // Only fixed synthetic fields are sent; no credentials or live cloud data.
@@ -1814,10 +1815,10 @@ export async function handleRequest(request, response, options = {}) {
             anomalies: buildAnomalies().slice(0, 10).map((a) => ({ resourceName: a.resourceName, deviationPercentage: a.deviationPercentage })),
             recommendations: buildRecommendations().slice(0, 10).map((r) => ({ resourceName: r.resourceName, title: r.title, estimatedMonthlySavings: r.estimatedMonthlySavings }))
           };
-          const answer = await askPreviewAi({ config, question, history: body.history, context, fetchImpl: options.aiFetch });
+          const result = await askPreviewAi({ configs, question, history: body.history, context, fetchImpl: options.aiFetch });
           sendJson(response, 200, {
-            question, answer, generatedQuery: null, data: null, success: true, error: null,
-            processingTime: `${Date.now() - started} ms`, source: 'Azure OpenAI · demo data',
+            question, answer: result.answer, generatedQuery: null, data: null, success: true, error: null,
+            processingTime: `${Date.now() - started} ms`, source: `${result.provider} · demo data`,
             contextSources: ['CloudScope product guide', 'Fictional demo inventory']
           });
           return;

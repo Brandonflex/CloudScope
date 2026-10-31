@@ -52,39 +52,44 @@ exists and that your Vercel account can access protected deployments. A new
 build creates a new immutable deployment URL; use the project alias for the
 current deployment.
 
-### Optional Azure OpenAI preview assistant
+### Optional free-tier AI preview assistant
 
-By default the preview uses a deterministic local guide. To enable the optional
-AI assistant, create an Azure OpenAI resource and a compatible chat-completions
-model deployment (for example, a compatible GPT-4o deployment). In Vercel
-Project Settings → Environment Variables, add these **server-side, Preview-only**
-variables and redeploy the preview:
+The preview can use **Groq first, then Gemini** if Groq times out, is rate-limited
+or has a server/network error. It falls back to the local rule-based guide when
+neither is usable. You can configure either provider or both; no Azure account is
+needed. Some provider errors are not retried to avoid bypassing safety restrictions.
 
-- `CLOUDSCOPE_PREVIEW_AZURE_OPENAI_ENDPOINT`: the resource endpoint, in the form
-  `https://YOUR-RESOURCE.openai.azure.com` (no path or trailing query string).
-- `CLOUDSCOPE_PREVIEW_AZURE_OPENAI_DEPLOYMENT`: your model deployment name.
-- `CLOUDSCOPE_PREVIEW_AZURE_OPENAI_API_KEY`: the Azure OpenAI API key, entered
-  directly in Vercel's secret settings. Do not put it in Git, browser code, or chat.
+1. Create a free account with [Groq](https://console.groq.com/) and/or a free-tier
+   project in [Google AI Studio](https://aistudio.google.com/apikey). Confirm that
+   the account and model are on the **free tier** and leave billing disabled. If
+   prompted for a card, stop rather than enable a paid plan.
+2. In Vercel Project Settings → Environment Variables, add each key separately,
+   for **Preview only**. Add only the providers you want:
+   - `CLOUDSCOPE_PREVIEW_GROQ_API_KEY` — Groq API key.
+   - `CLOUDSCOPE_PREVIEW_GEMINI_API_KEY` — Gemini API key.
+3. Enable Vercel system variables so `VERCEL_ENV=preview` is available, then
+   redeploy. Enter keys directly into Vercel's secret settings, never in Git,
+   client-side code, screenshots or chat. The preview will show which provider
+   answered; “AI provider configured” alone does not confirm it is reachable.
 
-Also enable Vercel's system environment variables so `VERCEL_ENV=preview` is
-available. AI is enabled only when all settings are valid in a Preview deployment;
-production and the local mock do not invoke this preview integration. The endpoint
-must be an Azure OpenAI `*.openai.azure.com` hostname. The integration uses the
-Azure `2024-08-01-preview` chat-completions API; model deployments must support
-that API and `max_tokens`. Azure configuration and quota are operator-managed.
-If the call fails or times out, the UI labels a limited local fallback; the
-configuration badge alone does not prove the model is reachable.
+The app currently uses `openai/gpt-oss-20b` through Groq and
+`gemini-3.5-flash-lite` through Gemini. Provider free-tier models, quotas and
+regional availability can change. Free tiers are not unlimited and may stop
+working when limits are reached. The application **cannot check your provider
+billing plan or guarantee zero charges**; only connect free-tier accounts with
+billing disabled. Do not use paid models or add a payment method. The older
+Azure preview settings are no longer used by this integration.
 
-**Privacy and cost:** your question, up to three previous exchanges, a curated
-CloudScope guide and fictional inventory are sent to Azure OpenAI. Users must not
-enter credentials, secrets or sensitive information. Provider data handling and
-retention are governed by your Azure configuration and agreements. Configure
-Azure quotas and budget alerts, keep Vercel Deployment Protection enabled and
-configure platform rate limits; the application has no built-in user rate limit.
-Conversation context is held in the current browser session, not persisted by the
-preview. Refreshing or clearing chat loses it.
+**Privacy and security:** Your question, up to three previous exchanges, a
+curated CloudScope guide and fictional inventory are sent to Groq and may also
+be sent to Gemini when Groq fails. Google states that free-tier content may be
+used to improve its products; see each provider's privacy terms. Do not enter
+credentials, secrets or sensitive information. Keep Vercel Deployment Protection
+enabled and configure platform rate limits; the app has no built-in per-user rate
+limit. Conversation context is held in the current browser session and is lost
+on refresh or clearing chat.
 
-This first version supplies a fixed guide and demo snapshot, not a search index,
-verified citations, live web browsing or real cloud data. AI can make mistakes;
-verify important answers. It has no infrastructure-changing tools and must not
-be used as a production backend. The .NET backend has a separate query engine.
+This supplies a fixed guide and demo snapshot, not a search index, verified
+citations, live web browsing or real cloud data. AI can make mistakes; verify
+important answers. It has no infrastructure-changing tools and must not be used
+as a production backend. The .NET backend has a separate query engine.

@@ -36,12 +36,15 @@ Only the latest commit on `main` receives fixes.
   rate limiting and is a local development tool. The Vercel adapter uses it only
   for fictional demo data in preview deployments; keep Vercel Deployment
   Protection enabled and configure platform rate limits. Never attach real
-  cloud credentials or expose it as a production service. The optional Azure
-  OpenAI preview integration sends questions, up to three recent exchanges and
-  fictional context to the configured model provider; do not enter secrets or
-  sensitive information. Keep the provider key in Vercel's Preview-only secret
-  settings, configure Azure quotas and platform rate limits, and retain deployment
-  protection. AI output is untrusted and may be incorrect.
+  cloud credentials or expose it as a production service. The optional
+  Groq/Gemini preview integration sends questions, up to three recent
+  exchanges and fictional context to configured providers (both may
+  receive a question if failover occurs). Google free-tier content may be used
+  to improve its products. Do not enter secrets or sensitive information. Keep
+  provider keys in Vercel's Preview-only secret settings, use free-tier accounts
+  without billing, configure platform rate limits, and retain deployment
+  protection. The app cannot verify provider billing plans. AI output is
+  untrusted and may be incorrect.
 * Missing built-in user authentication — user identity and authorization are
   delegated to the operator-provided identity-aware gateway.
 

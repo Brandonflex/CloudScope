@@ -69,11 +69,11 @@ describe('QueryComponent preview guide', () => {
     ).toBeNull();
   }));
 
-  it('discloses Azure and sends only three recent exchanges when preview AI is configured', fakeAsync(() => {
+  it('discloses providers and sends only three recent exchanges when preview AI is configured', fakeAsync(() => {
     status.set({
       version: 'demo',
       demoMode: true,
-      aiMode: 'AzureOpenAIDemo',
+      aiMode: 'FreeAIDemo',
       storageProvider: 'InMemory',
       configuredProviders: [],
       resourceCount: 0,
@@ -83,7 +83,8 @@ describe('QueryComponent preview guide', () => {
     const fixture = TestBed.createComponent(QueryComponent);
     fixture.detectChanges();
     const element: HTMLElement = fixture.nativeElement;
-    expect(element.textContent).toContain('sent to Azure OpenAI');
+    expect(element.textContent).toContain('sent to the configured AI provider');
+    expect(element.textContent).toContain('AI provider configured');
     for (let i = 1; i <= 4; i++) {
       fixture.componentInstance.question = `Question ${i}`;
       fixture.componentInstance.ask();

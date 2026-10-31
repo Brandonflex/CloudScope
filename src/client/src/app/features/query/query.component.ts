@@ -73,11 +73,14 @@ const DEFAULT_EXAMPLES: Example[] = [
           <h1>Ask CloudScope</h1>
           <p class="subtitle">
             @if (previewAiEnabled()) {
-              AI answers use fictional demo data and may be wrong. Your question and up to three
-              previous exchanges are sent to Azure OpenAI. Do not enter secrets or sensitive data.
+              AI answers use fictional data and may be wrong. Your question and up to three previous
+              exchanges are sent to the configured AI provider; if Groq is unavailable, they may
+              also be sent to Gemini. Google may use free-tier data to improve its products. Do not
+              enter secrets or sensitive data.
             } @else if (meta.demoMode()) {
               Explore fictional demo data with a limited, rule-based query engine. Ask complete
-              questions; the local engine does not remember conversation context.
+              questions; the local engine does not remember conversation context. Configure a
+              free-tier provider in Vercel to enable AI.
             } @else {
               Natural-language questions over the inventory. Answers cite the resources they used.
             }
@@ -89,7 +92,7 @@ const DEFAULT_EXAMPLES: Example[] = [
             {{
               lastResult()?.source ??
                 (previewAiEnabled()
-                  ? 'Azure AI configured'
+                  ? 'AI provider configured'
                   : meta.demoMode()
                     ? 'Local demo engine'
                     : 'AI + local engine')
@@ -675,7 +678,7 @@ export class QueryComponent implements OnInit {
   }
 
   previewAiEnabled(): boolean {
-    return this.meta.demoMode() && this.meta.status()?.aiMode === 'AzureOpenAIDemo';
+    return this.meta.demoMode() && this.meta.status()?.aiMode === 'FreeAIDemo';
   }
 
   safeRelatedPage(page: AIQueryResult['relatedPage']): { label: string; path: string } | null {
