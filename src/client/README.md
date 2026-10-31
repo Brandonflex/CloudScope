@@ -25,3 +25,22 @@ Run `ng e2e` to execute the end-to-end tests via a platform of your choice. To u
 ## Further help
 
 To get more help on the Angular CLI use `ng help` or go check out the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+
+## Vercel deployment
+
+Set the Vercel project's **Root Directory** to `src/client`. The checked-in
+`vercel.json` builds the Angular SPA, publishes `dist/cloudscope/browser`, and
+rewrites the app's client-side routes to `index.html` on refresh. When adding a
+new Angular route, update the rewrites too; CI checks that they match.
+
+Vercel serves only the frontend in this configuration. It does not run the .NET
+API or SignalR hub, and `/api` requests are deliberately not rewritten to the SPA.
+For live data, deploy the backend behind the identity-aware gateway described in
+[SECURITY.md](../../SECURITY.md#gateway-and-deployment-safeguards) and configure
+same-origin routing at the gateway. The local demo API can be explored with
+`npm run preview:demo`; it is not a production backend.
+
+If an old deployment URL returns `NOT_FOUND`, check that the deployment still
+exists and that your Vercel account can access protected deployments. A new
+build creates a new immutable deployment URL; use the project alias for the
+current deployment.

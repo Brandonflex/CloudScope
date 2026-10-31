@@ -1,0 +1,14 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "angular",
+  "buildCommand": "npm run build:prod",
+  "outputDirectory": "dist/cloudscope/browser",
+  "rewrites": [
+    { "source": "/dashboard", "destination": "/index.html" },
+    { "source": "/graph", "destination": "/index.html" },
+    { "source": "/resources", "destination": "/index.html" },
+    { "source": "/costs", "destination": "/index.html" },
+    { "source": "/compliance", "destination": "/index.html" },
+    { "source": "/query", "destination": "/index.html" }
+  ]
+}
