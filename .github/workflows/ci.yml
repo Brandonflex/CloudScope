@@ -112,3 +112,32 @@ jobs:
 
       - name: Validate Bicep templates
         run: az bicep build --file infra/bicep/main.bicep --stdout > /dev/null
+  gateway:
+    name: Gateway security and container
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: src/gateway/package-lock.json
+      - name: Install dependencies
+        run: npm ci
+        working-directory: src/gateway
+      - name: Test gateway and signed OIDC flows
+        run: npm test
+        working-directory: src/gateway
+      - name: Audit production dependencies
+        run: npm audit --omit=dev
+        working-directory: src/gateway
+      - name: Build experimental container
+        run: |
+          docker build -f src/gateway/Dockerfile -t cloudscope-gateway-test .
+          docker run --rm --entrypoint node cloudscope-gateway-test --version
+          if docker run --rm cloudscope-gateway-test; then
+            echo "Gateway must fail closed without explicit live configuration" >&2
+            exit 1
+          fi
