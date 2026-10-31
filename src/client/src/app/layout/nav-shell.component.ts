@@ -140,7 +140,7 @@ interface NavItem {
               "
             >
               <span class="pulse"></span>
-              {{ realtime.connected() ? 'Live' : 'Offline' }}
+              {{ realtime.connected() ? 'Realtime live' : 'Realtime off' }}
             </span>
 
             @if (meta.demoMode()) {

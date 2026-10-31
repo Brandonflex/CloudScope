@@ -18,6 +18,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatChipsModule } from '@angular/material/chips';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { QueryService } from '../../core/services/query.service';
+import { MetaService } from '../../core/services/meta.service';
 import { ToastService } from '../../core/services/toast.service';
 import { AIQueryResult } from '../../core/models';
 
@@ -69,8 +70,12 @@ const DEFAULT_EXAMPLES: Example[] = [
         <div>
           <h1>Ask CloudScope</h1>
           <p class="subtitle">
-            Natural-language questions over the live inventory. Answers cite the resources they
-            used.
+            @if (meta.demoMode()) {
+              Explore fictional demo data with a limited, rule-based query engine. This is not a
+              general-purpose AI assistant.
+            } @else {
+              Natural-language questions over the inventory. Answers cite the resources they used.
+            }
           </p>
         </div>
         <div class="actions">
@@ -115,7 +120,7 @@ const DEFAULT_EXAMPLES: Example[] = [
 
                   @if (entry.result.generatedQuery) {
                     <details class="generated-query">
-                      <summary>KQL used</summary>
+                      <summary>Query details</summary>
                       <pre>{{ entry.result.generatedQuery }}</pre>
                     </details>
                   }
@@ -510,6 +515,7 @@ const DEFAULT_EXAMPLES: Example[] = [
 })
 export class QueryComponent implements OnInit {
   private readonly queryService = inject(QueryService);
+  readonly meta = inject(MetaService);
   private readonly toast = inject(ToastService);
   private readonly destroyRef = inject(DestroyRef);
 

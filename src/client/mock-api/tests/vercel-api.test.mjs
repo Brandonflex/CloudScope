@@ -65,3 +65,51 @@ test('preview API powers the dashboard with bounded demo-only requests', async (
   delete process.env.VERCEL_ENV;
   assert.equal((await get('/api/meta')).status, 404);
 });
+
+test('demo query answers supported intents without inventing an answer to unrelated questions', async (t) => {
+  const previous = process.env.VERCEL_ENV;
+  process.env.VERCEL_ENV = 'preview';
+  const server = createServer(previewApi);
+  server.listen(0, '127.0.0.1');
+  await once(server, 'listening');
+  t.after(() => {
+    if (previous === undefined) delete process.env.VERCEL_ENV;
+    else process.env.VERCEL_ENV = previous;
+    server.close();
+  });
+  const base = `http://127.0.0.1:${server.address().port}`;
+  const ask = async (question) => {
+    const response = await fetch(`${base}/api?__cloudscope_path=query%2Fask`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ question })
+    });
+    assert.equal(response.status, 200);
+    return response.json();
+  };
+  for (const question of ['what is cloud sope', 'what is cloudscope?', 'what is the platform about']) {
+    const result = await ask(question);
+    assert.match(result.answer, /multi-cloud infrastructure intelligence platform/i);
+    assert.match(result.answer, /fictional demo data/i);
+    assert.equal(result.generatedQuery, null);
+  }
+  for (const question of ['how does the platform work with elephants?', 'what is the weather today?', 'how many planets are there?']) {
+    const result = await ask(question);
+    assert.match(result.answer, /could not understand/i);
+    assert.equal(result.data, null);
+    assert.equal(result.generatedQuery, null);
+  }
+  const named = await ask('Tell me about vm-app-01');
+  assert.match(named.answer, /vm-app-01/i);
+  assert.equal(named.data.name, 'vm-app-01');
+  const vms = await ask('Which VMs are under-utilised?');
+  assert.match(vms.answer, /virtual machines/i);
+  assert.ok(vms.data.every((resource) => resource.type === 'VirtualMachine' && resource.cpuUtilization < 20));
+  const critical = await ask('Show my critical compliance violations');
+  assert.match(critical.answer, /critical compliance findings/i);
+  assert.ok(critical.data.every((finding) => finding.severity === 'Critical'));
+  const suggestions = await (await fetch(`${base}/api/query/suggestions`)).json();
+  for (const question of suggestions) {
+    const result = await ask(question);
+    assert.doesNotMatch(result.answer, /could not understand/i, question);
+  }
+});

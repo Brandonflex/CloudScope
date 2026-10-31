@@ -1041,6 +1041,17 @@ function answerQuestion(question) {
     source: 'Local demo engine'
   });
 
+  // This preview is a deterministic demo, not a general-purpose chatbot.
+  // Answer basic product questions explicitly instead of searching inventory
+  // for incidental words such as "platform" or "cloud".
+  if (/^(?:what is|tell me about|explain|describe) (?:cloud ?scope|cloud ?sope|the platform|this platform)(?: about)?$/.test(normalized) ||
+      /^what does (?:cloud ?scope|the platform|this platform) do$/.test(normalized)) {
+    return reply({
+      answer: 'CloudScope is a multi-cloud infrastructure intelligence platform for exploring resources, dependencies, costs and compliance across Azure and AWS. ' +
+        'This preview uses fictional demo data and a rule-based query engine; it is not connected to your cloud accounts or a general-purpose AI assistant.'
+    });
+  }
+
   // Blast radius
   if (/(blast radius|what breaks|what happens if|affected if|impact if|goes down|fails)/.test(q)) {
     const target = findResource(question);
@@ -1072,6 +1083,20 @@ function answerQuestion(question) {
   // Compliance
   if (/(compliance|violation|violations|cis|soc ?2|hipaa|gdpr|non-compliant|noncompliant|policy)/.test(q)) {
     const framework = /cis/.test(q) ? 'CIS' : /soc ?2/.test(q) ? 'SOC2' : /hipaa/.test(q) ? 'HIPAA' : /gdpr/.test(q) ? 'GDPR' : null;
+
+    const severity = /\b(critical|high|medium|low)\b/.exec(q)?.[1];
+    if (severity) {
+      const findings = scan(framework)
+        .filter((result) => result.status === 'NonCompliant')
+        .map((result) => ({ ...result, severity: policies.find((policy) => policy.id === result.policyId)?.severity }))
+        .filter((result) => result.severity?.toLowerCase() === severity);
+      return reply({
+        answer: `I found **${findings.length}** ${severity} compliance findings${framework ? ` for ${framework}` : ''}.` +
+          (findings.length ? `\n\nExamples:\n${findings.slice(0, 5).map((v) => `• **${v.resourceName}** — ${v.policyName} (${v.framework})`).join('\n')}` : ''),
+        generatedQuery: `compliance | where status == 'NonCompliant' and severity == '${severity}'`,
+        data: findings
+      });
+    }
 
     if (framework) {
       const report = reportFor(framework);
@@ -1121,8 +1146,8 @@ function answerQuestion(question) {
     });
   }
 
-  // Savings / rightsizing
-  if (/(save|saving|rightsize|right-size|optimis|optimiz|waste|idle|underutil)/.test(q)) {
+  // Savings / rightsizing (VM utilisation questions are handled below).
+  if (/(save|saving|rightsize|right-size|optimis|optimiz|waste|idle)/.test(q)) {
     const recommendations = buildRecommendations();
     const total = sum(recommendations.map((item) => item.estimatedMonthlySavings));
     return reply({
@@ -1238,9 +1263,22 @@ function answerQuestion(question) {
     });
   }
 
+  // A complete resource name is a reliable match; arbitrary question words
+  // are not. Searching each word separately produced unrelated answers.
+  const target = findResource(question);
+  if (target) {
+    return reply({
+      answer: `**${target.name}** is a ${target.resourceType} in ${target.region} (${target.provider}), ` +
+        `with an estimated monthly cost of **${money(target.estimatedMonthlyCost)}**.`,
+      generatedQuery: `resources | where name == '${target.name}'`,
+      data: project(target)
+    });
+  }
+
+
   // Provider / type inventory
   const provider = /\baws\b/.test(q) ? 'AWS' : /\bazure\b/.test(q) ? 'Azure' : null;
-  const typeEntry = resourceTypeWords.find(([word]) => normalized.includes(word));
+  const typeEntry = resourceTypeWords.find(([word]) => ` ${normalized} `.includes(` ${word} `));
   if (provider || typeEntry) {
     let matching = resources;
     if (provider) matching = matching.filter((resource) => resource.provider === provider);
@@ -1258,7 +1296,7 @@ function answerQuestion(question) {
   }
 
   // Overview
-  if (/(how many|overview|summary|inventory|estate|everything|resources)/.test(q)) {
+  if (/\b(inventory|estate|resources)\b/.test(normalized) || /^(?:overview|summary|everything)$/.test(normalized)) {
     const byType = {};
     const byProvider = {};
     for (const resource of resources) {
@@ -1279,21 +1317,10 @@ function answerQuestion(question) {
     });
   }
 
-  // Keyword search fallback
-  const tokens = normalized.split(' ').filter((token) => token.length > 2);
-  const matching = resources.filter((resource) => {
-    const haystack = normalizeText(
-      [resource.name, resource.resourceType, resource.region, resource.resourceGroup, ...(Object.values(resource.tags ?? {}))].join(' ')
-    );
-    return tokens.some((token) => haystack.includes(token));
-  });
 
   return reply({
-    answer: matching.length
-      ? `I found **${matching.length}** resources matching that question: ${matching.slice(0, 6).map((resource) => `**${resource.name}**`).join(', ')}.`
-      : 'I could not map that question onto the inventory. Try asking about cost, compliance, dependencies, utilisation or a resource name.',
-    generatedQuery: 'resources | search',
-    data: matching.slice(0, 10).map(project)
+    answer: 'I could not understand that question. The local demo engine handles a limited set of inventory questions, not general conversation. ' +
+      'Try a suggested question about costs, compliance, dependencies, utilisation, or a specific resource name.'
   });
 }
 
