@@ -1432,7 +1432,7 @@ async function serveStatic(request, response, pathname) {
   }
 }
 
-const server = createServer(async (request, response) => {
+export async function handleRequest(request, response) {
   let url;
   try {
     url = new URL(request.url || '/', `http://${request.headers.host ?? 'localhost'}`);
@@ -1748,6 +1748,10 @@ const server = createServer(async (request, response) => {
         sendJson(response, 400, { message: 'Question is required' });
         return;
       }
+      if (question.length > 1000) {
+        sendJson(response, 400, { message: 'Question must be 1000 characters or fewer' });
+        return;
+      }
       sendJson(response, 200, answerQuestion(question));
       return;
     }
@@ -1755,12 +1759,16 @@ const server = createServer(async (request, response) => {
     notFound(response, `No demo handler for ${request.method} ${pathname}`);
   } catch (error) {
     console.error(error);
-    sendJson(response, 500, { message: error instanceof Error ? error.message : 'Unexpected error' });
+    sendJson(response, 500, { message: 'An unexpected error occurred.' });
   }
-});
+}
 
-server.listen(PORT, '0.0.0.0', () => {
-  console.log(`CloudScope demo API listening on http://0.0.0.0:${PORT}`);
-  console.log(`  estate: ${resources.length} resources / ${edges.length} relationships`);
-  if (STATIC_DIR) console.log(`  static: ${resolve(STATIC_DIR)}`);
-});
+// Importing the handler in a serverless function must not open a port.
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  const server = createServer(handleRequest);
+  server.listen(PORT, '0.0.0.0', () => {
+    console.log(`CloudScope demo API listening on http://0.0.0.0:${PORT}`);
+    console.log(`  estate: ${resources.length} resources / ${edges.length} relationships`);
+    if (STATIC_DIR) console.log(`  static: ${resolve(STATIC_DIR)}`);
+  });
+}

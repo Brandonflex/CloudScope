@@ -32,9 +32,11 @@ Only the latest commit on `main` receives fixes.
 
 ## What is out of scope
 
-* The demo host (`src/client/mock-api/server.mjs`) has no authentication, no
-  rate limiting and is explicitly a local development tool. Do not run it on a
-  public interface.
+* The demo host (`src/client/mock-api/server.mjs`) has no authentication or
+  rate limiting and is a local development tool. The Vercel adapter uses it only
+  for fictional demo data in preview deployments; keep Vercel Deployment
+  Protection enabled and configure platform rate limits. Never attach real
+  cloud credentials or expose it as a production service.
 * Missing built-in user authentication — user identity and authorization are
   delegated to the operator-provided identity-aware gateway.
 

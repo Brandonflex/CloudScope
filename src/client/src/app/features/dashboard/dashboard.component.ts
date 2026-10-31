@@ -100,7 +100,7 @@ import {
         <app-empty-state
           icon="cloud_off"
           title="Could not load the overview"
-          message="The CloudScope API did not respond. Start the API on port 5001 (or run the mock API) and try again."
+          message="The CloudScope API could not be reached. Check the backend connection or open a protected demo preview."
           actionLabel="Retry"
           (action)="load()"
         />

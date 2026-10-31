@@ -108,7 +108,7 @@ import { dateTime, percent } from '../../core/utils/format';
         <app-empty-state
           icon="cloud_off"
           title="Compliance data unavailable"
-          message="The API could not evaluate policies. Confirm the backend is running on port 5001."
+          message="The API could not evaluate policies. Check the backend connection and try again."
           actionLabel="Retry"
           (action)="load()"
         />

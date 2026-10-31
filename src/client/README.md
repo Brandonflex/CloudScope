@@ -33,14 +33,19 @@ Set the Vercel project's **Root Directory** to `src/client`. The checked-in
 rewrites the app's client-side routes to `index.html` on refresh. When adding a
 new Angular route, update the rewrites too; CI checks that they match.
 
-Vercel serves only the frontend in this configuration. It does not run the .NET
-API or SignalR hub, and `/api` requests are deliberately not rewritten to the SPA.
-The UI waits for backend metadata before connecting to SignalR; the local mock
-API reports that realtime is unavailable, so it does not attempt a connection.
-For live data, deploy the backend behind the identity-aware gateway described in
+Vercel preview deployments serve a **fictional demo estate** through a
+preview-only serverless adapter; no cloud credentials or real data are used.
+SignalR is not available, and changes are not persisted. Enable Vercel system
+environment variables so `VERCEL_ENV=preview` is available at runtime. Preview
+Deployment Protection must remain enabled and platform rate limits should be
+configured; the demo API is not a production service. If `VERCEL_ENV` is absent
+or is `production`, the adapter returns 404 rather than exposing demo data.
+
+Vercel does not deploy the .NET API or SignalR hub. For real cloud data, deploy
+the backend behind the identity-aware gateway described in
 [SECURITY.md](../../SECURITY.md#gateway-and-deployment-safeguards) and configure
-same-origin routing at the gateway. The local demo API can be explored with
-`npm run preview:demo`; it is not a production backend.
+same-origin routing at the gateway. Do not use the demo adapter as a production
+backend. The local demo API can be explored with `npm run preview:demo`.
 
 If an old deployment URL returns `NOT_FOUND`, check that the deployment still
 exists and that your Vercel account can access protected deployments. A new

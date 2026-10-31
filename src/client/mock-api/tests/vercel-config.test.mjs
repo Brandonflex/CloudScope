@@ -8,6 +8,7 @@ test('Vercel serves the Angular browser output and rewrites only SPA routes', as
   const config = JSON.parse(await readFile('vercel.json', 'utf8'));
   assert.equal(config.outputDirectory, 'dist/cloudscope/browser');
   assert.equal(config.buildCommand, 'npm run build:prod');
+  assert.equal(config.functions['api/*.mjs'].includeFiles, 'public/demo/inventory.json');
 
   const indexPath = resolve(config.outputDirectory, 'index.html');
   assert.ok((await stat(indexPath)).isFile(), 'the Vercel output must contain index.html');
