@@ -73,6 +73,8 @@ public class PlatformStatus
 {
     public string Version { get; set; } = "1.0.0";
     public bool DemoMode { get; set; }
+    /// <summary>Whether this server exposes the SignalR notifications hub.</summary>
+    public bool RealtimeAvailable { get; set; } = true;
     public string StorageProvider { get; set; } = "InMemory";
     public string AiMode { get; set; } = "Local";
     public List<string> ConfiguredProviders { get; set; } = new();

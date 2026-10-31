@@ -20,6 +20,9 @@ import { readFile, stat } from 'node:fs/promises';
 import { createServer } from 'node:http';
 import { extname, join, normalize, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { findHelp } from './help.mjs';
+import { retrieveKnowledge } from './knowledge.mjs';
+import { askPreviewAi, previewAiConfigs, validateHistory } from './preview-ai.mjs';
 
 const HERE = resolve(fileURLToPath(new URL('.', import.meta.url)));
 const INVENTORY_PATH = join(HERE, '..', 'public', 'demo', 'inventory.json');
@@ -110,7 +113,12 @@ function periodCost(resource, start, end) {
   return total;
 }
 
-const sum = (values) => values.reduce((total, value) => total + value, 0);
+// Maps expose iterators rather than arrays; Node 20 does not have iterator.reduce.
+const sum = (values) => {
+  let total = 0;
+  for (const value of values) total += value;
+  return total;
+};
 
 function categoriesOf(entries) {
   const totals = new Map();
@@ -1033,8 +1041,19 @@ function answerQuestion(question) {
     success: true,
     error: null,
     processingTime: `${Date.now() - started} ms`,
-    source: 'Local demo engine'
+    source: 'Local demo engine',
+    suggestedQuestions: partial.suggestedQuestions ?? (
+      partial.generatedQuery?.startsWith('compliance') ? ['What is compliance?', 'Show my critical compliance violations', 'Is this real data?'] :
+      partial.generatedQuery?.startsWith('costs') || partial.generatedQuery?.includes('estimatedMonthlyCost') ? ['What is cost intelligence?', 'Which resource costs are anomalous?', 'Where can I save money?'] :
+      partial.generatedQuery?.startsWith('graph') ? ['What is a blast radius?', 'How many resources are there?', 'Is this real data?'] :
+      partial.generatedQuery?.startsWith('resources') ? ['What is a resource?', 'How many resources are there?', 'What does discovery do?'] : []),
+    relatedPage: partial.relatedPage ?? null
   });
+
+  // Curated product explanations take precedence over inventory keywords,
+  // but concrete data questions continue to use the inventory handlers.
+  const help = findHelp(normalized);
+  if (help) return reply(help);
 
   // Blast radius
   if (/(blast radius|what breaks|what happens if|affected if|impact if|goes down|fails)/.test(q)) {
@@ -1056,7 +1075,9 @@ function answerQuestion(question) {
     return reply({
       answer:
         'Tell me which resource to simulate a failure for, for example “what is the blast radius of vm-app-01?”. ' +
-        'I can analyse any of the 54 resources in the inventory.',
+        `I can analyse any of the ${resources.length} resources in the demo inventory.`,
+      suggestedQuestions: ['What is a blast radius?', 'What is the blast radius of vm-app-01?', 'How many resources are there?'],
+      relatedPage: { label: 'Open infrastructure graph', path: '/graph' },
       data: resources
         .filter((resource) => ['VirtualMachine', 'KubernetesCluster', 'SqlDatabase', 'CosmosDbAccount', 'Subnet'].includes(resource.resourceType))
         .slice(0, 8)
@@ -1067,6 +1088,20 @@ function answerQuestion(question) {
   // Compliance
   if (/(compliance|violation|violations|cis|soc ?2|hipaa|gdpr|non-compliant|noncompliant|policy)/.test(q)) {
     const framework = /cis/.test(q) ? 'CIS' : /soc ?2/.test(q) ? 'SOC2' : /hipaa/.test(q) ? 'HIPAA' : /gdpr/.test(q) ? 'GDPR' : null;
+
+    const severity = /\b(critical|high|medium|low)\b/.exec(q)?.[1];
+    if (severity) {
+      const findings = scan(framework)
+        .filter((result) => result.status === 'NonCompliant')
+        .map((result) => ({ ...result, severity: policies.find((policy) => policy.id === result.policyId)?.severity }))
+        .filter((result) => result.severity?.toLowerCase() === severity);
+      return reply({
+        answer: `I found **${findings.length}** ${severity} compliance findings${framework ? ` for ${framework}` : ''}.` +
+          (findings.length ? `\n\nExamples:\n${findings.slice(0, 5).map((v) => `• **${v.resourceName}** — ${v.policyName} (${v.framework})`).join('\n')}` : ''),
+        generatedQuery: `compliance | where status == 'NonCompliant' and severity == '${severity}'`,
+        data: findings
+      });
+    }
 
     if (framework) {
       const report = reportFor(framework);
@@ -1116,8 +1151,8 @@ function answerQuestion(question) {
     });
   }
 
-  // Savings / rightsizing
-  if (/(save|saving|rightsize|right-size|optimis|optimiz|waste|idle|underutil)/.test(q)) {
+  // Savings / rightsizing (VM utilisation questions are handled below).
+  if (/(save|saving|rightsize|right-size|optimis|optimiz|waste|idle)/.test(q)) {
     const recommendations = buildRecommendations();
     const total = sum(recommendations.map((item) => item.estimatedMonthlySavings));
     return reply({
@@ -1173,9 +1208,9 @@ function answerQuestion(question) {
       answer: matching.length
         ? `**${matching.length}** resources cost more than ${money(threshold)} per month, totalling **${money(
             sum(matching.map((resource) => resource.estimatedMonthlyCost))
-          )}**. The most expensive are ${matching
-            .slice(0, 3)
+          )}**. The most expensive are ${[...matching]
             .sort((a, b) => b.estimatedMonthlyCost - a.estimatedMonthlyCost)
+            .slice(0, 3)
             .map((resource) => `**${resource.name}** (${money(resource.estimatedMonthlyCost)})`)
             .join(', ')}.`
         : `No resource costs more than ${money(threshold)} per month.`,
@@ -1233,9 +1268,24 @@ function answerQuestion(question) {
     });
   }
 
+  // A complete resource name is a reliable match; arbitrary question words
+  // are not. Searching each word separately produced unrelated answers.
+  const target = findResource(question);
+  if (target) {
+    return reply({
+      answer: `**${target.name}** is a ${target.resourceType} in ${target.region} (${target.provider}), ` +
+        `with an estimated monthly cost of **${money(target.estimatedMonthlyCost)}**.`,
+      generatedQuery: `resources | where name == '${target.name}'`,
+      data: project(target),
+      suggestedQuestions: [`What is the blast radius of ${target.name}?`, 'What is a blast radius?', 'How many resources are there?'],
+      relatedPage: { label: 'Explore resources', path: '/resources' }
+    });
+  }
+
+
   // Provider / type inventory
   const provider = /\baws\b/.test(q) ? 'AWS' : /\bazure\b/.test(q) ? 'Azure' : null;
-  const typeEntry = resourceTypeWords.find(([word]) => normalized.includes(word));
+  const typeEntry = resourceTypeWords.find(([word]) => ` ${normalized} `.includes(` ${word} `));
   if (provider || typeEntry) {
     let matching = resources;
     if (provider) matching = matching.filter((resource) => resource.provider === provider);
@@ -1253,7 +1303,7 @@ function answerQuestion(question) {
   }
 
   // Overview
-  if (/(how many|overview|summary|inventory|estate|everything|resources)/.test(q)) {
+  if (/\b(inventory|estate|resources)\b/.test(normalized) || /^(?:overview|summary|everything)$/.test(normalized)) {
     const byType = {};
     const byProvider = {};
     for (const resource of resources) {
@@ -1274,22 +1324,25 @@ function answerQuestion(question) {
     });
   }
 
-  // Keyword search fallback
-  const tokens = normalized.split(' ').filter((token) => token.length > 2);
-  const matching = resources.filter((resource) => {
-    const haystack = normalizeText(
-      [resource.name, resource.resourceType, resource.region, resource.resourceGroup, ...(Object.values(resource.tags ?? {}))].join(' ')
-    );
-    return tokens.some((token) => haystack.includes(token));
-  });
 
   return reply({
-    answer: matching.length
-      ? `I found **${matching.length}** resources matching that question: ${matching.slice(0, 6).map((resource) => `**${resource.name}**`).join(', ')}.`
-      : 'I could not map that question onto the inventory. Try asking about cost, compliance, dependencies, utilisation or a resource name.',
-    generatedQuery: 'resources | search',
-    data: matching.slice(0, 10).map(project)
+    answer: 'I could not understand that question. The local demo engine handles a limited set of product and inventory questions, not general conversation. ' +
+      'Try a complete question using the examples below.',
+    suggestedQuestions: ['What can CloudScope do?', 'How do I get started?', 'How many resources are there?']
   });
+}
+
+// Route only narrowly matched, unambiguous standalone inventory questions
+// through deterministic calculations. Other questions remain with the model.
+function isDirectDemoQuestion(question) {
+  const q = normalizeText(question);
+  if (/^(?:what are|show|show me|list) (?:my |the )?top \d+ most expensive resources$/.test(q) ||
+    /^(?:how many resources (?:are there|do i have)|(?:show|give) (?:me )?(?:an? |the )?(?:inventory|estate) (?:overview|summary))$/.test(q) ||
+    /^(?:which|what) vms are under utilised$/.test(q) ||
+    /^(?:which|what) resources are not managed by iac$/.test(q) ||
+    /^(?:show|show me) (?:my |the )?critical compliance violations$/.test(q)) return true;
+  const resource = findResource(question);
+  return Boolean(resource && q === `what is the blast radius of ${normalizeText(resource.name)}`);
 }
 
 // ── HTTP plumbing ──────────────────────────────────────────────────────────
@@ -1361,7 +1414,12 @@ async function readBody(request, response) {
 
   if (chunks.length === 0) return {};
   try {
-    return JSON.parse(Buffer.concat(chunks).toString('utf8'));
+    const value = JSON.parse(Buffer.concat(chunks).toString('utf8'));
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+      sendJson(response, 400, { message: 'Request body must be a JSON object' });
+      return null;
+    }
+    return value;
   } catch {
     sendJson(response, 400, { message: 'Request body must be valid JSON' });
     return null;
@@ -1432,7 +1490,7 @@ async function serveStatic(request, response, pathname) {
   }
 }
 
-const server = createServer(async (request, response) => {
+export async function handleRequest(request, response, options = {}) {
   let url;
   try {
     url = new URL(request.url || '/', `http://${request.headers.host ?? 'localhost'}`);
@@ -1476,8 +1534,10 @@ const server = createServer(async (request, response) => {
       sendJson(response, 200, {
         version: '1.0.0-demo',
         demoMode: true,
+        realtimeAvailable: false,
         storageProvider: 'InMemory',
-        aiMode: 'Local',
+        aiMode: options.allowPreviewAi && previewAiConfigs(process.env).length ? 'FreeAIDemo' : 'Local',
+        aiProviders: options.allowPreviewAi ? previewAiConfigs(process.env).map((provider) => provider.name) : [],
         configuredProviders: ['Azure', 'AWS'],
         resourceCount: resources.length,
         relationshipCount: edges.length,
@@ -1742,10 +1802,56 @@ const server = createServer(async (request, response) => {
     if (route === 'query/ask' && request.method === 'POST') {
       const body = await readBody(request, response);
       if (body === null) return;
-      const question = String(body.question ?? '').trim();
+      const question = typeof body.question === 'string' ? body.question.trim() : '';
       if (!question) {
         sendJson(response, 400, { message: 'Question is required' });
         return;
+      }
+      if (question.length > 1000) {
+        sendJson(response, 400, { message: 'Question must be 1000 characters or fewer' });
+        return;
+      }
+      if (!validateHistory(body.history)) {
+        sendJson(response, 400, { message: 'Invalid conversation history' });
+        return;
+      }
+      const configs = options.allowPreviewAi ? previewAiConfigs(process.env) : [];
+      if (configs.length && !body.history?.length && isDirectDemoQuestion(question)) {
+        const calculation = answerQuestion(question);
+        calculation.source = 'Demo calculations';
+        sendJson(response, 200, calculation);
+        return;
+      }
+      if (configs.length) {
+        const started = Date.now();
+        try {
+          // Only fixed synthetic fields are sent; no credentials or live cloud data.
+          const context = {
+            resourceCount: resources.length,
+            relationshipCount: edges.length,
+            resources: resources.map((r) => ({ name: r.name, type: r.resourceType, provider: r.provider, region: r.region, monthlyCost: r.estimatedMonthlyCost, cpu: r.cpuUtilization, managedByIaC: r.isManagedByIaC })),
+            relationships: edges.map((e) => ({ source: byId.get(e.sourceResourceId)?.name, target: byId.get(e.targetResourceId)?.name, type: e.relationshipType })),
+            compliance: posture(),
+            anomalies: buildAnomalies().slice(0, 10).map((a) => ({ resourceName: a.resourceName, deviationPercentage: a.deviationPercentage })),
+            recommendations: buildRecommendations().slice(0, 10).map((r) => ({ resourceName: r.resourceName, title: r.title, estimatedMonthlySavings: r.estimatedMonthlySavings }))
+          };
+          const references = retrieveKnowledge(question, body.history ?? []);
+          const result = await askPreviewAi({ configs, question, history: body.history, context, references, fetchImpl: options.aiFetch });
+          sendJson(response, 200, {
+            question, answer: result.answer, generatedQuery: null, data: null, success: true, error: null,
+            processingTime: `${Date.now() - started} ms`, source: `${result.provider} · demo data`,
+            contextSources: ['CloudScope product guide', 'Fictional demo inventory'],
+            references: references.map(({ id, title, url }) => ({ id, title, url }))
+          });
+          return;
+        } catch {
+          // Do not log provider errors, request bodies or API keys.
+          const fallback = answerQuestion(question);
+          fallback.source = 'Local demo engine (AI unavailable)';
+          fallback.answer = 'AI is temporarily unavailable. This limited local response does not use conversation history.\n\n' + fallback.answer;
+          sendJson(response, 200, fallback);
+          return;
+        }
       }
       sendJson(response, 200, answerQuestion(question));
       return;
@@ -1754,12 +1860,16 @@ const server = createServer(async (request, response) => {
     notFound(response, `No demo handler for ${request.method} ${pathname}`);
   } catch (error) {
     console.error(error);
-    sendJson(response, 500, { message: error instanceof Error ? error.message : 'Unexpected error' });
+    sendJson(response, 500, { message: 'An unexpected error occurred.' });
   }
-});
+}
 
-server.listen(PORT, '0.0.0.0', () => {
-  console.log(`CloudScope demo API listening on http://0.0.0.0:${PORT}`);
-  console.log(`  estate: ${resources.length} resources / ${edges.length} relationships`);
-  if (STATIC_DIR) console.log(`  static: ${resolve(STATIC_DIR)}`);
-});
+// Importing the handler in a serverless function must not open a port.
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  const server = createServer(handleRequest);
+  server.listen(PORT, '0.0.0.0', () => {
+    console.log(`CloudScope demo API listening on http://0.0.0.0:${PORT}`);
+    console.log(`  estate: ${resources.length} resources / ${edges.length} relationships`);
+    if (STATIC_DIR) console.log(`  static: ${resolve(STATIC_DIR)}`);
+  });
+}

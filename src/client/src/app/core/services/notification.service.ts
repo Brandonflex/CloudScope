@@ -43,12 +43,18 @@ export class NotificationService {
       .configureLogging(signalR.LogLevel.Warning)
       .build();
 
-    this.hubConnection.onreconnected(() => this.connected.set(true));
-    this.hubConnection.onreconnecting(() => this.connected.set(false));
     const connection = this.hubConnection;
+    connection.onreconnected(() => {
+      if (this.hubConnection === connection) this.connected.set(true);
+    });
+    connection.onreconnecting(() => {
+      if (this.hubConnection === connection) this.connected.set(false);
+    });
     connection.onclose(() => {
-      this.connected.set(false);
-      this.scheduleRetry(connection);
+      if (this.hubConnection === connection) {
+        this.connected.set(false);
+        this.scheduleRetry(connection);
+      }
     });
 
     const handlers: RealtimeEventType[] = [

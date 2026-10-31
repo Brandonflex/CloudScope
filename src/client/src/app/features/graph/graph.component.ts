@@ -156,7 +156,7 @@ type LayoutName = (typeof LAYOUTS)[number];
         <app-empty-state
           icon="cloud_off"
           title="Graph unavailable"
-          message="The API could not return graph data. Check that the backend is running on port 5001."
+          message="The API could not return graph data. Check the backend connection and try again."
           actionLabel="Retry"
           (action)="load()"
         />

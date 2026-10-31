@@ -26,6 +26,7 @@ if [[ "$ready" != true ]]; then cat /tmp/cloudscope-smoke.log; exit 1; fi
 [[ $(curl -sS -o /dev/null -w '%{http_code}' "$base/api/meta") == 401 ]]
 [[ $(curl -sS -o /dev/null -w '%{http_code}' -H 'X-CloudScope-Gateway-Key: wrong' "$base/hubs/notifications/negotiate?negotiateVersion=1" -X POST) == 401 ]]
 header="X-CloudScope-Gateway-Key: $GatewayAuthentication__SharedSecret"
+curl -fsS -H "$header" "$base/api/meta" | jq -e ".realtimeAvailable == true" > /dev/null
 curl -fsS -X POST -H "$header" "$base/api/meta/demo" > /dev/null
 id=$(curl -fsS -H "$header" "$base/api/resources?pageSize=500" | jq -r '[.items[] | select(.id | contains("/"))][0].id // empty')
 [[ -n "$id" ]]

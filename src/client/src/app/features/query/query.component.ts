@@ -9,6 +9,7 @@ import {
   viewChild
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -17,7 +18,8 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatChipsModule } from '@angular/material/chips';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { QueryService } from '../../core/services/query.service';
+import { ChatTurn, QueryService } from '../../core/services/query.service';
+import { MetaService } from '../../core/services/meta.service';
 import { ToastService } from '../../core/services/toast.service';
 import { AIQueryResult } from '../../core/models';
 
@@ -50,11 +52,48 @@ const DEFAULT_EXAMPLES: Example[] = [
   }
 ];
 
+// Fixed URLs only: never turn an untrusted model response into an arbitrary link.
+const REFERENCE_LINKS: Record<string, { title: string; url: string }> = {
+  overview: {
+    title: 'CloudScope overview',
+    url: 'https://github.com/Brandonflex/CloudScope/blob/main/README.md#overview'
+  },
+  security: {
+    title: 'CloudScope gateway safeguards',
+    url: 'https://github.com/Brandonflex/CloudScope/blob/main/SECURITY.md#gateway-and-deployment-safeguards'
+  },
+  discovery: {
+    title: 'CloudScope discovery',
+    url: 'https://github.com/Brandonflex/CloudScope/blob/main/README.md#features'
+  },
+  graph: {
+    title: 'CloudScope blast radius',
+    url: 'https://github.com/Brandonflex/CloudScope/blob/main/docs/architecture.md#blast-radius'
+  },
+  cost: {
+    title: 'CloudScope cost intelligence',
+    url: 'https://github.com/Brandonflex/CloudScope/blob/main/docs/architecture.md#cost-analytics'
+  },
+  compliance: {
+    title: 'CloudScope compliance',
+    url: 'https://github.com/Brandonflex/CloudScope/blob/main/docs/architecture.md#compliance-engine'
+  },
+  'azure-graph': {
+    title: 'Microsoft: Azure Resource Graph overview',
+    url: 'https://learn.microsoft.com/en-us/azure/governance/resource-graph/overview'
+  },
+  'aws-config': {
+    title: 'AWS: What is AWS Config?',
+    url: 'https://docs.aws.amazon.com/config/latest/developerguide/WhatIsConfig.html'
+  }
+};
+
 @Component({
   selector: 'app-query',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     FormsModule,
+    RouterLink,
     MatIconModule,
     MatButtonModule,
     MatFormFieldModule,
@@ -69,15 +108,37 @@ const DEFAULT_EXAMPLES: Example[] = [
         <div>
           <h1>Ask CloudScope</h1>
           <p class="subtitle">
-            Natural-language questions over the live inventory. Answers cite the resources they
-            used.
+            @if (previewAiEnabled()) {
+              AI answers use fictional data and may be wrong. Your question and up to three previous
+              exchanges are sent to the configured AI provider; if Groq is unavailable, they may
+              also be sent to Gemini. Google may use free-tier data to improve its products. Do not
+              enter secrets or sensitive data.
+            } @else if (meta.demoMode()) {
+              Explore fictional demo data with a limited, rule-based query engine. Ask complete
+              questions; the local engine does not remember conversation context. Configure a
+              free-tier provider in Vercel to enable AI.
+            } @else {
+              Natural-language questions over the inventory. Answers cite the resources they used.
+            }
           </p>
         </div>
         <div class="actions">
           <span class="chip chip-purple">
             <mat-icon>auto_awesome</mat-icon>
-            {{ lastResult()?.source ?? 'AI + local engine' }}
+            {{
+              lastResult()?.source ??
+                (previewAiEnabled()
+                  ? 'AI provider configured'
+                  : meta.demoMode()
+                    ? 'Local demo engine'
+                    : 'AI + local engine')
+            }}
           </span>
+          @if (transcript().length) {
+            <button mat-button type="button" (click)="clearChat()" [disabled]="thinking()">
+              Clear chat
+            </button>
+          }
         </div>
       </div>
 
@@ -94,6 +155,15 @@ const DEFAULT_EXAMPLES: Example[] = [
                   CloudScope understands cost, compliance, dependencies and utilisation questions.
                   Try one of the prompts below or ask your own.
                 </p>
+                @if (meta.demoMode()) {
+                  <div class="starter-prompts" aria-label="Getting started questions">
+                    @for (prompt of starterPrompts; track prompt) {
+                      <button type="button" (click)="useExample(prompt)" [disabled]="thinking()">
+                        {{ prompt }}
+                      </button>
+                    }
+                  </div>
+                }
               </div>
             }
 
@@ -113,9 +183,69 @@ const DEFAULT_EXAMPLES: Example[] = [
                   </div>
                   <div class="answer" [innerHTML]="formatAnswer(entry.result.answer)"></div>
 
+                  @if (entry.result.contextSources?.length) {
+                    <p class="context-notice">
+                      Context supplied to AI (not verified citations):
+                      <a
+                        href="https://github.com/Brandonflex/CloudScope/blob/main/README.md"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        >CloudScope guide</a
+                      >
+                      ,
+                      <a
+                        href="https://github.com/Brandonflex/CloudScope/blob/main/SECURITY.md"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        >security guide</a
+                      >
+                      and
+                      <a href="/demo/inventory.json" target="_blank" rel="noopener noreferrer"
+                        >fictional inventory</a
+                      >. Verify important answers.
+                    </p>
+                  }
+
+                  @if (safeReferences(entry.result.references); as references) {
+                    @if (references.length) {
+                      <details class="generated-query">
+                        <summary>Relevant documentation (not verified citations)</summary>
+                        <ul>
+                          @for (reference of references; track reference.url) {
+                            <li>
+                              <a [href]="reference.url" target="_blank" rel="noopener noreferrer">{{
+                                reference.title
+                              }}</a>
+                            </li>
+                          }
+                        </ul>
+                      </details>
+                    }
+                  }
+
+                  @if (
+                    entry.result.suggestedQuestions?.length ||
+                    safeRelatedPage(entry.result.relatedPage)
+                  ) {
+                    <div class="next-steps" aria-label="Suggested next steps">
+                      @if (safeRelatedPage(entry.result.relatedPage); as page) {
+                        <a class="next-link" [routerLink]="page.path">{{ page.label }} →</a>
+                      }
+                      @for (suggestion of entry.result.suggestedQuestions ?? []; track suggestion) {
+                        <button
+                          type="button"
+                          (click)="useExample(suggestion)"
+                          [disabled]="thinking()"
+                        >
+                          {{ suggestion }}
+                        </button>
+                      }
+                    </div>
+                  }
+
                   @if (entry.result.generatedQuery) {
                     <details class="generated-query">
-                      <summary>KQL used</summary>
+                      <summary>Query details</summary>
                       <pre>{{ entry.result.generatedQuery }}</pre>
                     </details>
                   }
@@ -144,6 +274,7 @@ const DEFAULT_EXAMPLES: Example[] = [
               <input
                 matInput
                 type="text"
+                maxlength="1000"
                 [(ngModel)]="question"
                 (keydown.enter)="ask()"
                 [disabled]="thinking()"
@@ -173,7 +304,12 @@ const DEFAULT_EXAMPLES: Example[] = [
             </div>
             <div class="panel-body">
               @for (example of examples(); track example.question) {
-                <button type="button" class="suggestion" (click)="useExample(example.question)">
+                <button
+                  type="button"
+                  class="suggestion"
+                  (click)="useExample(example.question)"
+                  [disabled]="thinking()"
+                >
                   <mat-icon>{{ example.icon }}</mat-icon>
                   <div>
                     <span>{{ example.question }}</span>
@@ -194,12 +330,15 @@ const DEFAULT_EXAMPLES: Example[] = [
             </div>
             <div class="panel-body">
               <ul class="capabilities">
-                <li><mat-icon>payments</mat-icon> Cost hotspots, trends and anomalies</li>
+                @if (meta.demoMode()) {
+                  <li><mat-icon>help_outline</mat-icon> Platform concepts and getting started</li>
+                }
+                <li><mat-icon>payments</mat-icon> Cost hotspots, forecasts and anomalies</li>
                 <li><mat-icon>verified_user</mat-icon> Compliance failures by framework</li>
-                <li><mat-icon>hub</mat-icon> Blast radius and dependency paths</li>
+                <li><mat-icon>hub</mat-icon> Blast radius for a named resource</li>
                 <li><mat-icon>speed</mat-icon> Under-utilised VMs and orphaned resources</li>
                 <li><mat-icon>build_circle</mat-icon> Resources outside infrastructure-as-code</li>
-                <li><mat-icon>cloud</mat-icon> Inventory by provider, type or region</li>
+                <li><mat-icon>cloud</mat-icon> Inventory by provider or type</li>
               </ul>
             </div>
           </div>
@@ -271,6 +410,40 @@ const DEFAULT_EXAMPLES: Example[] = [
         line-height: 1.55;
       }
 
+      .starter-prompts,
+      .next-steps {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 14px;
+      }
+      .starter-prompts {
+        justify-content: center;
+      }
+      .starter-prompts button,
+      .next-steps button,
+      .next-link {
+        border: 1px solid rgba(88, 166, 255, 0.3);
+        border-radius: 8px;
+        padding: 7px 10px;
+        color: #9bcaff;
+        background: rgba(88, 166, 255, 0.08);
+        font: inherit;
+        font-size: 0.76rem;
+        text-decoration: none;
+        cursor: pointer;
+        text-align: left;
+      }
+      .starter-prompts button:hover,
+      .next-steps button:hover,
+      .next-link:hover {
+        background: rgba(88, 166, 255, 0.18);
+      }
+      button:disabled {
+        cursor: not-allowed;
+        opacity: 0.6;
+      }
+
       .turn {
         display: flex;
         flex-direction: column;
@@ -339,6 +512,15 @@ const DEFAULT_EXAMPLES: Example[] = [
         color: #f0f6fc;
       }
 
+      .context-notice {
+        margin-top: 10px !important;
+        color: var(--text-muted);
+        font-size: 0.75rem !important;
+      }
+      .context-notice a {
+        color: #9bcaff;
+      }
+
       .generated-query {
         margin-top: 10px;
         font-size: 0.75rem;
@@ -347,6 +529,9 @@ const DEFAULT_EXAMPLES: Example[] = [
       .generated-query summary {
         cursor: pointer;
         user-select: none;
+      }
+      .generated-query a {
+        color: #9bcaff;
       }
       .generated-query pre {
         margin: 8px 0 0;
@@ -510,9 +695,15 @@ const DEFAULT_EXAMPLES: Example[] = [
 })
 export class QueryComponent implements OnInit {
   private readonly queryService = inject(QueryService);
+  readonly meta = inject(MetaService);
   private readonly toast = inject(ToastService);
   private readonly destroyRef = inject(DestroyRef);
 
+  readonly starterPrompts = [
+    'What can CloudScope do?',
+    'How do I get started?',
+    'Is this real data?'
+  ];
   readonly transcript = signal<TranscriptEntry[]>([]);
   readonly thinking = signal(false);
   readonly examples = signal<Example[]>(DEFAULT_EXAMPLES);
@@ -542,6 +733,29 @@ export class QueryComponent implements OnInit {
       });
   }
 
+  previewAiEnabled(): boolean {
+    return this.meta.demoMode() && this.meta.status()?.aiMode === 'FreeAIDemo';
+  }
+
+  safeReferences(references: AIQueryResult['references']): Array<{ title: string; url: string }> {
+    if (!Array.isArray(references)) return [];
+    return [...new Set(references.map((reference) => reference?.id))]
+      .filter((id): id is string => typeof id === 'string' && Object.hasOwn(REFERENCE_LINKS, id))
+      .map((id) => REFERENCE_LINKS[id]);
+  }
+
+  safeRelatedPage(page: AIQueryResult['relatedPage']): { label: string; path: string } | null {
+    const allowed = ['/dashboard', '/resources', '/graph', '/costs', '/compliance', '/query'];
+    return page && typeof page.label === 'string' && allowed.includes(page.path) ? page : null;
+  }
+
+  clearChat(): void {
+    if (this.thinking()) return;
+    this.transcript.set([]);
+    this.lastResult.set(null);
+    this.question = '';
+  }
+
   useExample(question: string): void {
     this.question = question;
     this.ask();
@@ -551,21 +765,36 @@ export class QueryComponent implements OnInit {
     const question = this.question.trim();
     if (!question || this.thinking()) return;
 
+    const history: ChatTurn[] | undefined = this.previewAiEnabled()
+      ? this.transcript()
+          .slice(-3)
+          .flatMap((entry): ChatTurn[] => [
+            { role: 'user', content: entry.question.slice(0, 1200) },
+            { role: 'assistant', content: entry.result.answer.slice(0, 1200) }
+          ])
+      : undefined;
     this.question = '';
     this.thinking.set(true);
 
-    this.queryService.ask(question).subscribe({
-      next: (result) => {
-        this.thinking.set(false);
-        this.lastResult.set(result);
-        this.transcript.update((entries) => [...entries, { id: ++this.counter, question, result }]);
-        this.scrollToBottom();
-      },
-      error: () => {
-        this.thinking.set(false);
-        this.toast.error('The query engine did not respond.');
-      }
-    });
+    this.queryService
+      .ask(question, history)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (result) => {
+          this.thinking.set(false);
+          this.lastResult.set(result);
+          this.transcript.update((entries) => [
+            ...entries,
+            { id: ++this.counter, question, result }
+          ]);
+          this.scrollToBottom();
+        },
+        error: () => {
+          this.thinking.set(false);
+          if (!this.question.trim()) this.question = question;
+          this.toast.error('The query engine did not respond. Your question is ready to retry.');
+        }
+      });
   }
 
   private scrollToBottom(): void {

@@ -297,6 +297,10 @@ export interface AIQueryResult {
   error?: string | null;
   processingTime: string;
   source: string;
+  contextSources?: string[];
+  references?: Array<{ id: string; title: string; url: string }>;
+  suggestedQuestions?: string[];
+  relatedPage?: { label: string; path: string } | null;
 }
 
 export interface DiscoveryProviderResult {
@@ -318,8 +322,11 @@ export interface DiscoveryResult {
 export interface PlatformStatus {
   version: string;
   demoMode: boolean;
+  /** Older .NET backends omit this field but do provide SignalR. */
+  realtimeAvailable?: boolean;
   storageProvider: string;
   aiMode: string;
+  aiProviders?: string[];
   configuredProviders: string[];
   resourceCount: number;
   relationshipCount: number;
