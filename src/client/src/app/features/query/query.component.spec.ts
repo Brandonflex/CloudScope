@@ -115,6 +115,20 @@ describe('QueryComponent preview guide', () => {
     expect(ask.calls.mostRecent().args).toEqual(['New topic', []]);
   }));
 
+  it('renders only allowlisted documentation links, ignoring forged URLs', () => {
+    const fixture = TestBed.createComponent(QueryComponent);
+    const refs = fixture.componentInstance.safeReferences([
+      { id: 'graph', title: 'forged', url: 'https://evil.example' },
+      { id: 'graph', title: 'duplicate', url: 'https://evil.example' },
+      { id: '__proto__', title: 'bad', url: 'https://evil.example' }
+    ]);
+    expect(refs.length).toBe(1);
+    expect(refs[0].title).toBe('CloudScope blast radius');
+    expect(refs[0].url).toBe(
+      'https://github.com/Brandonflex/CloudScope/blob/main/docs/architecture.md#blast-radius'
+    );
+  });
+
   it('keeps a failed question available for retry', () => {
     ask.and.returnValue(throwError(() => new Error('offline')));
     const fixture = TestBed.createComponent(QueryComponent);

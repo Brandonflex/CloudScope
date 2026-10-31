@@ -89,7 +89,14 @@ enabled and configure platform rate limits; the app has no built-in per-user rat
 limit. Conversation context is held in the current browser session and is lost
 on refresh or clearing chat.
 
-This supplies a fixed guide and demo snapshot, not a search index, verified
-citations, live web browsing or real cloud data. AI can make mistakes; verify
-important answers. It has no infrastructure-changing tools and must not be used
-as a production backend. The .NET backend has a separate query engine.
+The preview retrieves small, manually maintained documentation summaries and
+shows links to relevant sources. These are not verified claim-by-claim citations,
+a comprehensive search index, live web browsing or real cloud data. Some clearly
+specified inventory questions use deterministic demo calculations instead of an
+AI response. AI can make mistakes; verify important answers. It has no
+infrastructure-changing tools and must not be used as a production backend. The
+.NET backend has a separate query engine.
+
+See [real-data readiness](../../docs/real-data-readiness.md) for the separate
+account, cost, gateway, storage and privacy decisions required before connecting
+real cloud data.

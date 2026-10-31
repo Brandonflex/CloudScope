@@ -52,6 +52,42 @@ const DEFAULT_EXAMPLES: Example[] = [
   }
 ];
 
+// Fixed URLs only: never turn an untrusted model response into an arbitrary link.
+const REFERENCE_LINKS: Record<string, { title: string; url: string }> = {
+  overview: {
+    title: 'CloudScope overview',
+    url: 'https://github.com/Brandonflex/CloudScope/blob/main/README.md#overview'
+  },
+  security: {
+    title: 'CloudScope gateway safeguards',
+    url: 'https://github.com/Brandonflex/CloudScope/blob/main/SECURITY.md#gateway-and-deployment-safeguards'
+  },
+  discovery: {
+    title: 'CloudScope discovery',
+    url: 'https://github.com/Brandonflex/CloudScope/blob/main/README.md#features'
+  },
+  graph: {
+    title: 'CloudScope blast radius',
+    url: 'https://github.com/Brandonflex/CloudScope/blob/main/docs/architecture.md#blast-radius'
+  },
+  cost: {
+    title: 'CloudScope cost intelligence',
+    url: 'https://github.com/Brandonflex/CloudScope/blob/main/docs/architecture.md#cost-analytics'
+  },
+  compliance: {
+    title: 'CloudScope compliance',
+    url: 'https://github.com/Brandonflex/CloudScope/blob/main/docs/architecture.md#compliance-engine'
+  },
+  'azure-graph': {
+    title: 'Microsoft: Azure Resource Graph overview',
+    url: 'https://learn.microsoft.com/en-us/azure/governance/resource-graph/overview'
+  },
+  'aws-config': {
+    title: 'AWS: What is AWS Config?',
+    url: 'https://docs.aws.amazon.com/config/latest/developerguide/WhatIsConfig.html'
+  }
+};
+
 @Component({
   selector: 'app-query',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -168,6 +204,23 @@ const DEFAULT_EXAMPLES: Example[] = [
                         >fictional inventory</a
                       >. Verify important answers.
                     </p>
+                  }
+
+                  @if (safeReferences(entry.result.references); as references) {
+                    @if (references.length) {
+                      <details class="generated-query">
+                        <summary>Relevant documentation (not verified citations)</summary>
+                        <ul>
+                          @for (reference of references; track reference.url) {
+                            <li>
+                              <a [href]="reference.url" target="_blank" rel="noopener noreferrer">{{
+                                reference.title
+                              }}</a>
+                            </li>
+                          }
+                        </ul>
+                      </details>
+                    }
                   }
 
                   @if (
@@ -477,6 +530,9 @@ const DEFAULT_EXAMPLES: Example[] = [
         cursor: pointer;
         user-select: none;
       }
+      .generated-query a {
+        color: #9bcaff;
+      }
       .generated-query pre {
         margin: 8px 0 0;
         padding: 10px 12px;
@@ -679,6 +735,13 @@ export class QueryComponent implements OnInit {
 
   previewAiEnabled(): boolean {
     return this.meta.demoMode() && this.meta.status()?.aiMode === 'FreeAIDemo';
+  }
+
+  safeReferences(references: AIQueryResult['references']): Array<{ title: string; url: string }> {
+    if (!Array.isArray(references)) return [];
+    return [...new Set(references.map((reference) => reference?.id))]
+      .filter((id): id is string => typeof id === 'string' && Object.hasOwn(REFERENCE_LINKS, id))
+      .map((id) => REFERENCE_LINKS[id]);
   }
 
   safeRelatedPage(page: AIQueryResult['relatedPage']): { label: string; path: string } | null {

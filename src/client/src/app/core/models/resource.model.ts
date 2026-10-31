@@ -298,6 +298,7 @@ export interface AIQueryResult {
   processingTime: string;
   source: string;
   contextSources?: string[];
+  references?: Array<{ id: string; title: string; url: string }>;
   suggestedQuestions?: string[];
   relatedPage?: { label: string; path: string } | null;
 }

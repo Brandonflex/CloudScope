@@ -166,3 +166,53 @@ test('Vercel rewritten route invokes the configured provider', async (t) => {
   assert.equal((await response.json()).source, 'Groq · demo data');
   assert.equal(aiCalls, 1);
 });
+
+test('demo facts are calculated deterministically and AI receives relevant trusted summaries', async (t) => {
+  const previous = Object.fromEntries(Object.keys(env).map((key) => [key, process.env[key]]));
+  Object.assign(process.env, env);
+  let aiCalls = 0;
+  const server = createServer((request, response) => handleRequest(request, response, {
+    allowPreviewAi: true,
+    aiFetch: async (_url, options) => {
+      aiCalls++;
+      const system = JSON.parse(options.body).messages[0].content;
+      assert.match(system, /RELEVANT DOCUMENT SUMMARIES/);
+      assert.match(system, /CloudScope blast radius/);
+      return content('A blast radius estimates potential impact.');
+    }
+  }));
+  server.listen(0, '127.0.0.1');
+  await once(server, 'listening');
+  t.after(() => {
+    for (const [key, value] of Object.entries(previous)) {
+      if (value === undefined) delete process.env[key]; else process.env[key] = value;
+    }
+    server.close();
+  });
+  const base = `http://127.0.0.1:${server.address().port}`;
+  const ask = async (question) => (await fetch(`${base}/api/query/ask`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ question })
+  })).json();
+  const top = await ask('What are my top 5 most expensive resources?');
+  assert.equal(top.source, 'Demo calculations');
+  assert.equal(top.data.length, 5);
+  assert.deepEqual(top.data.map((r) => r.monthlyCost), [...top.data.map((r) => r.monthlyCost)].sort((a, b) => b - a));
+  const radius = await ask('What is the blast radius of vm-app-01?');
+  assert.equal(radius.source, 'Demo calculations');
+  assert.ok(radius.data);
+  assert.equal((await ask('How many resources are there?')).source, 'Demo calculations');
+  assert.equal(aiCalls, 0, 'calculations must not call the model');
+  const explanation = await ask('Explain how a blast radius works');
+  assert.equal(explanation.source, 'Groq · demo data');
+  assert.ok(explanation.references.some((reference) => reference.id === 'graph'));
+  assert.ok(explanation.references.every((reference) => !('summary' in reference)));
+  assert.equal(aiCalls, 1);
+  // A prior turn may constrain a follow-up. Do not ignore that context by
+  // treating the follow-up as an unrelated standalone calculation.
+  const followUp = await (await fetch(`${base}/api/query/ask`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ question: 'What are my top 5 most expensive resources?', history: [{ role: 'user', content: 'Explain blast radius' }] })
+  })).json();
+  assert.equal(followUp.source, 'Groq · demo data');
+  assert.equal(aiCalls, 2);
+});

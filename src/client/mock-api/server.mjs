@@ -21,6 +21,7 @@ import { createServer } from 'node:http';
 import { extname, join, normalize, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { findHelp } from './help.mjs';
+import { retrieveKnowledge } from './knowledge.mjs';
 import { askPreviewAi, previewAiConfigs, validateHistory } from './preview-ai.mjs';
 
 const HERE = resolve(fileURLToPath(new URL('.', import.meta.url)));
@@ -1207,9 +1208,9 @@ function answerQuestion(question) {
       answer: matching.length
         ? `**${matching.length}** resources cost more than ${money(threshold)} per month, totalling **${money(
             sum(matching.map((resource) => resource.estimatedMonthlyCost))
-          )}**. The most expensive are ${matching
-            .slice(0, 3)
+          )}**. The most expensive are ${[...matching]
             .sort((a, b) => b.estimatedMonthlyCost - a.estimatedMonthlyCost)
+            .slice(0, 3)
             .map((resource) => `**${resource.name}** (${money(resource.estimatedMonthlyCost)})`)
             .join(', ')}.`
         : `No resource costs more than ${money(threshold)} per month.`,
@@ -1329,6 +1330,19 @@ function answerQuestion(question) {
       'Try a complete question using the examples below.',
     suggestedQuestions: ['What can CloudScope do?', 'How do I get started?', 'How many resources are there?']
   });
+}
+
+// Route only narrowly matched, unambiguous standalone inventory questions
+// through deterministic calculations. Other questions remain with the model.
+function isDirectDemoQuestion(question) {
+  const q = normalizeText(question);
+  if (/^(?:what are|show|show me|list) (?:my |the )?top \d+ most expensive resources$/.test(q) ||
+    /^(?:how many resources (?:are there|do i have)|(?:show|give) (?:me )?(?:an? |the )?(?:inventory|estate) (?:overview|summary))$/.test(q) ||
+    /^(?:which|what) vms are under utilised$/.test(q) ||
+    /^(?:which|what) resources are not managed by iac$/.test(q) ||
+    /^(?:show|show me) (?:my |the )?critical compliance violations$/.test(q)) return true;
+  const resource = findResource(question);
+  return Boolean(resource && q === `what is the blast radius of ${normalizeText(resource.name)}`);
 }
 
 // ── HTTP plumbing ──────────────────────────────────────────────────────────
@@ -1802,6 +1816,12 @@ export async function handleRequest(request, response, options = {}) {
         return;
       }
       const configs = options.allowPreviewAi ? previewAiConfigs(process.env) : [];
+      if (configs.length && !body.history?.length && isDirectDemoQuestion(question)) {
+        const calculation = answerQuestion(question);
+        calculation.source = 'Demo calculations';
+        sendJson(response, 200, calculation);
+        return;
+      }
       if (configs.length) {
         const started = Date.now();
         try {
@@ -1815,11 +1835,13 @@ export async function handleRequest(request, response, options = {}) {
             anomalies: buildAnomalies().slice(0, 10).map((a) => ({ resourceName: a.resourceName, deviationPercentage: a.deviationPercentage })),
             recommendations: buildRecommendations().slice(0, 10).map((r) => ({ resourceName: r.resourceName, title: r.title, estimatedMonthlySavings: r.estimatedMonthlySavings }))
           };
-          const result = await askPreviewAi({ configs, question, history: body.history, context, fetchImpl: options.aiFetch });
+          const references = retrieveKnowledge(question, body.history ?? []);
+          const result = await askPreviewAi({ configs, question, history: body.history, context, references, fetchImpl: options.aiFetch });
           sendJson(response, 200, {
             question, answer: result.answer, generatedQuery: null, data: null, success: true, error: null,
             processingTime: `${Date.now() - started} ms`, source: `${result.provider} · demo data`,
-            contextSources: ['CloudScope product guide', 'Fictional demo inventory']
+            contextSources: ['CloudScope product guide', 'Fictional demo inventory'],
+            references: references.map(({ id, title, url }) => ({ id, title, url }))
           });
           return;
         } catch {
