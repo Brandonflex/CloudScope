@@ -1,10 +1,11 @@
 # Experimental identity-aware gateway
 
-**Not deployed or production-ready.** This component and the opt-in Vercel
-routing are an experimental integration. They have not been tested with a real
-Entra account, Render deployment or Azure subscription. Do not configure real
-credentials or enable live routing until the remaining security review and
-deployment gates are complete.
+**Not production-ready.** A Render test service was started with a sign-in
+credential and an intentionally invalid Azure inventory credential. Health and
+unauthenticated denial were reported, but real Entra sign-in, deployed Vercel
+routing and actual Azure discovery have not been verified. Do not add a real
+inventory credential until the remaining deployment gates are complete; see
+[production release](../../docs/production-release.md).
 
 ## Intended design
 

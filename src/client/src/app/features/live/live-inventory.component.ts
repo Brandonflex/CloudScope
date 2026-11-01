@@ -1,10 +1,12 @@
 import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
+import { DatePipe } from '@angular/common';
 import { CloudResource, PagedResult } from '../../core/models';
 import { MetaService } from '../../core/services/meta.service';
 
 @Component({
   selector: 'app-live-inventory',
+  imports: [DatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <main class="page">
@@ -45,7 +47,10 @@ import { MetaService } from '../../core/services/meta.service';
               subscription.
             </p>
           } @else if (inventory()) {
-            <p>{{ inventory()?.totalCount }} resources found. Showing up to the first 100.</p>
+            <p>
+              {{ inventory()?.totalCount }} resources found. Last successful discovery:
+              {{ (meta.status()?.lastDiscoveryAt | date: 'medium') || 'time unavailable' }}.
+            </p>
             @if (inventory()?.totalCount === 0) {
               <div class="empty">
                 <strong>No resources found</strong>
@@ -73,6 +78,23 @@ import { MetaService } from '../../core/services/meta.service';
                     }
                   </tbody>
                 </table>
+              </div>
+              <div class="pagination" aria-label="Inventory pages">
+                <button
+                  type="button"
+                  (click)="load(page() - 1)"
+                  [disabled]="loading() || !inventory()?.hasPreviousPage"
+                >
+                  Previous
+                </button>
+                <span>Page {{ inventory()?.pageNumber }} of {{ inventory()?.totalPages }}</span>
+                <button
+                  type="button"
+                  (click)="load(page() + 1)"
+                  [disabled]="loading() || !inventory()?.hasNextPage"
+                >
+                  Next
+                </button>
               </div>
             }
           }
@@ -170,6 +192,15 @@ import { MetaService } from '../../core/services/meta.service';
       .table-wrap {
         overflow: auto;
       }
+      .pagination {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 12px;
+        margin-top: 18px;
+        color: #a8b4c2;
+        font-size: 0.875rem;
+      }
       table {
         width: 100%;
         border-collapse: collapse;
@@ -210,20 +241,23 @@ export class LiveInventoryComponent implements OnInit {
   readonly loading = signal(false);
   readonly error = signal('');
   readonly inventory = signal<PagedResult<CloudResource> | null>(null);
+  readonly page = signal(1);
 
   ngOnInit(): void {
     if (!this.meta.liveLoginRequired()) this.load();
   }
 
-  load(): void {
+  load(page = this.page()): void {
+    if (!Number.isInteger(page) || page < 1 || this.loading()) return;
     this.loading.set(true);
     this.error.set('');
     this.inventory.set(null);
     this.meta.getStatus().subscribe({
       next: (status) => {
         if (
-          status.demoMode ||
-          !status.liveInventoryOnly ||
+          status.demoMode !== false ||
+          status.liveInventoryOnly !== true ||
+          !Array.isArray(status.configuredProviders) ||
           !status.configuredProviders.includes('Azure')
         ) {
           this.loading.set(false);
@@ -235,12 +269,28 @@ export class LiveInventoryComponent implements OnInit {
           return;
         }
         this.http
-          .get<PagedResult<CloudResource>>('/api/resources?pageNumber=1&pageSize=100')
+          .get<PagedResult<CloudResource>>(`/api/resources?pageNumber=${page}&pageSize=100`)
           .subscribe({
             next: (result) => {
-              if (!Array.isArray(result?.items) || typeof result.totalCount !== 'number') {
+              if (
+                !Array.isArray(result?.items) ||
+                !Number.isInteger(result.totalCount) ||
+                result.totalCount < 0 ||
+                result.pageNumber !== page ||
+                !Number.isInteger(result.totalPages) ||
+                result.totalPages < 0 ||
+                typeof result.hasNextPage !== 'boolean' ||
+                typeof result.hasPreviousPage !== 'boolean' ||
+                result.items.some(
+                  (resource) =>
+                    !resource || resource.provider !== 'Azure' || typeof resource.id !== 'string'
+                )
+              ) {
                 this.error.set('The inventory response could not be verified.');
-              } else this.inventory.set(result);
+              } else {
+                this.page.set(page);
+                this.inventory.set(result);
+              }
               this.loading.set(false);
             },
             error: (error: unknown) => {

@@ -47,7 +47,14 @@ describe('LiveInventoryComponent', () => {
     const fixture = TestBed.createComponent(LiveInventoryComponent);
     fixture.detectChanges();
     const http = TestBed.inject(HttpTestingController);
-    http.expectOne('/api/resources?pageNumber=1&pageSize=100').flush({ items: [], totalCount: 0 });
+    http.expectOne('/api/resources?pageNumber=1&pageSize=100').flush({
+      items: [],
+      totalCount: 0,
+      pageNumber: 1,
+      totalPages: 0,
+      hasNextPage: false,
+      hasPreviousPage: false
+    });
     fixture.detectChanges();
     expect(fixture.nativeElement.textContent).toContain('No resources found');
     expect(fixture.nativeElement.textContent).toContain(
@@ -72,5 +79,74 @@ describe('LiveInventoryComponent', () => {
     fixture.detectChanges();
     expect(fixture.nativeElement.querySelector('a').getAttribute('href')).toBe('/auth/login');
     TestBed.inject(HttpTestingController).expectNone('/api/resources?pageNumber=1&pageSize=100');
+  });
+
+  it('paginates real inventory and uses the last successful discovery timestamp', () => {
+    status.set({ ...status(), lastDiscoveryAt: '2026-01-01T00:00:00Z' });
+    const fixture = TestBed.createComponent(LiveInventoryComponent);
+    fixture.detectChanges();
+    const http = TestBed.inject(HttpTestingController);
+    http.expectOne('/api/resources?pageNumber=1&pageSize=100').flush({
+      items: [
+        {
+          id: 'one',
+          name: 'one',
+          provider: 'Azure',
+          resourceType: 'Other',
+          region: 'global',
+          status: 'Unknown'
+        }
+      ],
+      totalCount: 2,
+      pageNumber: 1,
+      totalPages: 2,
+      hasPreviousPage: false,
+      hasNextPage: true
+    });
+    fixture.detectChanges();
+    expect(fixture.nativeElement.textContent).toContain('Last successful discovery');
+    expect(fixture.nativeElement.textContent).toContain('Page 1 of 2');
+    const buttons = fixture.nativeElement.querySelectorAll('.pagination button');
+    expect(buttons[0].disabled).toBeTrue();
+    buttons[1].click();
+    http.expectOne('/api/resources?pageNumber=2&pageSize=100').flush({
+      items: [
+        {
+          id: 'two',
+          name: 'two',
+          provider: 'Azure',
+          resourceType: 'Other',
+          region: 'global',
+          status: 'Unknown'
+        }
+      ],
+      totalCount: 2,
+      pageNumber: 2,
+      totalPages: 2,
+      hasPreviousPage: true,
+      hasNextPage: false
+    });
+    fixture.detectChanges();
+    expect(fixture.nativeElement.textContent).toContain('Page 2 of 2');
+    expect(fixture.nativeElement.textContent).toContain('two');
+    http.verify();
+  });
+
+  it('does not display non-Azure inventory in the Azure-only live view', () => {
+    const fixture = TestBed.createComponent(LiveInventoryComponent);
+    fixture.detectChanges();
+    const http = TestBed.inject(HttpTestingController);
+    http.expectOne('/api/resources?pageNumber=1&pageSize=100').flush({
+      items: [{ id: 'demo', provider: 'AWS' }],
+      totalCount: 1,
+      pageNumber: 1,
+      totalPages: 1,
+      hasPreviousPage: false,
+      hasNextPage: false
+    });
+    fixture.detectChanges();
+    expect(fixture.nativeElement.textContent).toContain('inventory response could not be verified');
+    expect(fixture.nativeElement.textContent).not.toContain('demo');
+    http.verify();
   });
 });

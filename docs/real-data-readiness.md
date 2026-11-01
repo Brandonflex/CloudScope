@@ -1,9 +1,10 @@
 # Real cloud data: readiness and no-cost boundary
 
-The protected Vercel preview uses a fictional estate and **cannot connect real
-cloud accounts**. This document is preparation, not a claim that a live cloud
-integration or identity-aware gateway has been deployed. Do not add provider
-credentials to the Vercel demo function.
+The existing demo estate is fictional. A Render test gateway has been started
+with an intentionally invalid Azure inventory credential; health and unauthenticated
+access denial were reported, but real sign-in, Vercel routing and Azure discovery
+have not been verified. Do not add provider credentials to Vercel or demo code.
+See [production release](production-release.md) for the remaining gates.
 
 ## Current constraints
 
@@ -68,14 +69,14 @@ credentials to the Vercel demo function.
    configured Azure OpenAI alongside live providers until this is implemented.
    Keep the preview demo isolated.
 
-None of these gates creates a cloud account, authorizes spending or proves a
-live deployment. The Vercel production demo function remains disabled by design.
+None of these gates authorizes spending or proves a live Azure connection. The
+Vercel production demo function remains disabled by design.
 
 ## Hosting constraint
 
 The Vercel demo is not a .NET backend or identity-aware gateway. A separately
 protected, reachable backend is still required to connect its UI to real data;
-no such deployment has been provisioned or validated. An experimental Entra
+the dummy-credential Render deployment has not been validated end to end. An experimental Entra
 identity gateway, Vercel proxy and inventory-only view are under development in
 [`src/gateway`](../src/gateway/README.md); they are not ready for real credentials. Any self-hosted option
 requires a running device and network connection. Do not use a public quick

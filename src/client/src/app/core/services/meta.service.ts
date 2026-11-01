@@ -12,6 +12,8 @@ export class MetaService {
   readonly status = signal<PlatformStatus | null>(null);
   readonly demoMode = signal(false);
   readonly liveLoginRequired = signal(false);
+  /** True once the API has responded or failed; avoids showing demo UI while offline. */
+  readonly statusResolved = signal(false);
 
   loadStatus(): void {
     this.http.get<PlatformStatus>(this.baseUrl).subscribe({
@@ -40,6 +42,7 @@ export class MetaService {
   }
 
   private setStatus(status: PlatformStatus | null): void {
+    this.statusResolved.set(true);
     // HttpClient's generic type does not validate a server response. Reject
     // unrelated JSON so a static host or proxy cannot be mistaken for the API.
     if (

@@ -13,8 +13,10 @@ describe('MetaService', () => {
   it('does not mistake unrelated JSON or a failed request for an available backend', () => {
     const meta = TestBed.inject(MetaService);
     const http = TestBed.inject(HttpTestingController);
+    expect(meta.statusResolved()).toBeFalse();
     meta.loadStatus();
     http.expectOne('/api/meta').flush({ message: 'not found' });
+    expect(meta.statusResolved()).toBeTrue();
     expect(meta.status()).toBeNull();
 
     meta.loadStatus();
