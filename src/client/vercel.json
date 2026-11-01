@@ -4,15 +4,43 @@
   "buildCommand": "npm run build:prod",
   "outputDirectory": "dist/cloudscope/browser",
   "functions": {
-    "api/index.mjs": { "includeFiles": "public/demo/inventory.json", "maxDuration": 30 }
+    "api/index.mjs": {
+      "includeFiles": "public/demo/inventory.json",
+      "maxDuration": 30
+    }
   },
   "rewrites": [
-    { "source": "/api/:__cloudscope_path+", "destination": "/api?__cloudscope_path=:__cloudscope_path*" },
-    { "source": "/dashboard", "destination": "/index.html" },
-    { "source": "/graph", "destination": "/index.html" },
-    { "source": "/resources", "destination": "/index.html" },
-    { "source": "/costs", "destination": "/index.html" },
-    { "source": "/compliance", "destination": "/index.html" },
-    { "source": "/query", "destination": "/index.html" }
+    {
+      "source": "/api/:__cloudscope_path+",
+      "destination": "/api?__cloudscope_path=:__cloudscope_path*"
+    },
+    {
+      "source": "/auth/:__cloudscope_auth+",
+      "destination": "/api?__cloudscope_auth=:__cloudscope_auth*"
+    },
+    {
+      "source": "/dashboard",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/graph",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/resources",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/costs",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/compliance",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/query",
+      "destination": "/index.html"
+    }
   ]
 }

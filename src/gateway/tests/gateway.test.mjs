@@ -81,6 +81,7 @@ test('valid sign-in rotates session and forwards only a fixed read with server s
     .set('X-CloudScope-Gateway-Key', 'attacker').set('X-Forwarded-Host', 'attacker.example').set('Authorization', 'attacker'));
   assert.equal(response.status, 200);
   assert.equal(response.body.realtimeAvailable, false);
+  assert.equal(response.body.liveInventoryOnly, true);
   assert.equal(response.body.discoveryStatus, 'Succeeded');
   assert.equal(response.headers['set-cookie'], undefined);
   const upstream = upstreamRequests.at(-1);
@@ -144,4 +145,17 @@ test('supervisor refuses incomplete configuration and forces an isolated live ba
   assert.equal(gatewayEnv.Azure__ClientSecret, undefined);
   assert.equal(gatewayEnv.Azure__SubscriptionId, undefined);
   assert.equal(gatewayEnv.CLOUDSCOPE_OIDC_CLIENT_SECRET, ready.CLOUDSCOPE_OIDC_CLIENT_SECRET);
+});
+
+
+test('gateway bounds total requests and login attempts per instance without trusting client IPs', async () => {
+  let now = 0;
+  const limited = createGateway(config, oidc, { maxRequestsPerMinute: 4, maxLoginsPerMinute: 1, clock: () => now });
+  assert.equal((await forwarded(request(limited).get('/auth/login'))).status, 302);
+  const blocked = await forwarded(request(limited).get('/auth/login').set('X-Forwarded-For', '1.2.3.4'));
+  assert.equal(blocked.status, 429);
+  assert.equal(blocked.headers['retry-after'], '60');
+  now = 60000;
+  assert.equal((await forwarded(request(limited).get('/auth/login'))).status, 302);
+  assert.equal((await request(limited).get('/healthz')).status, 200);
 });

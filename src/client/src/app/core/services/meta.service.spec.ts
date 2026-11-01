@@ -23,4 +23,22 @@ describe('MetaService', () => {
     expect(meta.demoMode()).toBeFalse();
     http.verify();
   });
+  it('offers live sign-in on a 401 and clears it after a valid status', () => {
+    const meta = TestBed.inject(MetaService);
+    const http = TestBed.inject(HttpTestingController);
+    meta.loadStatus();
+    http.expectOne('/api/meta').flush(null, { status: 401, statusText: 'Unauthorized' });
+    expect(meta.liveLoginRequired()).toBeTrue();
+    meta.loadStatus();
+    http.expectOne('/api/meta').flush({
+      demoMode: false,
+      liveInventoryOnly: true,
+      configuredProviders: ['Azure'],
+      resourceCount: 0,
+      relationshipCount: 0
+    });
+    expect(meta.liveLoginRequired()).toBeFalse();
+    expect(meta.status()?.liveInventoryOnly).toBeTrue();
+    http.verify();
+  });
 });

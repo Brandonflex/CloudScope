@@ -10,7 +10,10 @@ test('Vercel serves the Angular browser output and rewrites only SPA routes', as
   assert.equal(config.outputDirectory, 'dist/cloudscope/browser');
   assert.equal(config.buildCommand, 'npm run build:prod');
   assert.equal(config.functions['api/index.mjs'].includeFiles, 'public/demo/inventory.json');
-  assert.ok(config.functions['api/index.mjs'].maxDuration > 20, 'AI timeouts must fit within the function duration');
+  assert.ok(
+    config.functions['api/index.mjs'].maxDuration > 20,
+    'AI timeouts must fit within the function duration'
+  );
 
   const indexPath = resolve(config.outputDirectory, 'index.html');
   assert.ok((await stat(indexPath)).isFile(), 'the Vercel output must contain index.html');
@@ -23,9 +26,20 @@ test('Vercel serves the Angular browser output and rewrites only SPA routes', as
   const clientRoutes = [...routesSource.matchAll(/path: '([^']+)'/g)]
     .map((match) => match[1])
     .filter((route) => route !== '**');
-  const [apiRewrite, ...spaRewrites] = config.rewrites;
-  assert.deepEqual(apiRewrite, { source: '/api/:__cloudscope_path+', destination: '/api?__cloudscope_path=:__cloudscope_path*' });
-  assert.deepEqual(await readdir('api'), ['index.mjs'], 'all API routes must use the shared entry point');
+  const [apiRewrite, authRewrite, ...spaRewrites] = config.rewrites;
+  assert.deepEqual(authRewrite, {
+    source: '/auth/:__cloudscope_auth+',
+    destination: '/api?__cloudscope_auth=:__cloudscope_auth*'
+  });
+  assert.deepEqual(apiRewrite, {
+    source: '/api/:__cloudscope_path+',
+    destination: '/api?__cloudscope_path=:__cloudscope_path*'
+  });
+  assert.deepEqual(
+    await readdir('api'),
+    ['index.mjs'],
+    'all API routes must use the shared entry point'
+  );
   // Exercise Vercel's actual rewrite compiler, including multi-segment captures.
   const compiled = convertRewrites(config.rewrites)[0];
   assert.equal(compiled.dest, '/api?__cloudscope_path=$1');
@@ -36,6 +50,14 @@ test('Vercel serves the Angular browser output and rewrites only SPA routes', as
     assert.equal(match[1], route.slice('/api/'.length));
   }
   assert.ok(!pattern.test('/api'), 'the function destination must not match its own rewrite');
+  const authCompiled = convertRewrites(config.rewrites)[1];
+  assert.equal(authCompiled.dest, '/api?__cloudscope_auth=$1');
+  const authPattern = new RegExp(authCompiled.src);
+  for (const route of ['/auth/login', '/auth/callback', '/auth/logout']) {
+    const match = route.match(authPattern);
+    assert.ok(match, `${route} must match the auth rewrite`);
+    assert.equal(match[1], route.slice('/auth/'.length));
+  }
   assert.deepEqual(
     spaRewrites.map((rule) => rule.source).sort(),
     clientRoutes.map((route) => `/${route}`).sort()

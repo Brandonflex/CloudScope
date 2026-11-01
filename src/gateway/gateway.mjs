@@ -95,7 +95,10 @@ function proxyInventory(req, res, gatewaySecret, backendPort) {
       catch { return answer(res, 502, 'Backend response unavailable.'); }
       if (path.pathname === '/api/meta' && response.statusCode === 200) {
         if (!body || typeof body !== 'object' || Array.isArray(body)) return answer(res, 502, 'Backend response unavailable.');
+        if (body.demoMode !== false || !Array.isArray(body.configuredProviders) ||
+            !body.configuredProviders.includes('Azure')) return answer(res, 503, 'Live Azure inventory is unavailable.');
         body.realtimeAvailable = false; // This gateway intentionally does not proxy SignalR.
+        body.liveInventoryOnly = true;
       }
       res.status(response.statusCode || 502).json(body);
     });
@@ -107,7 +110,8 @@ function proxyInventory(req, res, gatewaySecret, backendPort) {
 }
 
 /** oidc is an injected adapter; the production adapter is in server.mjs. */
-export function createGateway(config, oidc, { backendPort = 8081, store = new BoundedStore() } = {}) {
+export function createGateway(config, oidc, { backendPort = 8081, store = new BoundedStore(),
+  maxRequestsPerMinute = 120, maxLoginsPerMinute = 15, clock = Date.now } = {}) {
   const app = express();
   app.disable('x-powered-by');
   // Render terminates HTTPS. No authorization or redirect URL is derived
@@ -117,6 +121,27 @@ export function createGateway(config, oidc, { backendPort = 8081, store = new Bo
     res.set({ 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff',
       'Referrer-Policy': 'no-referrer', 'X-Frame-Options': 'DENY' });
     next();
+  });
+  // A conservative per-instance ceiling, not a replacement for platform
+  // rate limits or DDoS protection. Avoid trusting attacker-supplied IP headers.
+  let windowStarted = clock();
+  let requests = 0;
+  let logins = 0;
+  app.use((req, res, next) => {
+    if (req.path === '/healthz') return next();
+    const now = clock();
+    if (now - windowStarted >= 60000 || now < windowStarted) {
+      windowStarted = now;
+      requests = 0;
+      logins = 0;
+    }
+    requests++;
+    if (req.path === '/auth/login') logins++;
+    if (requests > maxRequestsPerMinute || logins > maxLoginsPerMinute) {
+      res.set('Retry-After', String(Math.max(1, Math.ceil((60000 - (now - windowStarted)) / 1000))));
+      return answer(res, 429, 'Too many requests. Try again later.');
+    }
+    return next();
   });
   app.use(session({
     name: '__Host-cloudscope', secret: config.sessionSecret, store,

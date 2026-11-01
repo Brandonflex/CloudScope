@@ -76,7 +76,7 @@ live deployment. The Vercel production demo function remains disabled by design.
 The Vercel demo is not a .NET backend or identity-aware gateway. A separately
 protected, reachable backend is still required to connect its UI to real data;
 no such deployment has been provisioned or validated. An experimental Entra
-identity gateway and single-instance container are under development in
+identity gateway, Vercel proxy and inventory-only view are under development in
 [`src/gateway`](../src/gateway/README.md); they are not ready for real credentials. Any self-hosted option
 requires a running device and network connection. Do not use a public quick
 tunnel as an authentication gateway. Cloudflare's documentation states that
@@ -88,5 +88,6 @@ unverified; free quotas or trials are not a guarantee of permanent no-cost servi
 Render offers free web services, but they sleep on inactivity, have limited
 monthly quotas, may suspend on exceeding limits, and do not support private
 inbound networking on the free plan. A single-container loopback backend and
-OIDC gateway is being explored; neither its security nor its compatibility with
-Vercel routing has been established. See [Render's free-plan documentation](https://render.com/docs/free).
+OIDC gateway and Vercel routing have mock end-to-end tests, but neither their
+security nor their compatibility with a deployed Render/Vercel setup has been
+established. See [Render's free-plan documentation](https://render.com/docs/free).
