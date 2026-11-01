@@ -5,8 +5,6 @@
 name: Deploy to Azure
 
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
     inputs:
       profile:
@@ -14,6 +12,11 @@ on:
         type: choice
         options: [prod, demo, dev]
         default: prod
+      acknowledge_charges:
+        description: 'I understand this deployment can create billable Azure resources'
+        type: boolean
+        required: true
+        default: false
 
 permissions:
   contents: read
@@ -30,14 +33,19 @@ env:
 
 jobs:
   # ─── Configuration guard ─────────────────────────────────
-  # Nothing is deployed until the Azure credentials secret exists, so merging
-  # this workflow before the subscription is wired up does not fail the build.
+  # Manual dispatch and explicit acknowledgment are required before even
+  # checking credentials. The free Vercel/Render setup does not use this workflow.
   guard:
     name: Check deployment configuration
     runs-on: ubuntu-latest
     outputs:
       configured: ${{ steps.check.outputs.configured }}
     steps:
+      - name: Require explicit cost acknowledgment
+        if: ${{ inputs.acknowledge_charges != true }}
+        run: |
+          echo "::error::Azure infrastructure can incur charges. Explicit acknowledgment is required."
+          exit 1
       - name: Check for AZURE_CREDENTIALS
         id: check
         env:

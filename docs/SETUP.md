@@ -1,5 +1,11 @@
 # CloudScope — Setup: what you actually have to do
 
+> **Historical guide:** The current protected Vercel/Render setup and its limits
+> are documented in [production-release.md](production-release.md). This guide's
+> Azure App Service deployment is a separate, potentially paid alternative; do
+> not run it under a no-payment constraint. Cost and feature claims below may be
+> outdated. Free hosting has limits and is not guaranteed to remain available.
+
 Everything code-related is already done and committed. What remains needs a
 human with repository-admin or Azure-subscription rights: **you**.
 
@@ -182,13 +188,15 @@ from the resource group.
 
 <https://github.com/Brandonflex/Azure/actions/workflows/deploy-azure.yml> →
 **Run workflow** → branch `arena/d2622d45-azure` (or `main` after merging) and
-choose the **`demo`** profile.
+choose a profile and explicitly acknowledge possible charges. Even the **`demo`**
+profile can incur charges.
 
 It takes ~6–10 minutes: Bicep → build SPA → publish API → zip → deploy →
 smoke-test `/health` and `/`.
 
-> The workflow does nothing until `AZURE_CREDENTIALS` exists. That is
-> deliberate, so merging the pull request does not produce a red run.
+> The workflow runs only when manually dispatched with explicit acknowledgment
+> of potential charges and also requires `AZURE_CREDENTIALS`. It is not needed
+> for the Vercel/Render setup.
 
 ### 5. Check it
 
