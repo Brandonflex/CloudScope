@@ -160,7 +160,11 @@ npm run build              # development build
 npm run build:prod         # optimised production build
 ```
 
-### Deploying to Azure
+### Optional paid Azure deployment
+
+**Not used by the no-payment Vercel/Render setup.** The manual workflow below
+can provision billable resources, even with the demo profile. Do not run it
+without reviewing costs and explicitly accepting potential charges.
 
 One App Service hosts both the API and the SPA (the build is published into
 `wwwroot`), provisioned by `infra/bicep/main.bicep` (Cosmos DB SQL API, Redis,
@@ -168,7 +172,7 @@ Azure OpenAI, Application Insights, Key Vault).
 
 ```bash
 # demo profile: B1 App Service + Cosmos free tier (~$30/mo)
-gh workflow run deploy-azure.yml -f profile=demo
+gh workflow run deploy-azure.yml -f profile=demo -f acknowledge_charges=true
 ```
 
 Required repository secrets and the post-deploy checklist are documented in

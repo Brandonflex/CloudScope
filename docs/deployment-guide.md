@@ -114,8 +114,10 @@ non-root user with a `HEALTHCHECK`.
 
 ## Deploying to Azure
 
-The pipeline `.github/workflows/deploy-azure.yml` runs on pushes to `main` and
-on `workflow_dispatch`.
+The optional Azure infrastructure pipeline `.github/workflows/deploy-azure.yml`
+runs **only by manual dispatch** and requires explicit acknowledgment that it can
+create billable resources. It is not used by the Vercel/Render setup. Do not run
+it if you do not accept potential charges.
 
 ### Required GitHub secrets
 

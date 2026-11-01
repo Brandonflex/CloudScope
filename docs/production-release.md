@@ -1,24 +1,26 @@
 # Production release: protected, read-only Azure inventory
 
 This is a release checklist, not a claim that CloudScope is production-ready.
-As of this work, a Render Free test service has started with an intentionally
-invalid Azure inventory credential. A user reported that health succeeded and
-unauthenticated inventory was denied. An unauthenticated request to the intended
-production domain was redirected to Vercel Authentication after the owner enabled
-protection. Actual Microsoft sign-in, Vercel-to-Render routing, Azure discovery,
-and deployment of this PR to production have not been verified.
+The owner reported a successful production-domain Microsoft sign-in and shared a
+screenshot showing a successful Azure discovery with zero resources visible in
+the configured scope. This is evidence of a working path, not independent proof
+of subscription-wide permissions, completeness, unauthorized-user rejection, or
+full production readiness. Previously, an unauthenticated Render API request
+was denied and the production domain redirected to Vercel Authentication.
 
 ## Boundaries and prerequisites
 
-- Preserve the strict no-payment/no-card constraint. Confirm the actual Render
+- Preserve the strict no-payment/no-card constraint. The optional Azure
+  infrastructure workflow can provision billable resources and is not used for
+  the Vercel/Render setup. Confirm the actual Render
   workspace has no payment method and the service shows Free/$0 before any deploy.
   Free instance hours, build minutes and bandwidth are workspace-wide; services
   may sleep, lose in-memory data or be suspended. Render Free is not an always-on
   production SLA. Review [Render free limits](https://render.com/docs/free) and
   [Vercel Hobby terms](https://vercel.com/docs/plans/hobby) for the account.
-- Obtain approval before merging PR #40. It overlaps the still-open PR #39; the
-  overlapping changes must not be merged twice without review. Branch deployments
-  are not a substitute for a user-approved release to the production branch.
+- PR #40 was merged with owner approval. PR #39 overlaps its changes and remains
+  open; do not merge or close it without review and owner approval. Future
+  changes still require a PR and explicit merge approval.
 - The owner confirmed `https://cloud-scope-six.vercel.app` as the intended
   production domain. Production must use one exact, stable HTTPS origin. The gateway's
   `CLOUDSCOPE_PUBLIC_ORIGIN`, the Entra **Web** redirect URI ending in
@@ -45,21 +47,16 @@ and deployment of this PR to production have not been verified.
 
 ## Verification sequence
 
-1. Keep the intentionally invalid inventory secret and `Discovery__Enabled=false`
-   for the first controlled production-domain sign-in test. The backend may
-   attempt startup discovery once; failure is expected, not evidence of zero
-   resources. Confirm `/healthz`, unauthenticated API denial, successful sign-in
-   only for the allowed Microsoft user, denied sign-in for an unauthorized user,
-   logout, expired sessions, no leaks in logs, and same-origin browser routing.
-2. After owner approval and these checks, replace the dummy secret **privately in
-   Render** with the Inventory Reader app's actual client-secret value. The user
-   configured the Reader role for the chosen subscription; confirm its scope
-   directly in Azure, as the app cannot verify RBAC. Set `Discovery__Enabled=true`
-   for periodic discovery and redeploy. Never put the secret in the PR or Vercel.
-3. Verify a real successful Azure Resource Graph discovery. An empty inventory is
-   shown as zero only after success; failures and pending discovery remain errors.
-   Confirm restart/cold-start recovery and sign-out. Check the Azure portal for
-   billing independently; the app does not currently provide verified live costs.
+1. The owner observed successful sign-in and a successful zero-resource discovery
+   on the production domain after replacing the dummy secret. The app cannot verify
+   RBAC scope; confirm the Inventory Reader's subscription role directly in Azure.
+   Zero means no resources visible in the configured scope, not proof of complete
+   access. Never put secrets in the PR or Vercel.
+2. Still verify unauthorized-user rejection, logout, expired sessions, absence of
+   credential leaks in logs, and restart/cold-start recovery. An unauthenticated
+   API denial and the owner's authorized sign-in do not establish those properties.
+3. Failures and pending discovery must not be presented as an empty inventory.
+   Check billing in Azure independently; the app does not provide verified costs.
 4. Monitor quota consumption and secret expiry. Remove test credentials when no
    longer needed, rotate compromised or expired secrets, and remove unused OAuth
    redirect URIs. Keep Vercel protection and the Render gateway enabled.
