@@ -25,8 +25,8 @@ credential isolation are not established by those observations; see
 - Only explicitly allowlisted GET inventory/graph routes are proxied. Costs,
   AI, compliance, discovery writes and SignalR are intentionally unavailable.
   The backend uses in-memory storage, demo seeding and external AI are disabled,
-  and live Cosmos storage is blocked pending provenance work. Existing Azure
-  Azure-only in-memory discovery replaces the cache after a validated complete
+  and live Cosmos storage is blocked pending provenance work. Azure-only
+  in-memory discovery replaces the cache after a validated complete
   query; other modes remain upsert-only. Azure Resource Graph is eventually
   consistent, and the cache can be stale or limited by the identity's permissions.
 - The opt-in Vercel proxy forwards only the gateway session cookie and approved
@@ -36,31 +36,31 @@ credential isolation are not established by those observations; see
   Azure credentials or the backend gateway key.
 - Local tests use mock identity and signed tokens; they do **not** establish
   all production security properties, full Azure access, Render credential
-  isolation, or cost controls work. In-memory rate limits are
+  isolation, or cost controls. In-memory rate limits are
   per instance and do not replace platform-level protection or DDoS mitigation.
 
 ## Outstanding gates
 
-1. Verify the same-origin Vercel-to-gateway routing and Microsoft sign-in in
-   an authenticated browser against a controlled deployment. Vercel platform
-   cookies must not be proxied to Render. Keep Vercel Deployment Protection on.
-2. Establish an Azure service identity with only the minimum read-only scope,
-   plus a separate tenant-restricted sign-in application. Verify permissions,
-   provider API behavior, billing and consent before using a real subscription.
+1. The owner observed sign-in through the production domain. Still verify
+   unauthorized-user rejection, logout, expired sessions, log safety and
+   cold-start recovery. Keep Vercel Deployment Protection on; Vercel platform
+   cookies must not be proxied to Render.
+2. The owner configured separate sign-in and Azure inventory identities, and
+   observed a successful query. Independently verify the intended read-only
+   subscription role and scope; a successful query is not proof of complete RBAC.
 3. Establish and independently review an adequate credential-isolation threat
    model for the same-container supervisor, gateway and API. Review authentication,
    reverse-proxy headers, CSRF, session behavior, TLS termination, access control,
-   rate limiting, local backend isolation and logging. Verify startup and denial
-   paths end to end; process environment filtering alone is not an isolation boundary.
-4. Verify the inventory-only UI's empty, failed, expired-session and cold-start
-   behavior. Live billing, compliance, AI and SignalR are deliberately disabled.
-5. Confirm Render's no-card signup and free-plan terms for the actual account.
-   Free services may sleep, lose in-memory data, or be suspended at quota; they
-   are not recommended for production. Never create a paid instance or submit
-   payment details. See [Render free services](https://render.com/docs/free).
-6. Only after approval, configure secrets privately in the host dashboard—not
-   in the repository, Vercel demo, logs or chat—and test with the empty Azure
-   subscription. The app cannot verify the service identity's RBAC scope.
+   rate limiting, local backend isolation and logging. Environment filtering alone
+   is not an isolation boundary.
+4. Verify the inventory-only UI's failed, expired-session and cold-start behavior.
+   Live billing, compliance, AI and SignalR are deliberately disabled.
+5. Monitor the actual account's Render free-plan quotas. Free services may sleep,
+   lose in-memory data, or be suspended at quota; they are not recommended for
+   production. Never create a paid instance or submit payment details. See
+   [Render free services](https://render.com/docs/free).
+6. Keep all credentials in the host dashboard, not in the repository, Vercel,
+   logs or chat. Monitor secret expiry and rotate compromised credentials.
 
 ## Local tests
 
@@ -72,12 +72,13 @@ permission to deploy the prototype with real data.
 
 ## Opt-in routing
 
-When the deployment and security gates are met, Vercel's server-side variable
+Vercel's server-side variable
 `CLOUDSCOPE_LIVE_GATEWAY_ORIGIN` can be set to the exact HTTPS `*.onrender.com`
 origin, without a path. This is a host address, **not an Azure credential**. It
 selects the live gateway instead of the preview demo for that deployment; an
 invalid value or unavailable gateway returns an error, not synthetic data. The
 Vercel system variable `VERCEL_ENV` must be exposed. The gateway's configured
 public origin must exactly match the Vercel URL used for sign-in and the Entra
-redirect URI. Do not enable this until the gateway, identity and RBAC have been
-reviewed and verified. No automatic migration of existing data is performed.
+redirect URI. The owner has configured the live path; further security and RBAC
+verification remain outstanding. Do not broaden access until they are resolved.
+No automatic migration of existing data is performed.
