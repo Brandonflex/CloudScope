@@ -15,10 +15,17 @@ export function backendEnvironment(env) {
   const tenant = env.Azure__TenantId || '';
   const clientId = env.Azure__ClientId || '';
   const subscription = env.Azure__SubscriptionId || '';
-  if (![tenant, clientId, subscription].every((value) => GUID.test(value)) || !env.Azure__ClientSecret ||
-      tenant.toLowerCase() !== config.tenant) {
-    throw new Error('A tenant-matched, read-only Azure service identity and subscription are required.');
+  // Identify only setting names, never values. This is validation of format
+  // and tenant consistency; it does not verify credentials or Azure RBAC.
+  const problems = [];
+  if (!GUID.test(tenant)) problems.push('Azure__TenantId must be a GUID');
+  else if (tenant.toLowerCase() !== config.tenant) problems.push('Azure__TenantId must match CLOUDSCOPE_TENANT_ID');
+  if (!GUID.test(clientId)) problems.push('Azure__ClientId must be a GUID');
+  if (!GUID.test(subscription)) problems.push('Azure__SubscriptionId must be a GUID');
+  if (typeof env.Azure__ClientSecret !== 'string' || !env.Azure__ClientSecret.trim()) {
+    problems.push('Azure__ClientSecret must not be empty');
   }
+  if (problems.length) throw new Error(`Invalid Azure configuration: ${problems.join('; ')}.`);
   const isolated = { ...env };
   delete isolated.CLOUDSCOPE_OIDC_CLIENT_SECRET;
   delete isolated.CLOUDSCOPE_SESSION_SECRET;

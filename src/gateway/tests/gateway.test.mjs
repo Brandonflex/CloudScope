@@ -130,8 +130,18 @@ test('supervisor refuses incomplete configuration and forces an isolated live ba
     ASPNETCORE_URLS: 'http://0.0.0.0:8081', GatewayAuthentication__Enabled: 'false',
     AzureOpenAI__ApiKey: 'must-be-disabled', AWS__AccessKeyId: 'must-be-disabled'
   };
-  assert.throws(() => backendEnvironment({ ...ready, Azure__TenantId: '77777777-7777-4777-8777-777777777777' }));
-  assert.throws(() => backendEnvironment({ ...ready, Azure__ClientSecret: '' }));
+  assert.throws(() => backendEnvironment({ ...ready, Azure__TenantId: '77777777-7777-4777-8777-777777777777' }),
+    /Azure__TenantId must match CLOUDSCOPE_TENANT_ID/);
+  assert.throws(() => backendEnvironment({ ...ready, Azure__ClientSecret: '  ' }),
+    /Azure__ClientSecret must not be empty/);
+  for (const name of ['Azure__TenantId', 'Azure__ClientId', 'Azure__SubscriptionId']) {
+    assert.throws(() => backendEnvironment({ ...ready, [name]: 'sensitive-input-must-not-be-logged' }), (error) => {
+      assert.match(error.message, new RegExp(`${name} must be a GUID`));
+      assert.doesNotMatch(error.message, /sensitive-input-must-not-be-logged/);
+      assert.doesNotMatch(error.message, /test-only-secret/);
+      return true;
+    });
+  }
   const result = backendEnvironment(ready);
   assert.equal(result.ASPNETCORE_URLS, 'http://127.0.0.1:8081');
   assert.equal(result.Platform__StorageProvider, 'InMemory');
