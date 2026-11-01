@@ -2,6 +2,7 @@ using CloudScope.Core.Common;
 using CloudScope.Core.Domain.Enums;
 using CloudScope.Core.Domain.Models;
 using CloudScope.Core.Interfaces;
+using CloudScope.Infrastructure.Helpers;
 
 namespace CloudScope.Infrastructure.Repositories;
 
@@ -9,7 +10,7 @@ namespace CloudScope.Infrastructure.Repositories;
 /// Thread-safe, in-process implementation of both repositories. It powers the
 /// zero-configuration demo experience and is also used by the integration tests.
 /// </summary>
-public sealed class InMemoryCloudStore : IResourceRepository, IGraphRepository
+public sealed class InMemoryCloudStore : IResourceRepository, IGraphRepository, IInventorySnapshotRepository
 {
     private readonly object _sync = new();
     private readonly Dictionary<string, CloudResource> _resources = new(StringComparer.OrdinalIgnoreCase);
@@ -52,6 +53,68 @@ public sealed class InMemoryCloudStore : IResourceRepository, IGraphRepository
             _edges.Clear();
             LastSyncAt = null;
         }
+    }
+
+    /// <summary>
+    /// Publish one completed inventory as a single atomic in-memory snapshot.
+    /// Previously observed resources and edges absent from the new snapshot are
+    /// removed from this cache only. Azure's index can lag real-world changes.
+    /// </summary>
+    public Task ReplaceSnapshotAsync(
+        CloudProvider provider, IReadOnlyList<CloudResource> resources, CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
+        var nextResources = new Dictionary<string, CloudResource>(StringComparer.OrdinalIgnoreCase);
+        foreach (var resource in resources)
+        {
+            if (resource is null || resource.Provider != provider || string.IsNullOrWhiteSpace(resource.Id) ||
+                !nextResources.TryAdd(resource.Id, resource))
+                throw new InvalidOperationException("Invalid or duplicate resource in discovery snapshot.");
+        }
+
+        var nextEdges = new Dictionary<string, ResourceRelationship>(StringComparer.OrdinalIgnoreCase);
+        foreach (var resource in nextResources.Values)
+        {
+            foreach (var edge in resource.Relationships)
+            {
+                if (edge is null || !string.Equals(edge.SourceResourceId, resource.Id, StringComparison.OrdinalIgnoreCase) ||
+                    string.IsNullOrWhiteSpace(edge.TargetResourceId))
+                    throw new InvalidOperationException("Invalid relationship in discovery snapshot.");
+                if (!nextResources.ContainsKey(edge.TargetResourceId)) continue;
+                // Copy rather than mutating the previous snapshot during validation.
+                var id = RelationshipIdentity.For(edge);
+                nextEdges[id] = new ResourceRelationship
+                {
+                    Id = id,
+                    SourceResourceId = edge.SourceResourceId,
+                    TargetResourceId = edge.TargetResourceId,
+                    RelationshipType = edge.RelationshipType,
+                    Description = edge.Description,
+                    Properties = new Dictionary<string, string>(edge.Properties)
+                };
+            }
+        }
+
+        lock (_sync)
+        {
+            ct.ThrowIfCancellationRequested();
+            if (_resources.Values.Any(resource => resource.Provider != provider))
+                throw new InvalidOperationException("Cannot replace a mixed-provider inventory snapshot.");
+
+            var now = DateTime.UtcNow;
+            foreach (var resource in nextResources.Values)
+            {
+                if (_resources.TryGetValue(resource.Id, out var existing))
+                    resource.DiscoveredAt = existing.DiscoveredAt;
+                resource.LastSyncedAt = now;
+            }
+            _resources.Clear();
+            foreach (var (id, resource) in nextResources) _resources.Add(id, resource);
+            _edges.Clear();
+            foreach (var (id, edge) in nextEdges) _edges.Add(id, edge);
+            LastSyncAt = now;
+        }
+        return Task.CompletedTask;
     }
 
     // ── IResourceRepository ───────────────────────────────────────────────

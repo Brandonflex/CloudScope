@@ -69,6 +69,10 @@ public class CloudDiscoveryService : IDiscoveryService
                 throw new InvalidOperationException("Live discovery requires a fresh store that has never contained demo data.");
 
             var result = new DiscoveryResult { StartedAt = DateTime.UtcNow, DemoMode = false };
+            // Keep the snapshot graph unchanged even if discovery or validation fails.
+            var snapshots = configured.Count == 1 && configured[0].Provider == CloudProvider.Azure &&
+                ReferenceEquals(_resourceRepository, _graphRepository)
+                    ? _resourceRepository as IInventorySnapshotRepository : null;
 
             foreach (var provider in configured)
             {
@@ -81,7 +85,17 @@ public class CloudDiscoveryService : IDiscoveryService
                 try
                 {
                     var discovered = (await provider.DiscoverResourcesAsync(ct)).ToList();
-                    await _resourceRepository.UpsertBatchAsync(discovered, ct);
+                    // Only the Azure-only in-memory store can atomically replace a
+                    // complete snapshot. Multi-provider and persistent stores keep
+                    // their existing upsert-only behavior until scope-aware support exists.
+                    if (snapshots is not null)
+                    {
+                        await snapshots.ReplaceSnapshotAsync(provider.Provider, discovered, ct);
+                    }
+                    else
+                    {
+                        await _resourceRepository.UpsertBatchAsync(discovered, ct);
+                    }
 
                     providerResult.ResourcesDiscovered = discovered.Count;
                     _logger.LogInformation("{Provider} discovery stored {Count} resources.",
@@ -107,37 +121,41 @@ public class CloudDiscoveryService : IDiscoveryService
                 }
             }
 
-            // Persist edges only when both endpoints are known.
-            var allResources = new List<CloudResource>();
-            var page = 1;
-            while (true)
+            if (snapshots is not null)
             {
-                var batch = await _resourceRepository.GetAllAsync(page, 500, ct: ct);
-                allResources.AddRange(batch.Items);
-                if (batch.Items.Count < 500 || allResources.Count >= batch.TotalCount) break;
-                page++;
+                // The cache and graph were swapped together, or both were left
+                // untouched when this discovery failed.
+                result.RelationshipsDiscovered = await _graphRepository.GetEdgeCountAsync(ct);
+            }
+            else
+            {
+                // Legacy multi-provider/persistent mode is still upsert-only.
+                var allResources = new List<CloudResource>();
+                var page = 1;
+                while (true)
+                {
+                    var batch = await _resourceRepository.GetAllAsync(page, 500, ct: ct);
+                    allResources.AddRange(batch.Items);
+                    if (batch.Items.Count < 500 || allResources.Count >= batch.TotalCount) break;
+                    page++;
+                }
+
+                var knownIds = allResources.Select(r => r.Id).ToHashSet(StringComparer.OrdinalIgnoreCase);
+                foreach (var relationship in allResources.SelectMany(r => r.Relationships))
+                    RelationshipIdentity.EnsureId(relationship);
+
+                var edges = allResources
+                    .SelectMany(r => r.Relationships)
+                    .Where(edge => knownIds.Contains(edge.SourceResourceId) &&
+                                   knownIds.Contains(edge.TargetResourceId))
+                    .GroupBy(edge => $"{edge.SourceResourceId}|{edge.TargetResourceId}|{edge.RelationshipType}")
+                    .Select(group => group.First())
+                    .ToList();
+                foreach (var edge in edges)
+                    await _graphRepository.UpsertEdgeAsync(edge, ct);
+                result.RelationshipsDiscovered = edges.Count;
             }
 
-            var knownIds = allResources.Select(r => r.Id).ToHashSet(StringComparer.OrdinalIgnoreCase);
-            foreach (var relationship in allResources.SelectMany(r => r.Relationships))
-            {
-                RelationshipIdentity.EnsureId(relationship);
-            }
-
-            var edges = allResources
-                .SelectMany(r => r.Relationships)
-                .Where(edge => knownIds.Contains(edge.SourceResourceId) &&
-                               knownIds.Contains(edge.TargetResourceId))
-                .GroupBy(edge => $"{edge.SourceResourceId}|{edge.TargetResourceId}|{edge.RelationshipType}")
-                .Select(group => group.First())
-                .ToList();
-
-            foreach (var edge in edges)
-            {
-                await _graphRepository.UpsertEdgeAsync(edge, ct);
-            }
-
-            result.RelationshipsDiscovered = edges.Count;
             result.ResourcesDiscovered = result.Providers.Sum(p => p.ResourcesDiscovered);
             result.CompletedAt = DateTime.UtcNow;
 

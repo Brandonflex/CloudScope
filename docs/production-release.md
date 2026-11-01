@@ -63,10 +63,13 @@ was denied and the production domain redirected to Vercel Authentication.
 
 ## Still not full product capability
 
-Live mode currently provides paginated Azure inventory only. Persistence,
-reconciliation of deleted resources, live costs, compliance, AI over real data,
-AWS, SignalR, robust production rate limiting and real-provider end-to-end tests
-remain unfinished. Do not label estimates or unavailable billing as actual costs,
+Live mode currently provides paginated Azure inventory only. An Azure-only
+in-memory snapshot is replaced after a validated complete discovery; this changes
+the local cache, not Azure resources. Resource Graph is eventually consistent,
+and a completed query is limited to what the configured identity can see.
+Persistent storage, multi-provider reconciliation, live costs, compliance, AI
+over real data, AWS, SignalR, robust production rate limiting and additional
+real-provider end-to-end tests remain unfinished. Do not label estimates or unavailable billing as actual costs,
 or send real inventory to external AI without an explicit privacy review and
 consent. The production site must not be represented as a fully functional cloud
 assistant until these features and their safeguards are implemented and verified.

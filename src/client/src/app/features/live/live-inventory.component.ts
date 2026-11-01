@@ -43,18 +43,27 @@ import { MetaService } from '../../core/services/meta.service';
             <p class="warning">{{ error() }}</p>
           } @else if (meta.status()?.discoveryStatus !== 'Succeeded') {
             <p class="warning">
-              Discovery has not succeeded yet. An empty screen does not confirm an empty
-              subscription.
+              {{ discoveryMessage() }} An empty screen does not confirm an empty subscription.
             </p>
+            @if (validLastDiscovery()) {
+              <p>Last successful discovery: {{ validLastDiscovery() | date: 'medium' }}.</p>
+            }
           } @else if (inventory()) {
             <p>
-              {{ inventory()?.totalCount }} resources found. Last successful discovery:
-              {{ (meta.status()?.lastDiscoveryAt | date: 'medium') || 'time unavailable' }}.
+              {{ inventory()?.totalCount }} resources visible. Last successful discovery:
+              {{ meta.status()?.lastDiscoveryAt | date: 'medium' }}.
             </p>
+            @if (possiblyStale()) {
+              <p class="warning">
+                The last successful discovery is over 30 minutes old. This view may be stale.
+              </p>
+            }
             @if (inventory()?.totalCount === 0) {
               <div class="empty">
                 <strong>No resources found</strong>
-                <p>Azure discovery completed successfully for the configured scope.</p>
+                <p>
+                  Azure discovery found no resources visible to the configured identity and scope.
+                </p>
               </div>
             } @else {
               <div class="table-wrap">
@@ -99,8 +108,9 @@ import { MetaService } from '../../core/services/meta.service';
             }
           }
           <p class="note">
-            Inventory refreshes periodically, not instantaneously. Removed resources may remain
-            visible until reconciliation is implemented. Render's free service may sleep or restart.
+            This is a cached view of Azure Resource Graph, which can lag changes and is limited by
+            the identity's permissions. Refresh view reloads the cache; it does not start a
+            discovery. Render's free service may sleep or restart.
           </p>
         </section>
         <section class="notice">
@@ -242,6 +252,25 @@ export class LiveInventoryComponent implements OnInit {
   readonly error = signal('');
   readonly inventory = signal<PagedResult<CloudResource> | null>(null);
   readonly page = signal(1);
+  readonly possiblyStale = signal(false);
+
+  validLastDiscovery(): string | null {
+    const value = this.meta.status()?.lastDiscoveryAt;
+    return typeof value === 'string' && Number.isFinite(Date.parse(value)) ? value : null;
+  }
+
+  discoveryMessage(): string {
+    switch (this.meta.status()?.discoveryStatus) {
+      case 'Failed':
+        return 'The latest Azure discovery failed.';
+      case 'PartialFailure':
+        return 'The latest discovery was incomplete.';
+      case 'InProgress':
+        return 'Azure discovery is in progress.';
+      default:
+        return 'Discovery has not succeeded yet.';
+    }
+  }
 
   ngOnInit(): void {
     if (!this.meta.liveLoginRequired()) this.load();
@@ -268,6 +297,18 @@ export class LiveInventoryComponent implements OnInit {
           this.loading.set(false);
           return;
         }
+        const lastDiscovery = Date.parse(status.lastDiscoveryAt ?? '');
+        const serverTime = Date.parse(status.serverTimeUtc ?? '');
+        if (
+          !Number.isFinite(lastDiscovery) ||
+          !Number.isFinite(serverTime) ||
+          lastDiscovery > serverTime
+        ) {
+          this.loading.set(false);
+          this.error.set('The discovery timestamp could not be verified.');
+          return;
+        }
+        this.possiblyStale.set(serverTime - lastDiscovery > 30 * 60 * 1000);
         this.http
           .get<PagedResult<CloudResource>>(`/api/resources?pageNumber=${page}&pageSize=100`)
           .subscribe({
