@@ -1,0 +1,15 @@
+.git
+**/node_modules
+**/bin
+**/obj
+**/dist
+**/.angular
+**/coverage
+**/.env
+**/.env.*
+**/appsettings.Development.json
+**/appsettings.Local.json
+**/*.pfx
+**/*.key
+**/*.pem
+azure-credentials.json

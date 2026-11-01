@@ -1,0 +1,24 @@
+{
+  "name": "cloudscope-gateway",
+  "version": "1.0.0",
+  "description": "Experimental identity-aware gateway for CloudScope",
+  "scripts": {
+    "test": "node --test tests/*.test.mjs"
+  },
+  "license": "MIT",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "express": "^4.22.3",
+    "express-session": "^1.19.0",
+    "lru-cache": "^10.4.3",
+    "openid-client": "^6.8.8"
+  },
+  "devDependencies": {
+    "jose": "^6.2.14",
+    "supertest": "^7.3.1"
+  }
+}

@@ -15,6 +15,7 @@ public sealed class RuntimeState
     private DateTime? _lastDiscoveryAt;
     private string? _lastDiscoveryError;
     private bool _discoveryInProgress;
+    private string _discoveryStatus = "NotStarted";
 
     public bool DemoMode
     {
@@ -38,6 +39,13 @@ public sealed class RuntimeState
     {
         get { lock (_sync) return _lastDiscoveryError; }
         set { lock (_sync) _lastDiscoveryError = value; }
+    }
+
+    // Reports outcome, not just whether a provider has been configured.
+    public string DiscoveryStatus
+    {
+        get { lock (_sync) return _discoveryStatus; }
+        set { lock (_sync) _discoveryStatus = value; }
     }
 
     public bool DiscoveryInProgress

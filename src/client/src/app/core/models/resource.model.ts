@@ -324,6 +324,8 @@ export interface PlatformStatus {
   demoMode: boolean;
   /** Older .NET backends omit this field but do provide SignalR. */
   realtimeAvailable?: boolean;
+  /** A protected gateway exposes only real inventory, not demo analytics. */
+  liveInventoryOnly?: boolean;
   storageProvider: string;
   aiMode: string;
   aiProviders?: string[];
@@ -331,6 +333,7 @@ export interface PlatformStatus {
   resourceCount: number;
   relationshipCount: number;
   lastDiscoveryAt?: string | null;
+  discoveryStatus?: 'NotStarted' | 'InProgress' | 'Succeeded' | 'Failed' | 'PartialFailure' | 'Demo';
   serverTimeUtc: string;
 }
 

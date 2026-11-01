@@ -1,9 +1,10 @@
 # Real cloud data: readiness and no-cost boundary
 
-The protected Vercel preview uses a fictional estate and **cannot connect real
-cloud accounts**. This document is preparation, not a claim that a live cloud
-integration or identity-aware gateway has been deployed. Do not add provider
-credentials to the Vercel demo function.
+The existing demo estate is fictional. A Render test gateway has been started
+with an intentionally invalid Azure inventory credential; health and unauthenticated
+access denial were reported, but real sign-in, Vercel routing and Azure discovery
+have not been verified. Do not add provider credentials to Vercel or demo code.
+See [production release](production-release.md) for the remaining gates.
 
 ## Current constraints
 
@@ -42,8 +43,12 @@ credentials to the Vercel demo function.
 4. **Separate storage:** disable demo seeding and use a new, empty storage
    namespace for real data. Existing discovery upserts resources and does not
    automatically remove a previously seeded demo estate; never reuse a demo store
-   for live data. Do not delete existing data automatically. A migration and
-   provenance strategy must be designed before reusing a persistent store.
+   for live data. The backend now refuses to start with both a configured live
+   provider and Cosmos storage, because stored data has no provenance marker. A
+   process that has loaded the demo cannot switch to live discovery. Use a new
+   in-memory store for initial testing; it is lost on restart. Do not delete
+   existing data automatically. A migration and provenance strategy must be
+   designed before enabling persistent live storage.
 5. **Integration and proof:** route browser API calls through the protected
    gateway, not directly to a private backend or a browser-visible secret. Verify
    provider identity and authorization, actual discovery and provenance, error
@@ -60,7 +65,30 @@ credentials to the Vercel demo function.
    authoritative for billing.
 7. **AI consent:** independently approve whether any real inventory can be sent
    to an AI provider, review that provider's data use and billing terms, and
-   enforce per-user access and data minimization. Keep the preview demo isolated.
+   enforce per-user access and data minimization. Backend startup now rejects
+   configured Azure OpenAI alongside live providers until this is implemented.
+   Keep the preview demo isolated.
 
-None of these gates creates a cloud account, authorizes spending or proves a
-live deployment. The Vercel production demo function remains disabled by design.
+None of these gates authorizes spending or proves a live Azure connection. The
+Vercel production demo function remains disabled by design.
+
+## Hosting constraint
+
+The Vercel demo is not a .NET backend or identity-aware gateway. A separately
+protected, reachable backend is still required to connect its UI to real data;
+the dummy-credential Render deployment has not been validated end to end. An experimental Entra
+identity gateway, Vercel proxy and inventory-only view are under development in
+[`src/gateway`](../src/gateway/README.md); they are not ready for real credentials. Any self-hosted option
+requires a running device and network connection. Do not use a public quick
+tunnel as an authentication gateway. Cloudflare's documentation states that
+[Zero Trust onboarding requires payment details even on its Free plan](https://developers.cloudflare.com/cloudflare-one/setup/),
+so that option does not satisfy a strict no-card requirement as documented.
+A different no-card identity-aware solution and end-to-end Vercel routing remain
+unverified; free quotas or trials are not a guarantee of permanent no-cost service.
+
+Render offers free web services, but they sleep on inactivity, have limited
+monthly quotas, may suspend on exceeding limits, and do not support private
+inbound networking on the free plan. A single-container loopback backend and
+OIDC gateway and Vercel routing have mock end-to-end tests, but neither their
+security nor their compatibility with a deployed Render/Vercel setup has been
+established. See [Render's free-plan documentation](https://render.com/docs/free).

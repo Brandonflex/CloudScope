@@ -81,5 +81,7 @@ public class PlatformStatus
     public int ResourceCount { get; set; }
     public int RelationshipCount { get; set; }
     public DateTime? LastDiscoveryAt { get; set; }
+    /// <summary>NotStarted, InProgress, Succeeded, Failed, PartialFailure, or Demo.</summary>
+    public string DiscoveryStatus { get; set; } = "NotStarted";
     public DateTime ServerTimeUtc { get; set; } = DateTime.UtcNow;
 }

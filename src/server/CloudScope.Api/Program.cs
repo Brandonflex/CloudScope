@@ -75,6 +75,13 @@ builder.Services.AddSingleton<ICacheService, RedisCacheService>();
 var useCosmos = platformOptions.StorageProvider.Equals("Cosmos", StringComparison.OrdinalIgnoreCase)
                 && cosmosOptions.IsConfigured;
 
+// Persistent storage lacks data provenance, and sharing real inventory with
+// external AI requires explicit consent and access controls. Fail closed.
+LiveDataSafety.Validate(useCosmos,
+    builder.Configuration.GetSection(AzureOptions.SectionName).Get<AzureOptions>() ?? new AzureOptions(),
+    builder.Configuration.GetSection(AwsOptions.SectionName).Get<AwsOptions>() ?? new AwsOptions(),
+    builder.Configuration.GetSection(AzureOpenAIOptions.SectionName).Get<AzureOpenAIOptions>() ?? new AzureOpenAIOptions());
+
 if (useCosmos)
 {
     builder.Services.AddSingleton<CosmosDatabase>();

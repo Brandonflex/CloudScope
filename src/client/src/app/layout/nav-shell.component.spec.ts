@@ -7,7 +7,7 @@ import { MetaService } from '../core/services/meta.service';
 import { NotificationService } from '../core/services/notification.service';
 import { ResourceService } from '../core/services/resource.service';
 import { ToastService } from '../core/services/toast.service';
-import { NavShellComponent } from './nav-shell.component';
+import { NavShellComponent, runtimeLabel } from './nav-shell.component';
 
 describe('NavShellComponent realtime availability', () => {
   const metadata = signal<PlatformStatus | null>(null);
@@ -43,6 +43,20 @@ describe('NavShellComponent realtime availability', () => {
     })
       .overrideComponent(NavShellComponent, { set: { template: '', imports: [] } })
       .compileComponents();
+  });
+
+  it('never labels a configured provider as connected before successful discovery', () => {
+    const live = { ...status, configuredProviders: ['Azure'] };
+    expect(runtimeLabel(null)).toBe('Status unavailable');
+    expect(runtimeLabel(live)).toBe('Connection unverified');
+    expect(runtimeLabel({ ...live, discoveryStatus: 'NotStarted' })).toBe('Connection unverified');
+    expect(runtimeLabel({ ...live, discoveryStatus: 'InProgress' })).toBe('Discovering resources');
+    expect(runtimeLabel({ ...live, discoveryStatus: 'Failed' })).toBe('Discovery needs attention');
+    expect(runtimeLabel({ ...live, discoveryStatus: 'PartialFailure' })).toBe(
+      'Discovery needs attention'
+    );
+    expect(runtimeLabel({ ...live, discoveryStatus: 'Succeeded' })).toBe('Connected estate');
+    expect(runtimeLabel({ ...live, demoMode: true })).toBe('Demo estate');
   });
 
   it('connects only when a backend supports realtime, and resumes after recovery', () => {
