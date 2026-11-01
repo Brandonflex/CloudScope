@@ -16,7 +16,11 @@ deployment gates are complete.
   ID-token verification, a tenant-specific issuer and an explicit allowed user
   object ID. A regenerated secure, HTTP-only, SameSite=Lax cookie holds only an
   opaque session ID. Session data is bounded, short-lived, in memory and lost
-  on restart. Azure and sign-in secrets are kept out of each other's processes.
+  on restart. Azure and sign-in secrets are omitted from each other's process
+  environments, but this is **not process isolation**: both processes share the
+  same container and user, and the supervisor receives all secrets. A process
+  compromise could expose credentials via shared OS access. Do not treat the
+  environment filtering as a security boundary.
 - Only explicitly allowlisted GET inventory/graph routes are proxied. Costs,
   AI, compliance, discovery writes and SignalR are intentionally unavailable.
   The backend uses in-memory storage, demo seeding and external AI are disabled,
@@ -40,9 +44,11 @@ deployment gates are complete.
 2. Establish an Azure service identity with only the minimum read-only scope,
    plus a separate tenant-restricted sign-in application. Verify permissions,
    provider API behavior, billing and consent before using a real subscription.
-3. Independently review authentication, reverse-proxy headers, CSRF, session
-   behavior, TLS termination, access control, rate limiting, local backend
-   isolation and logging. Verify startup and denial paths end to end.
+3. Establish and independently review an adequate credential-isolation threat
+   model for the same-container supervisor, gateway and API. Review authentication,
+   reverse-proxy headers, CSRF, session behavior, TLS termination, access control,
+   rate limiting, local backend isolation and logging. Verify startup and denial
+   paths end to end; process environment filtering alone is not an isolation boundary.
 4. Verify the inventory-only UI's empty, failed, expired-session and cold-start
    behavior. Live billing, compliance, AI and SignalR are deliberately disabled.
 5. Confirm Render's no-card signup and free-plan terms for the actual account.
