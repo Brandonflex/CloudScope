@@ -19,12 +19,19 @@ describe('LiveInventoryComponent', () => {
     resourceCount: 0,
     relationshipCount: 0,
     discoveryStatus: 'Succeeded',
-    serverTimeUtc: '2026-01-01'
+    lastDiscoveryAt: '2026-01-01T00:00:00Z',
+    serverTimeUtc: '2026-01-01T00:00:00Z'
   });
   const loginRequired = signal(false);
   beforeEach(async () => {
     loginRequired.set(false);
-    status.set({ ...status(), discoveryStatus: 'Succeeded', demoMode: false });
+    status.set({
+      ...status(),
+      discoveryStatus: 'Succeeded',
+      demoMode: false,
+      lastDiscoveryAt: '2026-01-01T00:00:00Z',
+      serverTimeUtc: '2026-01-01T00:00:00Z'
+    });
     await TestBed.configureTestingModule({
       imports: [LiveInventoryComponent],
       providers: [
@@ -68,8 +75,35 @@ describe('LiveInventoryComponent', () => {
     status.set({ ...status(), discoveryStatus: 'Failed' });
     const fixture = TestBed.createComponent(LiveInventoryComponent);
     fixture.detectChanges();
-    expect(fixture.nativeElement.textContent).toContain('Discovery has not succeeded');
+    expect(fixture.nativeElement.textContent).toContain('The latest Azure discovery failed');
     expect(fixture.nativeElement.textContent).not.toContain('No resources found');
+    TestBed.inject(HttpTestingController).expectNone('/api/resources?pageNumber=1&pageSize=100');
+  });
+
+  it('warns when the successful inventory may be stale', () => {
+    status.set({ ...status(), serverTimeUtc: '2026-01-01T00:31:00Z' });
+    const fixture = TestBed.createComponent(LiveInventoryComponent);
+    fixture.detectChanges();
+    const http = TestBed.inject(HttpTestingController);
+    http.expectOne('/api/resources?pageNumber=1&pageSize=100').flush({
+      items: [],
+      totalCount: 0,
+      pageNumber: 1,
+      totalPages: 0,
+      hasNextPage: false,
+      hasPreviousPage: false
+    });
+    fixture.detectChanges();
+    expect(fixture.nativeElement.textContent).toContain('This view may be stale');
+    expect(fixture.nativeElement.textContent).toContain('visible to the configured identity');
+    http.verify();
+  });
+
+  it('does not show inventory if a success timestamp is missing or in the future', () => {
+    status.set({ ...status(), lastDiscoveryAt: '2026-01-02T00:00:00Z' });
+    const fixture = TestBed.createComponent(LiveInventoryComponent);
+    fixture.detectChanges();
+    expect(fixture.nativeElement.textContent).toContain('timestamp could not be verified');
     TestBed.inject(HttpTestingController).expectNone('/api/resources?pageNumber=1&pageSize=100');
   });
 

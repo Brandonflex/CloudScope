@@ -69,6 +69,7 @@ public class CloudDiscoveryService : IDiscoveryService
                 throw new InvalidOperationException("Live discovery requires a fresh store that has never contained demo data.");
 
             var result = new DiscoveryResult { StartedAt = DateTime.UtcNow, DemoMode = false };
+            var snapshotReplaced = false;
 
             foreach (var provider in configured)
             {
@@ -81,7 +82,20 @@ public class CloudDiscoveryService : IDiscoveryService
                 try
                 {
                     var discovered = (await provider.DiscoverResourcesAsync(ct)).ToList();
-                    await _resourceRepository.UpsertBatchAsync(discovered, ct);
+                    // Only the Azure-only in-memory store can atomically replace a
+                    // complete snapshot. Multi-provider and persistent stores keep
+                    // their existing upsert-only behavior until scope-aware support exists.
+                    if (configured.Count == 1 && provider.Provider == CloudProvider.Azure &&
+                        ReferenceEquals(_resourceRepository, _graphRepository) &&
+                        _resourceRepository is IInventorySnapshotRepository snapshots)
+                    {
+                        await snapshots.ReplaceSnapshotAsync(provider.Provider, discovered, ct);
+                        snapshotReplaced = true;
+                    }
+                    else
+                    {
+                        await _resourceRepository.UpsertBatchAsync(discovered, ct);
+                    }
 
                     providerResult.ResourcesDiscovered = discovered.Count;
                     _logger.LogInformation("{Provider} discovery stored {Count} resources.",
@@ -132,12 +146,16 @@ public class CloudDiscoveryService : IDiscoveryService
                 .Select(group => group.First())
                 .ToList();
 
-            foreach (var edge in edges)
+            if (!snapshotReplaced)
             {
-                await _graphRepository.UpsertEdgeAsync(edge, ct);
+                foreach (var edge in edges)
+                {
+                    await _graphRepository.UpsertEdgeAsync(edge, ct);
+                }
             }
 
-            result.RelationshipsDiscovered = edges.Count;
+            result.RelationshipsDiscovered = snapshotReplaced
+                ? await _graphRepository.GetEdgeCountAsync(ct) : edges.Count;
             result.ResourcesDiscovered = result.Providers.Sum(p => p.ResourcesDiscovered);
             result.CompletedAt = DateTime.UtcNow;
 

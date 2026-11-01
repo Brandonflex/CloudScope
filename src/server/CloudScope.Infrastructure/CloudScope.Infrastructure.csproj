@@ -21,6 +21,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\CloudScope.Core\CloudScope.Core.csproj" />
+    <InternalsVisibleTo Include="CloudScope.Tests" />
   </ItemGroup>
 
   <ItemGroup>

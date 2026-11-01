@@ -43,12 +43,20 @@ public class AzureResourceGraphService : ICloudProviderService
         IOptions<AzureOptions> options,
         IHttpClientFactory httpClientFactory,
         ILogger<AzureResourceGraphService> logger)
+        : this(options, httpClientFactory, logger, null) { }
+
+    // The internal overload allows tests to exercise the full pagination path
+    // without actual cloud credentials or network requests.
+    internal AzureResourceGraphService(
+        IOptions<AzureOptions> options,
+        IHttpClientFactory httpClientFactory,
+        ILogger<AzureResourceGraphService> logger,
+        TokenCredential? credential)
     {
         _options = options.Value;
         _httpClientFactory = httpClientFactory;
         _logger = logger;
-
-        _credential = new Lazy<TokenCredential>(CreateCredential);
+        _credential = new Lazy<TokenCredential>(() => credential ?? CreateCredential());
     }
 
     /// <inheritdoc/>
@@ -181,7 +189,9 @@ public class AzureResourceGraphService : ICloudProviderService
         var client = _httpClientFactory.CreateClient("AzureManagement");
         var resources = new List<CloudResource>();
         string? skipToken = null;
+        long? expectedTotal = null;
         var seenTokens = new HashSet<string>(StringComparer.Ordinal);
+        var seenResources = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
         do
         {
@@ -223,12 +233,19 @@ public class AzureResourceGraphService : ICloudProviderService
                 var root = document.RootElement;
 
                 var page = ValidatePage(root);
+                expectedTotal ??= page.TotalRecords;
+                if (page.TotalRecords != expectedTotal)
+                    throw new CloudProviderException("Azure", "Resource Graph changed during pagination; retry discovery.");
                 foreach (var row in page.Data.EnumerateArray())
                 {
                     var resource = MapResource(row) ?? throw new CloudProviderException(
                         "Azure", "Resource Graph returned a resource without an ID.");
+                    if (!IsInSubscription(resource.NativeId, _options.SubscriptionId) || !seenResources.Add(resource.Id))
+                        throw new CloudProviderException("Azure", "Resource Graph returned a duplicate or out-of-scope resource.");
                     resources.Add(resource);
                 }
+                if (resources.Count > expectedTotal)
+                    throw new CloudProviderException("Azure", "Resource Graph returned inconsistent result counts.");
                 skipToken = page.SkipToken;
                 if (skipToken is not null && !seenTokens.Add(skipToken))
                     throw new CloudProviderException("Azure", "Resource Graph repeated a continuation token.");
@@ -248,6 +265,9 @@ public class AzureResourceGraphService : ICloudProviderService
         }
         while (!string.IsNullOrEmpty(skipToken));
 
+        if (expectedTotal is null || resources.Count != expectedTotal)
+            throw new CloudProviderException("Azure", "Resource Graph returned an incomplete result set.");
+
         _logger.LogInformation("Azure Resource Graph returned {Count} resources.", resources.Count);
         return resources;
     }
@@ -256,11 +276,16 @@ public class AzureResourceGraphService : ICloudProviderService
     /// Validate that an HTTP 200 is a complete page, not an unusable or
     /// truncated response that could be mistaken for an empty inventory.
     /// </summary>
-    public static (JsonElement Data, string? SkipToken) ValidatePage(JsonElement root)
+    public static (JsonElement Data, string? SkipToken, long TotalRecords) ValidatePage(JsonElement root)
     {
         if (root.ValueKind != JsonValueKind.Object ||
-            !root.TryGetProperty("data", out var data) || data.ValueKind != JsonValueKind.Array)
-            throw new CloudProviderException("Azure", "Resource Graph returned an invalid data page.");
+            !root.TryGetProperty("data", out var data) || data.ValueKind != JsonValueKind.Array ||
+            !root.TryGetProperty("count", out var count) || count.ValueKind != JsonValueKind.Number ||
+            !count.TryGetInt64(out var countValue) || countValue != data.GetArrayLength() ||
+            !root.TryGetProperty("totalRecords", out var total) || total.ValueKind != JsonValueKind.Number ||
+            !total.TryGetInt64(out var totalValue) ||
+            totalValue < countValue)
+            throw new CloudProviderException("Azure", "Resource Graph returned an invalid data page or counts.");
 
         string? skipToken = null;
         if (root.TryGetProperty("$skipToken", out var next) && next.ValueKind != JsonValueKind.Null)
@@ -270,21 +295,24 @@ public class AzureResourceGraphService : ICloudProviderService
             skipToken = next.GetString();
         }
 
-        if (root.TryGetProperty("resultTruncated", out var truncated))
-        {
-            bool isTruncated;
-            if (truncated.ValueKind == JsonValueKind.True || truncated.ValueKind == JsonValueKind.False)
-                isTruncated = truncated.GetBoolean();
-            else if (truncated.ValueKind == JsonValueKind.String && bool.TryParse(truncated.GetString(), out var parsed))
-                isTruncated = parsed;
-            else
-                throw new CloudProviderException("Azure", "Resource Graph returned an invalid truncation indicator.");
-            if (isTruncated && skipToken is null)
-                throw new CloudProviderException("Azure", "Resource Graph returned a truncated page without a continuation token.");
-        }
+        if (!root.TryGetProperty("resultTruncated", out var truncated))
+            throw new CloudProviderException("Azure", "Resource Graph omitted the truncation indicator.");
+        bool isTruncated;
+        if (truncated.ValueKind == JsonValueKind.True || truncated.ValueKind == JsonValueKind.False)
+            isTruncated = truncated.GetBoolean();
+        else if (truncated.ValueKind == JsonValueKind.String && bool.TryParse(truncated.GetString(), out var parsed))
+            isTruncated = parsed;
+        else
+            throw new CloudProviderException("Azure", "Resource Graph returned an invalid truncation indicator.");
+        if (isTruncated && skipToken is null)
+            throw new CloudProviderException("Azure", "Resource Graph returned a truncated page without a continuation token.");
 
-        return (data, skipToken);
+        return (data, skipToken, totalValue);
     }
+
+    public static bool IsInSubscription(string nativeId, string subscriptionId) =>
+        !string.IsNullOrWhiteSpace(subscriptionId) &&
+        nativeId.StartsWith($"/subscriptions/{subscriptionId}/", StringComparison.OrdinalIgnoreCase);
 
     private CloudResource? MapResource(JsonElement row)
     {

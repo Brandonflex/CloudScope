@@ -1,10 +1,10 @@
 # Experimental identity-aware gateway
 
-**Not production-ready.** A Render test service was started with a sign-in
-credential and an intentionally invalid Azure inventory credential. Health and
-unauthenticated denial were reported, but real Entra sign-in, deployed Vercel
-routing and actual Azure discovery have not been verified. Do not add a real
-inventory credential until the remaining deployment gates are complete; see
+**Not production-ready.** The owner reported successful production-domain
+sign-in and shared a screenshot of a successful zero-resource Azure discovery.
+Unauthenticated API access was denied in a direct check. Unauthorized-user
+rejection, session expiry, log safety, RBAC scope, cold-start recovery and
+credential isolation are not established by those observations; see
 [production release](../../docs/production-release.md).
 
 ## Intended design
@@ -26,15 +26,17 @@ inventory credential until the remaining deployment gates are complete; see
   AI, compliance, discovery writes and SignalR are intentionally unavailable.
   The backend uses in-memory storage, demo seeding and external AI are disabled,
   and live Cosmos storage is blocked pending provenance work. Existing Azure
-  discovery upserts and does not reconcile removals, so inventory can be stale.
+  Azure-only in-memory discovery replaces the cache after a validated complete
+  query; other modes remain upsert-only. Azure Resource Graph is eventually
+  consistent, and the cache can be stale or limited by the identity's permissions.
 - The opt-in Vercel proxy forwards only the gateway session cookie and approved
   read-only routes. Invalid or unavailable gateway configuration never falls
   back to fictional demo data. A dedicated inventory-only UI distinguishes a
   successful empty result from a failed or pending sync. The proxy cannot supply
   Azure credentials or the backend gateway key.
 - Local tests use mock identity and signed tokens; they do **not** establish
-  that an actual Entra registration, real Azure access, deployed Vercel routing,
-  Render identity isolation, or cost controls work. In-memory rate limits are
+  all production security properties, full Azure access, Render credential
+  isolation, or cost controls work. In-memory rate limits are
   per instance and do not replace platform-level protection or DDoS mitigation.
 
 ## Outstanding gates
@@ -68,7 +70,7 @@ closed unless `CLOUDSCOPE_ENABLE_EXPERIMENTAL_GATEWAY=true` and all required
 settings are supplied; that flag is for controlled testing only and is not
 permission to deploy the prototype with real data.
 
-## Opt-in routing (not yet approved for live data)
+## Opt-in routing
 
 When the deployment and security gates are met, Vercel's server-side variable
 `CLOUDSCOPE_LIVE_GATEWAY_ORIGIN` can be set to the exact HTTPS `*.onrender.com`
