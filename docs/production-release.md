@@ -3,8 +3,10 @@
 This is a release checklist, not a claim that CloudScope is production-ready.
 As of this work, a Render Free test service has started with an intentionally
 invalid Azure inventory credential. A user reported that health succeeded and
-unauthenticated inventory was denied. Actual Microsoft sign-in, Vercel routing,
-Azure discovery, and production deployment have not been verified.
+unauthenticated inventory was denied. An unauthenticated request to the intended
+production domain was redirected to Vercel Authentication after the owner enabled
+protection. Actual Microsoft sign-in, Vercel-to-Render routing, Azure discovery,
+and deployment of this PR to production have not been verified.
 
 ## Boundaries and prerequisites
 
@@ -17,13 +19,14 @@ Azure discovery, and production deployment have not been verified.
 - Obtain approval before merging PR #40. It overlaps the still-open PR #39; the
   overlapping changes must not be merged twice without review. Branch deployments
   are not a substitute for a user-approved release to the production branch.
-- Production must use one exact, stable HTTPS production domain. The gateway's
+- The owner confirmed `https://cloud-scope-six.vercel.app` as the intended
+  production domain. Production must use one exact, stable HTTPS origin. The gateway's
   `CLOUDSCOPE_PUBLIC_ORIGIN`, the Entra **Web** redirect URI ending in
   `/auth/callback`, and the browser URL must match the same origin. Review all
   old preview redirect URIs and remove unused ones when no longer needed.
-- Enable Vercel Authentication for **All Deployments**, including the production
-  domain, and verify it from a signed-out browser before making any live data
-  available. Standard Protection alone excludes production domains. Do not use
+- Keep Vercel Authentication enabled for **All Deployments**, including the
+  production domain, and verify it remains enabled before making any live data
+  available. An unauthenticated check reached Vercel login. Standard Protection alone excludes production domains. Do not use
   paid Password Protection under the no-payment constraint. See [Vercel
   Deployment Protection](https://vercel.com/docs/deployment-protection).
 - The public Render endpoint is protected separately by the Entra gateway. The

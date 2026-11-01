@@ -171,3 +171,56 @@ test('Vercel rewrite restoration routes auth and API requests to live gateway on
     400
   );
 });
+
+test('production cannot serve the demo and only routes through an explicitly configured live gateway', async (t) => {
+  const { createApiHandler } = await import('../../api/index.mjs');
+  const oldEnv = process.env.VERCEL_ENV;
+  const oldGateway = process.env.CLOUDSCOPE_LIVE_GATEWAY_ORIGIN;
+  process.env.VERCEL_ENV = 'production';
+  delete process.env.CLOUDSCOPE_LIVE_GATEWAY_ORIGIN;
+  const routed = [];
+  const server = http
+    .createServer(
+      createApiHandler({
+        liveProxy: (req, res, url, origin) => {
+          routed.push({ path: url.pathname, origin });
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ gateway: true }));
+        }
+      })
+    )
+    .listen(0, '127.0.0.1');
+  await once(server, 'listening');
+  t.after(() => {
+    if (oldEnv === undefined) delete process.env.VERCEL_ENV;
+    else process.env.VERCEL_ENV = oldEnv;
+    if (oldGateway === undefined) delete process.env.CLOUDSCOPE_LIVE_GATEWAY_ORIGIN;
+    else process.env.CLOUDSCOPE_LIVE_GATEWAY_ORIGIN = oldGateway;
+    server.close();
+  });
+  const base = `http://127.0.0.1:${server.address().port}`;
+  const noGateway = await fetch(`${base}/api?__cloudscope_path=meta`);
+  assert.equal(noGateway.status, 404);
+  assert.doesNotMatch(await noGateway.text(), /demoMode|resourceCount/);
+  assert.equal((await fetch(`${base}/api?__cloudscope_auth=login`)).status, 503);
+  assert.deepEqual(routed, []);
+
+  process.env.CLOUDSCOPE_LIVE_GATEWAY_ORIGIN = 'https://example.onrender.com';
+  assert.deepEqual(await (await fetch(`${base}/api?__cloudscope_path=meta`)).json(), {
+    gateway: true
+  });
+  assert.deepEqual(await (await fetch(`${base}/api?__cloudscope_auth=login`)).json(), {
+    gateway: true
+  });
+  assert.deepEqual(routed, [
+    { path: '/api/meta', origin: 'https://example.onrender.com' },
+    { path: '/auth/login', origin: 'https://example.onrender.com' }
+  ]);
+
+  // An absent Vercel system environment must never silently enable demo mode.
+  delete process.env.VERCEL_ENV;
+  const unknownEnvironment = await fetch(`${base}/api?__cloudscope_path=meta`);
+  assert.equal(unknownEnvironment.status, 404);
+  assert.doesNotMatch(await unknownEnvironment.text(), /demoMode|resourceCount/);
+  assert.equal(routed.length, 2);
+});
