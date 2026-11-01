@@ -39,8 +39,8 @@ test('authenticated live path returns an actual empty inventory without forwardi
   };
   const gateway = http.createServer(createGateway(config, oidc, { backendPort: backend.address().port })).listen(0, '127.0.0.1');
   await once(gateway, 'listening');
-  const requestToGateway = (target, options, callback) => http.request({
-    hostname: '127.0.0.1', port: gateway.address().port, path: `${target.pathname}${target.search}`,
+  const requestToGateway = (options, callback) => http.request({
+    hostname: '127.0.0.1', port: gateway.address().port, path: options.path,
     method: options.method, headers: options.headers
   }, callback);
   const proxy = http.createServer((req, res) => {

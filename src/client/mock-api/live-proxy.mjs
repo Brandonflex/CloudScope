@@ -72,7 +72,9 @@ export async function proxyLive(request, response, url, origin, requestImpl = ht
       return fail(response, 413, 'Request body too large.');
     request.resume();
   }
-  const target = new URL(`${path}${url.search}`, gatewayOrigin);
+  // The authority comes only from the validated server-side configuration.
+  // User-controlled query text is a request path, never part of a URL authority.
+  const hostname = new URL(gatewayOrigin).hostname;
   const headers = { accept: 'application/json', 'x-forwarded-proto': 'https' };
   const cookie = sessionCookie(request.headers.cookie);
   if (cookie) headers.cookie = cookie;
@@ -86,8 +88,15 @@ export async function proxyLive(request, response, url, origin, requestImpl = ht
     let upstream;
     try {
       upstream = requestImpl(
-        target,
-        { method: request.method, headers, timeout: 25000 },
+        {
+          protocol: 'https:',
+          hostname,
+          port: 443,
+          path: `${path}${url.search}`,
+          method: request.method,
+          headers,
+          timeout: 25000
+        },
         (upstreamResponse) => {
           let complete = false;
           let size = 0;

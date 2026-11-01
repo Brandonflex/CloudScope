@@ -66,17 +66,21 @@ test('live proxy only forwards its own session cookie, denies writes, and reject
     })
     .listen(0, '127.0.0.1');
   await once(gateway, 'listening');
-  const fakeRequest = (_target, options, callback) =>
-    http.request(
+  const fakeRequest = (options, callback) => {
+    assert.equal(options.hostname, 'example.onrender.com');
+    assert.equal(options.protocol, 'https:');
+    assert.equal(options.port, 443);
+    return http.request(
       {
         hostname: '127.0.0.1',
         port: gateway.address().port,
-        path: `${_target.pathname}${_target.search}`,
+        path: options.path,
         method: options.method,
         headers: options.headers
       },
       callback
     );
+  };
   const proxy = http
     .createServer((req, res) =>
       proxyLive(
@@ -110,6 +114,8 @@ test('live proxy only forwards its own session cookie, denies writes, and reject
   assert.equal(observed.headers['x-forwarded-host'], undefined);
   assert.equal((await fetch(`${base}/api/resources`, { method: 'POST' })).status, 404);
   assert.equal((await fetch(`${base}/api/costs/summary`)).status, 404);
+  assert.equal((await fetch(`${base}/api/resources?next=https%3A%2F%2Fevil.com`)).status, 200);
+  assert.equal(observed.url, '/api/resources?next=https%3A%2F%2Fevil.com');
   assert.equal((await fetch(`${base}/api/resources?html=1`)).status, 502);
   assert.equal((await fetch(`${base}/auth/login?evil=1`, { redirect: 'manual' })).status, 502);
   const login = await fetch(`${base}/auth/login`, { redirect: 'manual' });
